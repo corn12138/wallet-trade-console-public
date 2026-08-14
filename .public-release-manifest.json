@@ -1,0 +1,4861 @@
+{
+  "files": [
+    {
+      "mode": "100644",
+      "path": ".dockerignore",
+      "sha256": "a8a9212109b64e8bed666c6266ac8d6af0b580c238a7ff87c38bd612c8683010"
+    },
+    {
+      "mode": "100644",
+      "path": ".github/CODEOWNERS",
+      "sha256": "dd6b3d6cdf74b9156bf91b17d388e2d2368320c9b9e15f5ba633bf2f35d96f02"
+    },
+    {
+      "mode": "100644",
+      "path": ".github/workflows/public-ci.yml",
+      "sha256": "0a37b1d872f43989dc3d9df449a369aa4359c8216d75976e3e4dd5998695668f"
+    },
+    {
+      "mode": "100644",
+      "path": ".gitignore",
+      "sha256": "3225b8cda47f0b099699bc290fe4d83d6500da05eb14297bab6969056c792894"
+    },
+    {
+      "mode": "100644",
+      "path": ".gitleaks.toml",
+      "sha256": "382326d7181dcc101e6f00c22e2ad69dfdd0389674a92ea4f27a7502628d65d7"
+    },
+    {
+      "mode": "100644",
+      "path": ".trufflehog-exclude-paths.txt",
+      "sha256": "bda8386ef349ee00258796f7424683aa4ac2819a51d6fb00bd1eeb260944d81b"
+    },
+    {
+      "mode": "100644",
+      "path": "CONTRIBUTING.md",
+      "sha256": "1f42e7b1375f542822e1a2eaf1c24da4edaec22497cb31520eb77f94dc74e165"
+    },
+    {
+      "mode": "100644",
+      "path": "LICENSE",
+      "sha256": "a312ab66600b2c78a3b4bc9ead8fc66eeb27cb0997391f80ff5ae0f7bf5885cd"
+    },
+    {
+      "mode": "100644",
+      "path": "README.md",
+      "sha256": "d4e25652c3e312e5a0da7d808f533ebce67830ad84de187ba0065d9d3645c521"
+    },
+    {
+      "mode": "100644",
+      "path": "SECURITY.md",
+      "sha256": "d916069d366626ce67dd0006aca15a10299eedd23f5b48d44ca64ff109a84c52"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/.env.example",
+      "sha256": "aaab6a59c178a4435d37a1787e9a4f95f62aa2195a3feb8570dfe34da5c53f69"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/.env.vercel.example",
+      "sha256": "1bb5d950deb3d070903c88d31f6f873d0b51fa43810a1b79cd531a5bf3378e5b"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/.eslintrc.json",
+      "sha256": "c42575f830bb5003bb7be58fbec13d0ca65a6188155067e98076a7f3977e7472"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/eslint.config.mjs",
+      "sha256": "fc0aa3960f020e78546480b160144afa54cb6b147492ea5c5e823eef14712d57"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/next-env.d.ts",
+      "sha256": "1862ac4bbbc5192d4bf562161df66ea547ed3e67173100656ab606ae9797db2b"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/next.config.js",
+      "sha256": "e2adb5182b823cdfd999ef478ed0bd436a668d38a7aec8acd13a2117d6a5a492"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/package.json",
+      "sha256": "403d6100fd98bde0af9c2c091948a6166552128f00e260f32419fa75685709ac"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/postcss.config.mjs",
+      "sha256": "3aac0d047d7dd505eea362c918e2ddd0436428682c5de5cb18feda70d46aa5cb"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/public/apple-touch-icon.svg",
+      "sha256": "a5969e4fe73ca6e4982d86619272009349a3e4934d96caaaa42c2b6ab7c9d1f2"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/public/favicon.svg",
+      "sha256": "9ec1efb9955354e175ad24e6ae81bd717b76a4997ef69a0e1460523bb8887bc9"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/public/og-image.svg",
+      "sha256": "f96b94856e2341a2bb231c8876c091d8feb690ce381a76eb40906cd9cb861097"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/public/safari-pinned-tab.svg",
+      "sha256": "9bea61c3988b2cd0f3fab41c9673a05e6c6a1abfc62db19a5fcb5095abb5232d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/public/site.webmanifest",
+      "sha256": "2029647b5c97d9b265a941deb4e1d0786e0e452b294c2af2e1cd5fea4bb4864d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/(legacy)/events/page.tsx",
+      "sha256": "1d91323692e60ade690ec0c2e3737e8e42b297758ef619aa32799bf47c6ebae7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/(legacy)/portfolio/page.tsx",
+      "sha256": "5aea03fd7a67b4f09e0177b8df5cfb0282a3281363382cb511ad9958aa180daa"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/AppContext.tsx",
+      "sha256": "cbfaca8b812ac282f22f6dcc422842d8891ed93b72e243cd5953c9d00a8fdc16"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/Common.tsx",
+      "sha256": "6f65494ea74d7b133dfcda892fd4f2368793f04cb9eb0c8accf82b9de86bf931"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/DataState.tsx",
+      "sha256": "511bb4083da9c10ec89fbde5768a2834373c9442280c23c0b6fce3e4dd7488fc"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/Frame.tsx",
+      "sha256": "eb481e423e4bb1ff7b4977369416477ca13a7a88af61924bb0a82b5e2cd8b633"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/HomeLivePreview.spec.tsx",
+      "sha256": "e8c7c495b471b883938d81697a28c62116cc7b3d72a1380f8a3ff7b8a01f4531"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/HomeLivePreview.tsx",
+      "sha256": "151e0594300fcede84c586dff56fea6232ce85c0c23bf4e89a33f22d1f8092ba"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/Icon.tsx",
+      "sha256": "a8dad2e81e0d2c36e29021cf22d676d08ffbee10645c161225d0a323d56a5d30"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/MiniChart.tsx",
+      "sha256": "1f2994e6f9d0fcc080a1dbd59b73960101f7e92be2026a622ff90c4f7aa9ae1f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/PagesMarketing.spec.tsx",
+      "sha256": "790b19a5d6075360b9ac37d3cdebc1becc8cb2c288176b468545c208192aab3a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/PagesMarketing.tsx",
+      "sha256": "adbf2c1c8ac522b6da627688cfc0ae06effa3d98aeb54950bc3c331da1f370c7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/ProductStatus.tsx",
+      "sha256": "82737a55bca8d836a26bbf83e0015085147ed62a20a7d953613b7f98c2249b9b"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/TxPreflight.spec.tsx",
+      "sha256": "3f0d2b41046be868b9e78d5ca4f4a8105020acf1b930917396c3ada898d41250"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/TxPreflight.tsx",
+      "sha256": "19a877ab38e79a0ef5a2cbbbf5d58a498d049543d5fb80397900981814ca8b51"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/data.ts",
+      "sha256": "0716832d1c503e4af4e0e8b6235c4f6bb57b961bd9d1a38f7c15cca1ef146b36"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/diagnostics.spec.ts",
+      "sha256": "f90eaa84816c37deb868fa6c084ba973f1ce2861adf9650931e06652bf708e6d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/diagnostics.ts",
+      "sha256": "43d10b1d05accb4caca068e5feeef6a26021a48565d77b346d6fa39a7aeefd39"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/enums.spec.tsx",
+      "sha256": "17cceec603aa9c999392af43e8e19ae5c22b46ae81b77111d39b1071a25a68ef"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/enums.ts",
+      "sha256": "39780f30eaf04b63fd9bf0537677f5a8e5d1e647dc20fde9246a80529bc0fe24"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/ActivityPage.tsx",
+      "sha256": "ebd56e536ec810e794641e19a569cfad409ac8ef043e2742fcc69c5db8739864"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/BridgePage.spec.tsx",
+      "sha256": "923c8224ce0459587f2b42fa553a1510200aded1bdd2437ba93a1a6dc67717f0"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/BridgePage.tsx",
+      "sha256": "4acba305c84ce1562e341575bac31bbba17650914ba1e6cb7a3c2d53e748dbfe"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/CampaignPage.spec.tsx",
+      "sha256": "7ce56663d4901fee221cb13afa1a4b3736b94087dfdf38f3e34adf633c882c77"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/CampaignPage.tsx",
+      "sha256": "091098328a12e1a01b635a1efaa89f97ce98ac0d45b30f3e8d810f78556d48ea"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/DiscoverPage.spec.tsx",
+      "sha256": "3e745998b6a8ca79db29d04eb95ecc9a512343735a30e5e5349157085a640049"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/DiscoverPage.tsx",
+      "sha256": "33752562a8ee61a297970197009444d9e7891b181f820cd4543de2012e3248cf"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/EarnPage.tsx",
+      "sha256": "e43665b4eaf51f27d67fa31ba6d7f9501f0aac3c550ecd2da6a0c48c8cfc062e"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/MarketsPage.tsx",
+      "sha256": "4bbf8c4349daff4ec078e6dab12693229af102ec5e2772d3b35f9f2b181cd398"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/RankingPage.tsx",
+      "sha256": "a5c02069877c79b134614b9cc0721abc94e9843e0e79f31f3cda7d3cb9000bb7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/SecurityPage.spec.tsx",
+      "sha256": "5b0c9f22cefa3733da04e8f96bb6df2bcd56a1a80eb83ef1653218361e7578e3"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/SecurityPage.tsx",
+      "sha256": "2c6591e2b563afdf63b4f1ebd5458c1d2860a1e205de5221bc3007ce2921058b"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/SettingsPage.tsx",
+      "sha256": "377505381e570260bad7079fe514578e02a7f0976a444363ebc76e94d58f7c91"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/SwapPage.spec.tsx",
+      "sha256": "cd1105d17184a2d0c012d524dc10d82850b1a9da079afe6e401280d23bb3987a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/SwapPage.tsx",
+      "sha256": "9af806ca2e2b03193d50b38b8a3c6735d8bd42dee9909a2dd7a183cf74cc4dc3"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TradeCandleChart.spec.tsx",
+      "sha256": "f64486c7fbc74e9287c4e4fba84b05facbcb77e67f0c890a1e146949826b2c26"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TradeCandleChart.tsx",
+      "sha256": "3c7768208d29deed1b44de79934b93f98c4f96b33d33c0aa2c89a506fa6a9533"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TradeMarketPanel.tsx",
+      "sha256": "55b44deaa8247c4dea487b4b56ad26137580ab40ded1e6dcdeabf9fe9a880669"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TradeMarketRail.tsx",
+      "sha256": "e7f09b63c0f3acd9d21b7d079aedf3eb011add71fd8b48771fb775586d7a08b1"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TradeOrderbook.tsx",
+      "sha256": "7c5b38b6bf03a97b3988914943fa150a4635f38e82f4a1d4c3872027b01af61a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TradePage.tsx",
+      "sha256": "2d18ceacfe1e05ad54411495f782e777abaf832b60fcdf96a87d8e7ecf1d6b3a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TradeTables.tsx",
+      "sha256": "daa7e5a819c2de6ecd503366e6a6678f0aa0bba2863acfc0a3e3425fb72c2ac6"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TradeTicket.tsx",
+      "sha256": "8aeacc3599fa9902f9cd4870ffee897a64aff12bde0d002e8606836b32c0da44"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TxReviewPanel.spec.tsx",
+      "sha256": "efd25ca307c2bd5a0e818e1eddfd83505e884cc79c1171d966585a9d970fda55"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/TxReviewPanel.tsx",
+      "sha256": "f22e061b2efaa69d9e5ec79c05460f42f705fa8fdf7483af7c88fef4a699dcd8"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/WalletsPage.tsx",
+      "sha256": "238be4d338be6e9ff594ece362bd9f1fb1dc66886f80bf3601ec1bd8d2d72d30"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/assetUtils.ts",
+      "sha256": "056e3c681f0d0feb18cec893dd20747abfd2c303e125ec54c5f288a7444d051d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/tradeTypes.ts",
+      "sha256": "69cc59b139c1b4b940d1cf258141fd5e1884091d3a6e0f191ed9deaf1ae5a046"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/tradeUtils.ts",
+      "sha256": "64373c87aba09e5d729c2a1c5980f2f46533463bfbb81fd59790349c4468d63a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/useRevokeApproval.ts",
+      "sha256": "13f0c11541d7722f9ca4259041f6953e5010721655d7e812a7bf5c9c33897471"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/siwe-modal-state.spec.ts",
+      "sha256": "261e836cecfa4298de4b4aa0dee54afb0b07129ab30290c3c93b78174ca6661a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/siwe-modal-state.ts",
+      "sha256": "1fb6afb5f20f21f8b92efecfdc9d2cf0f5e7bbc34f07753697caa4647e56614f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/activity/page.tsx",
+      "sha256": "0b067b21b336acdb2fcae6b9ae5272ce0e7c2b7c3e7fc6fe05672877d5b09995"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/admin/i18n/page.spec.tsx",
+      "sha256": "a036ba97bcadd15a40ebee1da8c97acbbf5a3cc40ea768f2058b002be3709ad6"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/admin/i18n/page.tsx",
+      "sha256": "9cb8e0da9cc6d56e2834e94daf448a0a90f3176f77bc99697b323efe6dc44541"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/advanced-earn/page.spec.tsx",
+      "sha256": "b69afcdcaafeb281eae1964f97e03076544329721728acc93da1acb8fb06f2e2"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/advanced-earn/page.tsx",
+      "sha256": "4923670737b179ac038be1c13b82045701a08de5c8706082ca3af7cd854b7320"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/atlas-design.css",
+      "sha256": "eaed8e1f10c34dbf07c2e4bfe58915d243db64df6d2a69035e6fe48af5a936b9"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/bridge/page.tsx",
+      "sha256": "77a319a1020b936c737331e0b7721b025ff2512038d6900a90d62602c89865f2"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/campaign/page.tsx",
+      "sha256": "2fd65de6af5e7810155fff9075e1b26ef01f002570f14c89d31d2034e364e8c1"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/CreateTokenBasicInfoSection.tsx",
+      "sha256": "f8613743e336476ac8b2975ecbdadc3a99554157db377a1a341e1c093780d7d5"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/CreateTokenFormPanel.tsx",
+      "sha256": "1beca5627202420ac56a8a8e83a2291101d078eec0d02dad9bcaee64d947c216"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/CreateTokenPreviewPanel.tsx",
+      "sha256": "057849b88079de6f3f201c1e5aae8de2c6c3a87c281c7f4f8403b7993c5242ef"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/CreateTokenStatusNotice.tsx",
+      "sha256": "4b4957a1fe8a48bffab315a08bc796801f2b62432f03bc2990f21963bcf3caa8"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/create-token.constants.ts",
+      "sha256": "1ad475c223335c11d02003c484a8e0445e29fd74bc39db7c2b272fe9b012ee06"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/create-token.types.ts",
+      "sha256": "8f51ac1bf7f7a49148990b3da13a1db219be90f7be520c54452d27e3f1ea2eca"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/page.tsx",
+      "sha256": "0c9d318f81261376125ca8d1ba1a1d68c02f95fee87998361cb2bb3a05e4f978"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/useCreateTokenSubmission.spec.ts",
+      "sha256": "b60d19591c9fc0e9e99c32cefcecd9f1cdeedcaca86d3ca9f7ca1a02c7a40957"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/create-token/useCreateTokenSubmission.ts",
+      "sha256": "58b390dcc8bcc5a587843bb448c32927596feff80dda7ddf2b2e28e98c072d9d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/discover/page.tsx",
+      "sha256": "f3d7f8f7f2df5fdc31ec17b831926d728fedf9ff98dbf71aad7783fe083862ba"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/earn/page.tsx",
+      "sha256": "e9cb33e5b7c730cda3c89bf9e3b6f07ac39e49ba814cb392f61fac0b103fb364"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/fonts/geist-mono.woff2",
+      "sha256": "b7ac144b394cbd81052d6397ec0c33397977b1d7e9bc095e744e652a378c6fb3"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/fonts/geist-sans.woff2",
+      "sha256": "1b5ebfb3a01a97343ac96873e6d59a8cb285c66012b6a1ac509cb2765e995ba8"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/fonts/inter-400.woff2",
+      "sha256": "27ae72daf88c7431896929273087c99910d019ae82dc0af7d86505c0f5ef5dbf"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/fonts/inter-600.woff2",
+      "sha256": "87d718a282da60f8ef79c2c85e2999bd0fe7a6ef3fc77ccb3ad8a5ff8474b1ef"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/globals.css",
+      "sha256": "87afadae57da72b8d451155c18bfc708e04e0f5527648c8ba18299df74f90f74"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/layout.tsx",
+      "sha256": "b3c881fb8c056aae280a6d99f6257a9add2ba323338d458feb042db7b899479e"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/markets/page.tsx",
+      "sha256": "62162d2af8f61f1bca56e1c873ca20943bfef153372809f72a50641fc4909039"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft/page.tsx",
+      "sha256": "4125f0f2d847a34d2737bb714e3d45b2e7700cf7c94ac6f8e02bb4f316db3899"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/IpfsMetadataPanel.spec.tsx",
+      "sha256": "22123db2d0fffdc737c8b8af9847d7a2d433e3cc85387e738868f9846edf1364"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/IpfsMetadataPanel.tsx",
+      "sha256": "588f4454a94a799a6d2c41ad11336379a65083eadcbcf94d6ae2666de98042f7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/IpfsMetadataPreview.tsx",
+      "sha256": "d876bbfdf36d7f94a3b7306c9cce67f885b02787c65638fd3d5ca14a55954db3"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/NftContractStatusCard.tsx",
+      "sha256": "a03d8bd07e3d7cfee57b53abcf640a154f2792722ae4d73c22776804b35d1c2f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/NftStudioHeader.tsx",
+      "sha256": "5f620637dfda106d6349f6c8568479021e1cba2a7c40021a02d4cf4978a5a027"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/NftStudioStatusNotice.tsx",
+      "sha256": "42ebaa5b9c68eeb6cb010877e3f1b01c20a68e2ea0dae5889b1eed62ae7f798d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/OnchainArtworkPanel.tsx",
+      "sha256": "01ae1dbf17100007ef35dbb28961e79c6bbcc05f2998a5f0e9bab4f205e3cb2c"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/OnchainArtworkPreview.tsx",
+      "sha256": "40935c07557fb7c7f329f84268549fa909b92b5e9ef4ea28b4b20301dcd76a6a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/nft-studio.types.ts",
+      "sha256": "5aaae3d09cc8d834edfe1bcc67c86d0015f37aa13620909f6cad5e8627cd9ab8"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/nft-studio.utils.spec.ts",
+      "sha256": "2fc4e89bc857c3f6f57e6bb7d1e387c8cc35629dd55143c848c1723eb757dd12"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/nft-studio.utils.ts",
+      "sha256": "259695ed42be2eb468a3d814299b1b7caf5daf0706c6ade7e908363862398988"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/page.tsx",
+      "sha256": "d2ecefade241fe7f989a6f0c772a0e05cb09cbee9d264059c95b4767417d3ee1"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/useIpfsArtworkMint.ts",
+      "sha256": "cb1f64f10de09cb6a88fd5664e9b91271c698644ac45e68b5ea3d3a051a24f32"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/nft-studio/useOnchainArtworkMint.ts",
+      "sha256": "4b97ed658e07ef57fc568eb55ea1452400adabb0f875210a599be53ec87d0d3c"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/page.tsx",
+      "sha256": "97e1360ee70e9c290ae507421df828f833423b46d81cde81b5e0f00c4e00db7a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/profile/[address]/page.tsx",
+      "sha256": "35959ec0fadac50b3b0b210917a687255b6cd73add36277be7acb2800f1cd2f8"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/ranking/page.tsx",
+      "sha256": "2fcc6f247b3965b52ddcf427d2a5bc96050570cbe9503bf81a2e778aa86496d7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/security/page.tsx",
+      "sha256": "d01314d8d5cbef3d3780665d158f088a502a387a4cd09b5e4e84ebd48ddb5e64"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/settings/page.tsx",
+      "sha256": "394d2b52590f67ff97a0ec2f53a5b376da08b4cf704ee703e776d5d04fed30a1"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/swap/page.tsx",
+      "sha256": "1717b84e16e1d6e39a5708a838e83b4822b897e7e57a2fb68760197a8284fd01"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/TokenBondingCurveCard.tsx",
+      "sha256": "c019fb1d493bc4de531812cd929f5079171809544c5feaa47e6d617261462f83"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/TokenDetailHeader.tsx",
+      "sha256": "9ec7d88326866cec582f529ebd21a06fd05ffcc0ae3250b924a5d0a04f6f287b"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/TokenDetailSidebar.tsx",
+      "sha256": "fca31558d41c76a11deff2deabcfbc27b3e8f91548e303310dec9fa54beeb683"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/TokenInfoTabs.tsx",
+      "sha256": "c20a55b58004fadaeba2b0583e977d874ba2b929eeb6f840323c188ddc40027f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/TokenTradePanel.tsx",
+      "sha256": "08103f0bf5fd0458a845352e972e7f03ad9df05c643abf4784ad9ba6e10f2e46"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/TokenTradeStatusNotice.tsx",
+      "sha256": "6ae0948ca402da9d995c38b28aeafb3e78167f0ee44fbb22f7cf5f57918508d6"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/page.spec.tsx",
+      "sha256": "ef029167fc172ff52596e729d8ea8a2bb7c6cccac72ecd2732d6c700fbf9bfa5"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/page.tsx",
+      "sha256": "a67fdd16f8176a762e5ae0055389697b2c2138285be3029b164cb7269cd3cfd9"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/token-detail.types.ts",
+      "sha256": "26cc7345c368b288b4a331e032b646e00eafeadfc8c242ed0fa20964b2a59892"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/token-detail.utils.ts",
+      "sha256": "46695dfb588c57d60c558edb38737ab4e487f76dc37703d0613ecd703117f70f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/trade/layout.tsx",
+      "sha256": "aedd8351ad6182ac3ca2e3c9547b82d74485f4028c5330cfc76d6dcd7ebbe86a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/trade/page.spec.tsx",
+      "sha256": "d597546fb39fdb7ace5d23f91b2f81db9609462485ac12eb815d589efa621d37"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/trade/page.tsx",
+      "sha256": "8e42fc0e825c712fa1e18c1d6d53982dcb11817341b56f40d46ae93e9753b367"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/trade/trade-execution.utils.ts",
+      "sha256": "3c04d00714f5132f4c6eb3146a2d3b1cad93d2898131488ed91629d643430044"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/trade/trade-order-messages.ts",
+      "sha256": "2157756b31cd8b5975bd1184f58b0096c73cc49aac33114fc704b9fe2338ac18"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/trade/trade-page.utils.ts",
+      "sha256": "43457a00f2f631b8b837f53523cba06a094455ea98c22ec0449ba6459ca29bdb"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/wallets/page.tsx",
+      "sha256": "2f4fbea8d2d3f8c645e0faff7a0987d5f9a81a8dd1197c6780c6489659933ea9"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/LanguageSwitcher.tsx",
+      "sha256": "2583e27146d47a0472e0b6656f82ce0359f25ccb60db7c73e6642c438a9c244e"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/atlas/AtlasEmptyPanel.tsx",
+      "sha256": "06fc30078efd20066b0f451545af13f092d329db02dc56b499bee1f85397c7fd"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/token/HolderDistribution.tsx",
+      "sha256": "d3ea333b21ca7593851c0a1f3491350de0dbbcccfb0e9bd76988cdbf682d39f7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/token/PriceChart.spec.tsx",
+      "sha256": "ce7281fd4018ab464e6629aba8f0f869e182b52430d7ef783ed3f9b20f1c00cc"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/token/PriceChart.tsx",
+      "sha256": "30886998fdbc43bf56828ec5d641bc79b6b29d6d141fe159c3f4fb5cbfc85392"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/token/TradeHistory.tsx",
+      "sha256": "987000d56d2986486ed5828c8ea895ede79c65b54ea8d4688b1dffbeda1ac493"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/token/TrendingTicker.tsx",
+      "sha256": "c09acca4e006d7b9e4524dd9cba38b7a572d0ecaa7149538041de7147be6d3cb"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/trading-chart.utils.ts",
+      "sha256": "83eb780978d910af18c7bf355b27a4d11285ab6f98aee2ffd1e86e520bad0676"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/web3/AuthenticatedWalletMenu.tsx",
+      "sha256": "792ae954b50b07a33f7e61a4237a33bd84fc2fc60737313f36afa0bfe7e551bf"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/web3/ConnectButton.tsx",
+      "sha256": "ff1d8611f90d1597f65f11dbfb9decf813800f30941b33bf9160cd747935fcb0"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/web3/ConnectButtonPendingAuth.tsx",
+      "sha256": "fbed1f58f35f5cb3fb738ec58befc80fc86274353414716fa0f1b6c16ae182de"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/web3/WalletButton.tsx",
+      "sha256": "497c56c7eb02bb7b69cf9f49b6636a911fba19b7a727b4001f40fbca7abfab50"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/web3/WalletConnectorMenu.tsx",
+      "sha256": "26f4784892f0e1d319c2c335b523cf59e82901596fc3430439a0e1286da515f3"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/web3/connect-button.utils.spec.ts",
+      "sha256": "0afbd9021eaee2971c74d9c3eb560bf18d338e24d47ebdc3bb67ab41ec0b24c7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/web3/connect-button.utils.ts",
+      "sha256": "37526b5577e881e98ad394e3d7b6cee319ea761a986e22505063c688276074a4"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/components/web3/index.ts",
+      "sha256": "2fe5eb326d7a19d952f91d338d4366ec363be4130ca1637eed3bb9c462274b6c"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/trading-execution.utils.ts",
+      "sha256": "e157cb59baf6004d5b7e20a11c084ef4332ce88cb732425fa6be1a67d83767ee"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/trading.types.ts",
+      "sha256": "ffb742970302ea315b87174c958c9ef1d7b6990c320765c380523e7effc3f31f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useContractConfig.ts",
+      "sha256": "98992dc8720e176a8ad8c55d06484541f63e0904ba16700041097791131c79b2"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useDisplayChainId.spec.ts",
+      "sha256": "f3f293af84798a7a3cd421d339cf1968a2d3517518d33bfb366cfb4a77a12561"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useDisplayChainId.ts",
+      "sha256": "f81237c37add206664bfb7a29f9384e6e75cb83674c46951502dc94607a5d961"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useMarketStream.ts",
+      "sha256": "c208743e5e8295fa7defcea65d9140513bd62a08bd0aafdf1655ff9de045579d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/usePriceCandles.ts",
+      "sha256": "f9f7307529764347544cf09c32c93ca8cbe3f24a6b16d2db8e8d540dd86687ad"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useTokenEventsStream.ts",
+      "sha256": "248a2c541073e3416a2f593199572ca1955f772df9a238f47c2bf6cceadfbbf4"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useTrading.ts",
+      "sha256": "3403adcad5f203df279ac557826caf8caf3d6f0f94678ef90bec5b9759104b5b"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useTradingActivity.ts",
+      "sha256": "8934182c0118c053e6570c154e077c6103ccebb717f11bba0b8f0e00b0265da5"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useTradingCandles.ts",
+      "sha256": "650725717fca6d4642c65d5745eceb917d23230fc6374f3962c5d037988f0c5f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useTradingTransactions.spec.ts",
+      "sha256": "87d63836341d2ccde4fd9c38db9d3418c1b4176c0c817992b74953397dcb1124"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/useTradingTransactions.ts",
+      "sha256": "0df339e2b656608d4e10ed6cb663499ce4ce21570fc56c42b2432f25d7cda7f3"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/index.ts",
+      "sha256": "fec6fcf6359ad044c4494ba3a8b11c3f12b8a9a8a70619a2450a37a32c2523b7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/useClientMounted.ts",
+      "sha256": "d4a4067e29bf6bdc46a60be8b8945066c0b73ecec56436b34c5ebcece71624a7"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/useEvents.ts",
+      "sha256": "5fb831c65ae711299b8bb92f1eefa5a0637661c619b14724b3a75e4f9f36e5a6"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/usePerpPosition.ts",
+      "sha256": "f35e2cdacfec2f97ddf744b040dbd3db33f15810df7348b028bfcd4d376f3fcf"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/usePerpPositions.ts",
+      "sha256": "7dc373b8261905b7fc076acafcc8c8ed04047d1e2b1a5e87f4369d3c29bff90f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/usePerpPrice.ts",
+      "sha256": "40840840449e927b1691392bde1e89adaee4e58e908bda2e1b1d67b28b93e445"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/usePersistTransactionLifecycle.ts",
+      "sha256": "b3f54164566b1d8fb53a371513b2f7286d26e6ad0b249fe0ca5bd6ae9c6393d3"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/useSiweAuth.ts",
+      "sha256": "2ed64f1fde9ec1972dacbc241a4345402c17c65ed54e837d84a2d38a3c7dc09a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/useTokenApproval.ts",
+      "sha256": "6da9ebbaf2273f8bb4ef42947c64118b1927290b124cf805e2c5f85e2429b8a8"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/useTokenBalance.ts",
+      "sha256": "a788c1bf060da13500c813dcf9be3798102c9d0b2d679f261a8d37ea85a96947"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/useTxFlow.ts",
+      "sha256": "79bcfe13550f86f784591a0deda78a2f7b796063db3ca2b5f1695559284e7034"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/i18n/actions.ts",
+      "sha256": "8e39c1a2cf209bffef83ada8ff4e2cfea53b74b3cf3937685434d71d2735c976"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/i18n/config.ts",
+      "sha256": "a2f3dcb95727d8d36ce294664f0e70b049381ea788404191334dd027c9c2dd47"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/i18n/index.ts",
+      "sha256": "f221483eb49201f43a4d0bba78cf5ba9a328a29ab513f9d7ca02a6b4c170eebc"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/i18n/provider.tsx",
+      "sha256": "bbdd8b5d8b796496d26b861088e1b55c61bed20d32c1d89a71efd9dbd2de384f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/i18n/request.ts",
+      "sha256": "b5a397c59052af4b552ef7d9e057fe9371fd4d46d0f3c95bc4730fb009c2e93f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/i18n/resolve.spec.ts",
+      "sha256": "5b9b6be0ae106170faa23a7024bf44e56e6eaa1600fc41c51d70780b461e6063"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/i18n/resolve.ts",
+      "sha256": "c1b429b59cdf8641ad316bd5d683c825b7f17e28424d12d54e898c70a3ac1c99"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/i18n/server/catalog.ts",
+      "sha256": "e25d85d6b0269475b390de8c8b7ae85a385e7a50640ae76aa47014291d0d21cd"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/atlas.ts",
+      "sha256": "8fd130dea476945c924eb8a65f4b791f583a05ff89203906563e97aa850a419d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/auth-fetch.ts",
+      "sha256": "d705fbf4da08b4bc6527d2084c4e06f1969ea2c7bae6cbb389131b3a8e3ed4f5"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/base-url.spec.ts",
+      "sha256": "fa94e50a946eeddf6146ff3aaacf14abf55bde5cacedf12d7d2835864be3ef6c"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/base-url.ts",
+      "sha256": "d0bb75205f47169e70018b95f0f56ed43412a582f7f6c78adb7e63a3c66642df"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/bridge.ts",
+      "sha256": "8dabab06ec6aefe87c316fee7d4cf23d2a4d13c229a466ea656e6311b96020c1"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/events.ts",
+      "sha256": "e7fa2b004b9b209ee1a9d94e3a2f49c6a5619b5dcd5d64912d6f155763a37b6c"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/index.ts",
+      "sha256": "29233a8f4013c6a09f50a62ee7fe9c43a0a693343ec9159ea163d2aad92a1706"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/markets.ts",
+      "sha256": "85de905a7504e29de92f51dd15ead3c919f1c0b81342f216189e33693221f1e2"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/media.ts",
+      "sha256": "67baf00bc640bcc22c8942284ad70956572fbb98ce73f49067745111d9912748"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/prices.ts",
+      "sha256": "99458224fce85322cb078cafef73eb2e21015081a70a225299f6f909b9bdf13c"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/social.ts",
+      "sha256": "ebe86b362bd6a9e6b44374c63141addab9773e4714a35aec9eb687b9cb536660"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/trading.spec.ts",
+      "sha256": "7a0b07a16d4a98f40e9a79844d2bab2d4a4365608cf583e80d7e55027d1909ae"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/api/trading.ts",
+      "sha256": "f19056e2288676ad83a5ae34ca7f2ac24ded8901739f5fa96fd9960ffce48b75"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/trading-defaults.ts",
+      "sha256": "84e2db0792e52ff292cbad0ccc214cc040db5dab95e282dd38cae997dd904b6e"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/auth-provider.tsx",
+      "sha256": "1073d6cf55243e64c900850f43cc493b2596a63fa237e0b428a1f35f44b49ee5"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/auth-provider.utils.ts",
+      "sha256": "57f1cf9a0cfb6677a05f95a3586ded08d654a2894c42ef09244a7d65fe9439ae"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/auth.types.ts",
+      "sha256": "195dffa733e9c7cddca4dac5b61b0df07abc305432c1b74ac0c797d7f506f8b9"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/config.ts",
+      "sha256": "49817d9b85f154a086d6353a798333de45f6cf452bfafd9673c6e07c1bcb88fa"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/contracts.ts",
+      "sha256": "9284664b59b575cf066748d4c069bf1da136a9e9b99bdfcf74f2a09d09ba5e38"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/explorer.ts",
+      "sha256": "d4c513187193e230dfa2f1831491b7118a57af45a0d87c000c1ea64f263e972e"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/index.ts",
+      "sha256": "df9090b0db3c29e3e7f5dbde17110b113efb5e4ed2bea9acb79ad31ff28b740a"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/markets.ts",
+      "sha256": "5f2536c05ba854ac44b307f1b39e2f8e7301d2b8f7fb778055ababd1d950ccbe"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/provider.tsx",
+      "sha256": "6c3b68ad3dce6719f3ab98862906d60fb8c0cfc6f085aec898b385d7738fc266"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/trading-chain.spec.ts",
+      "sha256": "2cf658ef96b151835e688d3f3f5fb15a8bbeebe26a8e7c1ac4434debf16280ee"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/lib/web3/trading-chain.ts",
+      "sha256": "9acd6969b56076a1a2bfc115b6570d0d712cef4887e9e34566bb07eee91e4a99"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/test/renderWithIntl.tsx",
+      "sha256": "e8cf4c6b095f001ba5a2058b55156fe2fd171c11994edc32e6880e9e12f51090"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/tailwind.config.ts",
+      "sha256": "cd2257cb3da16b292738efbd4789bd3ee14839568286c1ce39cf3666a0f7d5bf"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/tsconfig.json",
+      "sha256": "89bd28f385b071989cfba1df3677e7a4822119937c0f112b965b777514658b13"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/vercel.json",
+      "sha256": "bad479590ddc1feb7eded48273c96dd1d16a498c6d30900d0b8fa17c3c734945"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/vitest.config.mts",
+      "sha256": "d1e62a73d3e70196bc03ec648ebd055a3bcd067e47cf6a9ac8453ebcda3adced"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/vitest.setup.ts",
+      "sha256": "93f3c3423c85e125728af0fc1ecc1d8b7a7c58a2ca754efc7c604398c81dfdef"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/.env.example",
+      "sha256": "43b004e02e8ff6624be70141ef2e290ef5c28dd413c036ae1aade72306bf8ff2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/.gitignore",
+      "sha256": "24f013fc35c262f0bdfd63f667da6fafa9b8d4cd392f8e7605d0057cab61ca0e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/README.md",
+      "sha256": "f6b5fb4280acd960beec66a29cea705c74336f2245600fe0b1f357fe40648cc6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/README.md",
+      "sha256": "8a2d5d0df2f10bd615a78e80cc640e477071ab05267c415acd3cd39f740a8505"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/all-sepolia.json",
+      "sha256": "9b6e411b83cca99eec30e27d9aea4b6b8dc8a050a33140b6625388ba396187c5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/arbitrum-sepolia.json",
+      "sha256": "94545a05d7811f5fef07ff7c7889e3eec96878583dcf61256cf57ba6a4011551"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/base-sepolia.json",
+      "sha256": "dd891a323e805cbd77d840e023cacdffa744979f77ddb395b46c267df33c0c1c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/ipfs-art-nft-sepolia.json",
+      "sha256": "d554c138c7caebea95ca25141286f1e387c95cfd61b25357fca2e004e99a8a4d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/launchpad-sepolia.json",
+      "sha256": "510c8047055aebc49c4a2302106852bed4c04db6dc4672dc8b72403b726da3c8"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/onchain-art-nft-31337.json",
+      "sha256": "039d83a7222b1a2236f230836638a1baa3236133dc564595b7b801cafb6dd65b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/onchain-art-nft-sepolia.json",
+      "sha256": "c16a61231b4ef3c24bb765bbac6c3b0da5bb1a382b07590592327d60fc4ad3ce"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/perp-local.json",
+      "sha256": "9ced066da9dd1f11fb78c26700faa6952caf3ad9db87d9505f1d497297da75d7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/deployments/sepolia.json",
+      "sha256": "016ed3063c08157b42412ff3e9ab36e71f220e59c1ea7645b382d8d8a3b21e4a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/hardhat-runtime.ts",
+      "sha256": "e01b8a8fcc77cd6489fc1e1129938a0d5aafe6e2ce63cec2d78c5996889c0667"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/hardhat.config.ts",
+      "sha256": "c3a1efc6cde90a9c6c8332e72c84677aeb8e0bc61b81d5d7da50a1fb5e1902c6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/package.json",
+      "sha256": "27a3749939cf602afb79c94afb8116699fbd738b9cfc711c6fffb4b95ab47015"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/add-liquidity-sepolia.ts",
+      "sha256": "6fa45f0df1661ab04a0ad163fbe2b770a48cc17a9f0570be47a98d79496b4275"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/build-ipfs-nft-metadata.ts",
+      "sha256": "9ba66584929f19cc03cdb4c629c730f68d64059ae921faac9431950fa9f1dc78"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy-all-sepolia.ts",
+      "sha256": "13d18893b2febeee4dd0c85b8e24508af22bc607ca659bbf171d74ed33dfd9d4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy-and-mint-onchain-art-nft.ts",
+      "sha256": "9b0df31397c0ad186c32e099162e2d3b7c0625b7062e56cb09ba65b6642010b1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy-ipfs-art-nft.ts",
+      "sha256": "1b4f1423854f6815e564a454cac1daab1d533a290f7595714773d58c0815e088"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy-launchpad.ts",
+      "sha256": "55a312116969680c1ca08a5df555aeaa03733bc3c717bd348ed4b57619dc9520"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy-onchain-art-nft.ts",
+      "sha256": "97ec858feb078d2a500a52fee0c6407992a3fb996bb892b660bb5ae28c4ed8a6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy-perp-local.ts",
+      "sha256": "0908118a54bb0d8b922b6ecfbbd93f8b9dca4721792cd27a7e2c438638876eef"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy-perp.ts",
+      "sha256": "c7c30be13441995aec5b7c48b201225500b08b96abafa5ae002235012ce1e150"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy-sepolia.ts",
+      "sha256": "e996bbf8fd2fd485ef8a28cd048fbc42cc4312663ea6ea3e8bdbe0b0386b871d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deploy.ts",
+      "sha256": "af7e651a4dd8f61d7cbd92209e2413b338c3b1e3777b8403106377c4b77bba69"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/deployment-artifacts.ts",
+      "sha256": "02a40739c582d946424ab08d7e86c80c78766d92035d1f7eea8a0bf4d8dadefa"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/ipfs-art-nft.utils.ts",
+      "sha256": "8e646948cce80b866c6dde7dcfb55232c3a196654b374dfce2bfd924cd108bbd"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/mint-ipfs-art-nft.ts",
+      "sha256": "e984af592309c810a56cb1f08c02053e01493af96d0256d2f502828a61a01bfb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/mint-onchain-art-nft.ts",
+      "sha256": "ed09a60d25e79a4fbf220d93b8ba86b3412627a523a337d528cc258b1e3b9eec"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/onchain-art-nft.utils.ts",
+      "sha256": "1efd869f0219368565dda0cdc57fd3ae1d836d9604b8a177b72ecf414a3d4db3"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/runtime-paths.ts",
+      "sha256": "21812e5c17de46fa84149b1e9846c6a64170923f4d39c1ba3c0f4e2bb1b1eba3"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/sync-contracts.ts",
+      "sha256": "cdc3efaaf687814c7ae94188b10bc8bc7104c962ee6705a6b8c8d129229738e3"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/core/PerpMarket.sol",
+      "sha256": "794918ae2130708110f4a515af132804b911a6293eac35b2528160d7f70ac675"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/core/PerpOracle.sol",
+      "sha256": "fe1ab16865a752003a20791408ee6671aa6b787f1bb27eb70a251a42c488f27d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/core/PerpVault.sol",
+      "sha256": "0f167ab98d9f24e59c31eaa6903139d06ddb0866aa75aa64ea854d7367afe18e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/core/TradingPair.sol",
+      "sha256": "ee6a8e9693c5407887cf80c6ba76a14bcf1d0aa3d43b9ec8704e4fdf69986210"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/core/TradingPairFactory.sol",
+      "sha256": "5a5bdc4119dcc4082430938740eb7a5460a71ab38cd4ee6f8060a0a104f18c45"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/interfaces/IPerpMarket.sol",
+      "sha256": "30ab1c98181e2e397fe1c22091eeac0fe9778157e82f07e42b225ed9bee1dfff"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/interfaces/IPerpVault.sol",
+      "sha256": "77365920d0795031735905851de1dc024e25c52c538b89316d6342355bdb10d6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/interfaces/ITradingPair.sol",
+      "sha256": "0a06a814156f098c9730fc348e625edc27c8fea248116c70cd7455a4ec8cbbb9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/launchpad/BondingCurve.sol",
+      "sha256": "dfbbf07ff2f39853b1a1d614fa28e75ad3cd40c0493262bdfe5b730bd9ac8122"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/launchpad/LaunchToken.sol",
+      "sha256": "96a1fce04f7cf5470ce5ac06a809fb1955ab27bdd85e7eb4d6952836e594b3ad"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/launchpad/StakingPool.sol",
+      "sha256": "219385cef7460bccb7f4c11a36893240316838ebc32e1e91aff08ee5ca18c0bb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/launchpad/TokenFactory.sol",
+      "sha256": "5ef6136d4519f5ed2f3f964dd9c31b2ee09633070907f78f2121d064a0ff12e1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/nft/IpfsArtworkNFT.sol",
+      "sha256": "b67d22ab5eecf0ea812cb7216377250a68cc29b6221a6c44aec8b4233f5b612b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/nft/OnchainArtworkNFT.sol",
+      "sha256": "b04b2b54ada165e8a1be557b43fd831a4f49d01ea566d6246b805620cb3962b7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/periphery/PositionManager.sol",
+      "sha256": "c0c543cb2c9b1eb57db77dda8cf1dbe63a7d7e1c425a9ecac9ee068ebab6b566"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/periphery/Router.sol",
+      "sha256": "97f78c99752e35e80f983ecd45e314213307708dcd817ccd85d1caf2a2fdea28"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/periphery/TradingLibrary.sol",
+      "sha256": "752020713c0e74728d33732b308314268a12780dbc887f3675914a07ecb1c262"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/tokens/MockERC20.sol",
+      "sha256": "8ca0bf857894be6a06bc7a593f85b65e9279b1adda0d3915fc3187f0875279cb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/src/tokens/TestTokens.sol",
+      "sha256": "9e7b89e24778c057560abb43296f3b037d0c85ed0977fe594610ed03f2eb308e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/test/IpfsArtworkNFT.test.ts",
+      "sha256": "6bedf955c800b3d1cf0120001e0718b6ead2c35f59022aa09aed8a7fb6bed8b3"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/test/OnchainArtworkNFT.test.ts",
+      "sha256": "385f5e791b78f46c889d8f344500fc3bbca1d994f469c77f0d24c5ba63275ab2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/test/PerpDEX.test.ts",
+      "sha256": "30fc8591889af42438595b4c074809ce3604fbdf4ed7f77dcca3da77e9c43b74"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/test/TradingPair.test.ts",
+      "sha256": "0f54986201e3e2fd12159fe044c9f57fdd0b24c78d5f6621ab851c613d5085ff"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/tsconfig.json",
+      "sha256": "c28b2bb9c5745058e8e78c5cc073330204977af6085050f6e631b99224e2cc99"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/.gitignore",
+      "sha256": "052542c2e2f7b404a607007058b3695f72d71fea1932596239fd8e65f8d28828"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/README.md",
+      "sha256": "463188e9b0b45624c89fe7db047cdb01baf4d2d962182eb3d9b10d1fb2985a51"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/foundry.lock",
+      "sha256": "f4e481dbc0b0657f03d790b8d8915cb44efaf7d221b63533c2f1f857a9759056"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/foundry.toml",
+      "sha256": "c804ef7fbfcfcd0b5bf6e6083a7ed7ee31d10d6ed9dc18bf193c839d48cc48fe"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/LICENSE-APACHE",
+      "sha256": "50b6bf8bdb63265ce14953b480b7aaa0271e78f56843b99c184abd3ae5048cd7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/LICENSE-MIT",
+      "sha256": "6d185dfe089d4de346d391fc5997fbd4739bad1d6556010413c10f420d704ecc"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/Base.sol",
+      "sha256": "76b05dda37981797d3d403f29fc6cad79b46e2fc11da47d649ff13acb69158b2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/Config.sol",
+      "sha256": "850649e2ede6e0e1384ba00eba1335a7af7e97643c731a4587335c0f51f67041"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/LibVariable.sol",
+      "sha256": "0b789ace36e54d1746d08b9b161f5ab4c2fa55c8d30808421349ae33f703c797"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/Script.sol",
+      "sha256": "cfb5be01f4ddbc037a3502dac3d487d629a4c8b58aa9e2ec48c9fa1b334d96ec"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdAssertions.sol",
+      "sha256": "9d5f9c6ac7ccf52a3979ed1c25ff3ce4e4c89da9fe0b7634bad00f3e96e94a78"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdChains.sol",
+      "sha256": "273ba7c55b98bb1582eac313d1cd6aba1309a6850b8ca6fa3b94b190e16b4ac1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdCheats.sol",
+      "sha256": "e8961bf529cc4be9a93711d5e7cdfca5cec3e20f74c79483211a53ab2b74e5d8"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdConfig.sol",
+      "sha256": "df2005535fd4137481063a279b8692795a3e967171957c51fbfe2cb50d72d6e0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdConstants.sol",
+      "sha256": "17dfd996881264de1e6af6697a3dc7a56ae8ff0717e4cb4f1685bd7fb3a45147"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdError.sol",
+      "sha256": "26101226d3cfd90ef839531ba9e19534c6321f8f416e08f99880906f27eefecb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdInvariant.sol",
+      "sha256": "f950f2d4254b441ff856406c69c22af5ebcab0306076fe73b3c2f58c96c21e42"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdJson.sol",
+      "sha256": "95c69f1c24a366a2d90e7c301ed61d165ccc42f9ccd6c468e5ede2950712c9fb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdMath.sol",
+      "sha256": "fcbc863654bf85df25a3af051491c7bb40fcda83dea1bca58a69e5fe3dd772fa"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdStorage.sol",
+      "sha256": "cdce61f2fd656edcaf4015d7f7d5e810636142611ce523829a6589331c602367"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdStyle.sol",
+      "sha256": "3803f5f2ef9a9a7f07342ee3a0522a615834d13130aeeeb9c1ef0444520fbc17"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdToml.sol",
+      "sha256": "e1f446a35b80cb98893d72dd9613bb032c88766804f0986fb35e710569efa955"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/StdUtils.sol",
+      "sha256": "fa2dedd201f5c764d19287950428f026d7247de7d57ff5c6103418d26978bb9e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/Test.sol",
+      "sha256": "2e69383110d088b4c413edf79bb71f9d05e4791625fb7fa53429d34440ea50dd"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/Vm.sol",
+      "sha256": "956a724e1a9971692974448aa897d179a382f6a7453275fe3d67ebd267ee3d7a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/console.sol",
+      "sha256": "576b1781bbbf2ab8ca366622689ca989d075286936ca0d7341ce1dee3bb9f389"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/console2.sol",
+      "sha256": "62d8ccbd118fec4f99c5e847322d6ca0d7fbe6a0a16e5a26b0590869fcd69357"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IERC1155.sol",
+      "sha256": "d10916158da2bbecc56364cda787da303b57313d478c150b1c79ac05d3b2936c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IERC165.sol",
+      "sha256": "d9bea769cd3aa52c5dfbfe7b447a63b00ab22baaa4f9d2af789f44553078a27b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IERC20.sol",
+      "sha256": "cb4bf7f4c0bc513e2c82f251a84e67d2e950cef12e570f40a0d4880b2e25fc9f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IERC4626.sol",
+      "sha256": "12b4507a88614b52bb8c0c591f4cf746861418749608550b7b926cd3ba259ee2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IERC6909.sol",
+      "sha256": "44ef6ba5ab803241ed5992f35606820322e2df5947da488870c78f2181d97840"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IERC721.sol",
+      "sha256": "2e6e000940bf5278cf64f170ac839682667368a5aee7222b312e255ec8eda275"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IERC7540.sol",
+      "sha256": "1668e82359e3bbb77eafe48b6c344c4a7984b0f0390fd7e71d1d4aa2e8076490"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IERC7575.sol",
+      "sha256": "68cae411ed8d77b7d78102c4ef16d896bca915d0590b7e8ca40e20a5e17a7ac4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/interfaces/IMulticall3.sol",
+      "sha256": "890a5b361034daa6006b3ba2275e743cd6197c4d81e3df5732cdce731d3c0868"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/forge-std/src/safeconsole.sol",
+      "sha256": "fd74d8ed377e1470217cd6dce7699dcbc4e79b3893f17ae2a298c0e7e4418181"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/LICENSE",
+      "sha256": "13cd784a6c31361f0e0c6aa3b410a1cb9a079868b7314c13e3eb8a75351746b9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/AccessControl.sol",
+      "sha256": "93c8ebfe7b36ef4d180f1660a5a741125691957726209720af476fdd5c7bac43"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/IAccessControl.sol",
+      "sha256": "140304b7e99d517c57a13f391dfd3b550ca633a507f7b2af130f391b6cd89cc5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/Ownable.sol",
+      "sha256": "38578bd71c0a909840e67202db527cc6b4e6b437e0f39f0c909da32c1e30cb81"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol",
+      "sha256": "c75345d7b9feef17ae29f2a800ca2f65f8021cf80436a41d6ec00f57f5180f36"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/README.adoc",
+      "sha256": "f538804943bd3a629cac625ecf05155c523b86998206a594ad514e6ffaa89d24"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol",
+      "sha256": "59d15503750104edc336aa3e192a719d7dfaaafac4c65b05215fe9c420b30b96"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol",
+      "sha256": "d7a894aae10cd580aa37969cf9df5837e1acbc1f0e58caef96dc2995102b3bc2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/extensions/IAccessControlDefaultAdminRules.sol",
+      "sha256": "823e69a1db396af7d6d2834b15c3966bed392bc28ba3a4be38437e244bd164f6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/extensions/IAccessControlEnumerable.sol",
+      "sha256": "e0f69ae5acc588f27b8eba7f5a625f01409be5bb4a08e825774ccee32efc0ff9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/manager/AccessManaged.sol",
+      "sha256": "e5c9b2d8c676a69a12e054a0f5bdea62bd577bfc0831bd89ecc72e11ed157c91"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol",
+      "sha256": "f731720ea832da3c2a3a0f50907edbd503035bb764dddcd265a89067edde7ff3"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/manager/AuthorityUtils.sol",
+      "sha256": "d6d1da9c9278375b89aa4bae804f0ac36778badb8451b5fe77029a2d861135f6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/manager/IAccessManaged.sol",
+      "sha256": "2ef4db4c7c678372fe79af348ce3d60d4cf7136d195daf7a9bc2e434ffcbaacd"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/manager/IAccessManager.sol",
+      "sha256": "219e8960a20394f480b968bff721b23f1a8ad7fc3ca6b6716e211f421f760104"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/access/manager/IAuthority.sol",
+      "sha256": "68428ead009a99c5270e2a0a93e4d2756b6f332ee14027963cc7bb06cd67a29a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/account/Account.sol",
+      "sha256": "cb430f407278050587ec61bf3aa4c5ae953dd64b9f86fbf054978cbff60471cf"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/account/README.adoc",
+      "sha256": "1d887aad04d724b984a29421758320bf682d4a211e9b8ead7c9b4d70f74a00d5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/account/extensions/draft-AccountERC7579.sol",
+      "sha256": "afee0ab9154a7723c5feb743782ee2ab58b359ce4bd601c97ed8ff5cd70d5a6a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/account/extensions/draft-AccountERC7579Hooked.sol",
+      "sha256": "c59235653e2b81b4bc252e1b810b2716212a5b85b24138b9e881ea6fd95606ba"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/account/extensions/draft-ERC7821.sol",
+      "sha256": "968f7584d0b018047a078582f0e96ce2956b430e8a0763aa0b3cfb62923e56fc"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/account/utils/EIP7702Utils.sol",
+      "sha256": "1da0980525e74bad852147398d85a007d4d4c047dcc288cb7b633f021f97a892"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/account/utils/draft-ERC4337Utils.sol",
+      "sha256": "38521b36a804735004ce7d6858e9fa50951a77724d3045a31f51910d4548f3ea"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/account/utils/draft-ERC7579Utils.sol",
+      "sha256": "ecdeba50729a5611185771a88ad77a249feb50efea040e0e0b38f20d440014d9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/crosschain/ERC7786Recipient.sol",
+      "sha256": "fbca2b5bf625bcf91001732ffdadd50f89e13079285337f0d05708b4c3bbd932"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/crosschain/README.adoc",
+      "sha256": "ae3ecb7aded308629fde6dbaa6a700f2ce22e82c4721d43d3cf4e384a931cfd1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/finance/README.adoc",
+      "sha256": "6eda655e635a745337fedb389ea92808012a04cf934103da2b2fdd060cbf800e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/finance/VestingWallet.sol",
+      "sha256": "48f4856519306bcc9d8647446b647c922233d5c2984e1680f1437d2b04206249"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/finance/VestingWalletCliff.sol",
+      "sha256": "14981dea962b6c81e253295b702f2a461d7db60ae93715b293e95028d51b81f9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/Governor.sol",
+      "sha256": "e045ed3faab95eccf3fbc44e113db40f1135b0aba8de4b61c262f8012bd04065"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/IGovernor.sol",
+      "sha256": "ea8b9d1d3e9c267ec3c14b0f237e4f74fc307517051657977f9858468d0e02a0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/README.adoc",
+      "sha256": "4eb738913cf0166ccacc4c8d7afc9558dd42a6fe82742b5baca399beaac252a1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/TimelockController.sol",
+      "sha256": "ff5adc444de94bf773e5a07ffb1326797d5b16f825937d4627d6a81259c59d61"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorCountingFractional.sol",
+      "sha256": "b4f872b9559fd97d98f868b1ea77ed18d9f27efb70e70686e8af581992d716fc"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorCountingOverridable.sol",
+      "sha256": "abe4d4e13e4e846084d99e90d7cb132e4fc4cf085e1225074f6c2ee907339218"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorCountingSimple.sol",
+      "sha256": "7b57caea0515e9121f2f2d64229b588609caab302eac01909c9d8361ae212554"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorNoncesKeyed.sol",
+      "sha256": "8a550740cad348a89ea76c81f8d3563ffdb0db21cb9b94ed9cb43edfc84ed21f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorPreventLateQuorum.sol",
+      "sha256": "d50cf5e957c3ea9ff12992261eedd7231add05fb446277c39e72cda3288e3a9d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorProposalGuardian.sol",
+      "sha256": "c0c7cb61e6e18cbea5603174073223f472cf85c4357ce24fc7481cc978193cdf"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorSequentialProposalId.sol",
+      "sha256": "8397bb8b90c99aa36fd1e5b1e993245db9d77fa24056a38cf642357ea160f36b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorSettings.sol",
+      "sha256": "bff3837e8deb8411352a71e43a0706d266b3dce29ef6fb5ce810af87eae3dbf7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorStorage.sol",
+      "sha256": "8487b5f4034bc2f933156e4464443394e1c00dab100646ad0b4380807c1bc198"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorSuperQuorum.sol",
+      "sha256": "ebdadba6f3d385914f8e572452e46347addd4be748587446cacd466eb58b1c68"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockAccess.sol",
+      "sha256": "a06730f1dc404e5c2b74ce2c60f7a37388e343f1a5ca29b817cdacfd2d340584"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockCompound.sol",
+      "sha256": "06bdaa86a565dc50759278b716972268a90ee1f0ce1eff7f6f2734a176e06991"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockControl.sol",
+      "sha256": "8acda7f5ee65953c090702eb64ad1c98b22ec62d26c2e10f84ad42b04203dc00"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotes.sol",
+      "sha256": "7df898e3e295914434fde0a7dbc890a5539fe2b61f2cbce6540d69014d416bcf"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotesQuorumFraction.sol",
+      "sha256": "d81807c0d95701ea5b27c9c5800e8b716106d477a996004f6394fee207cf9337"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotesSuperQuorumFraction.sol",
+      "sha256": "06e78dadf94da3829f6fe56ddceb5d1dd44c0f38c8b0d1a14ec8a06ed13ac35a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/utils/IVotes.sol",
+      "sha256": "059fcf54ee8e21e9dac976491d7d7441049ce12e351a8c66b894846243b60a0b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/utils/Votes.sol",
+      "sha256": "4079d2646757f4301da94a90c544f567b2492d0245d7fa9964585726ec5daf5e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/governance/utils/VotesExtended.sol",
+      "sha256": "8c6da3c9a3746c4ce70eeb558af636da044b2847d159b11cbc904cefbea045c0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1155.sol",
+      "sha256": "4a472558a19793bd1ec0f09fd47c84774dfefbd15f9ba79f627de73629ab4df1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1155MetadataURI.sol",
+      "sha256": "bf8de067ebb7ec329c05c593f006ba6fbee9dbe9ed00dcd1e15852653c3ca5ec"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1155Receiver.sol",
+      "sha256": "825aed7cb9f35079f4b12ada24b5cfee5e6a0bdceab0ae6fc3794d69e3d322e5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1271.sol",
+      "sha256": "2d17bba201aa2f9c55e317315b872272a60361848dfceb6b1e77081265c79a27"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1363.sol",
+      "sha256": "9c3a75a925a6dac9e88b03cddc58d42fe3131b0aaaad84408521f3f7af2f991b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1363Receiver.sol",
+      "sha256": "39ebf8824bcd8d671abcc1afdd971cf63204b81318b83e0e4bbddebe256c6ff2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1363Spender.sol",
+      "sha256": "594582216b8d5e0a5ff75d215f03ff8d1ad4fae69b069f04bec51ea6b605a9d1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC165.sol",
+      "sha256": "dfb3f56fa928a7c6cae41a7ce2c86b9210fa18d33fa26389099d66a0fa790368"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1820Implementer.sol",
+      "sha256": "99459de7cc9e3387a01835c34a6b5122163f20dbf19d4b1c4eb34489fe25c0c4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1820Registry.sol",
+      "sha256": "d5c38c7fc97a0fc4c62cbe1987146e5a5ddfe84288dc84626f8affa41ef3d847"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC1967.sol",
+      "sha256": "c4e901318ab6d4963582c62c62ce988a34c68dbae71846b67decacde79e9a317"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC20.sol",
+      "sha256": "0158e2d3e0e28bedd99eec13dcf1a8aa3a70a5b7e4bb2ad709609c95fcc740d1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC20Metadata.sol",
+      "sha256": "0ef8d844d8e066abd5c0d8cc1c550c89f2628a4ea9c9bb16c7593d4207800ca8"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC2309.sol",
+      "sha256": "a497c9e32f721912861542cc2a1c9b7b1bf566c8dafe430af5c06167a8222eb7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC2612.sol",
+      "sha256": "7ebb71cd1a464a22ce7a4cdce29115d6569546fff8d5299ca3f2f7ba72b8e540"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol",
+      "sha256": "ea5f52ef580b9cb7c97091fd8164ec3ff211f5bdec359d18191eac4fcf7fcf76"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC3156.sol",
+      "sha256": "9fbd10c6970c328f348c9a86604bdad336743caeda2547f94b6a86d8a906c961"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC3156FlashBorrower.sol",
+      "sha256": "e4c78842b24628897539e92fbfbb9e82cda8e39c6e63edc0f43e5e1a58e9f952"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC3156FlashLender.sol",
+      "sha256": "61927aea23d3ceb7f366f4436b38c26706058729434af3df339fa165c6187d72"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol",
+      "sha256": "a43d346b74ce2cfa871ce3386aaaf6aec719e205e7c8148efc1c95612fc7b8eb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC4906.sol",
+      "sha256": "2b14563481c355e6a84127f0ee528d3e3b80fcdd76ff840660784c2445fcc0ae"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC5267.sol",
+      "sha256": "f89772d2d4fafcbef8b73bb10ee9a3373edec2eedb2f1b302320915b351dc3d1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC5313.sol",
+      "sha256": "9c99e3d0f9a47337d59b7e245819b07860e329789aafb5d1275ffd27491686f0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC5805.sol",
+      "sha256": "2b1e317a9ad0303948d00cfee78c42f99f7558c8d2002a7c63f04d2b70324cac"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC6372.sol",
+      "sha256": "b82e19cde1eaa6c179ac49ba38db89d8cf291522e3c7b90cc2dd327df2e6cc4d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC6909.sol",
+      "sha256": "92e08355231442117efbbe59d0e6021fa20cf01696b80bf64a9811869fd0271d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC721.sol",
+      "sha256": "4e4412e3eb28d5d2055e7b0e8153a2ab4d143f94e125a03a1b3d655ea7ed0002"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC721Enumerable.sol",
+      "sha256": "3c85a8e58edeeb5efcec3d274a25324c025d276fbc8d3d27d5ef4641fc1ca3c0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC721Metadata.sol",
+      "sha256": "a8c823f1cee29f7169ded5e4a9204805343fd73d2fdbacf62d2d227f66abd960"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC721Receiver.sol",
+      "sha256": "875a2b4aaba1fe08770657ed44fcc4754a8f1ffed954eb06462dfe3b44338614"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC7751.sol",
+      "sha256": "7eb72765cde6f7232fe1149cfaa51b6404520280902f6940693c42674941ac83"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC777.sol",
+      "sha256": "9ed85c11bc308eeb33977efc9068fa948f952252982628c3729dae36c33684ab"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC777Recipient.sol",
+      "sha256": "48473616ccf361df33723be1aab911bb41ab481dd9f2c3b4d2323bbba2523299"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC777Sender.sol",
+      "sha256": "4ddc762186f658ea0a53496300c830c98f4a915c0a52afe5ddbc793ac3697ef1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/IERC7913.sol",
+      "sha256": "f66aad4249885b0f11369bfa825dded60aa4baa0d76d9becdac9daa48c350350"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/README.adoc",
+      "sha256": "ed74a26d40d410df37081d61a3a37cccb2f564a014c311a35e6b6e7b385b8881"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC1822.sol",
+      "sha256": "73653312bc2eda0ec231553a5295242eaef2d4f46a023532d45fe76cbd0f565f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC4337.sol",
+      "sha256": "070fae39f5842c67f2ee0401d01d74ccd41b10ec4c030857428d34ec3782d8da"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol",
+      "sha256": "fa7068f56bc180571a6095be6eaef06d51dbe81e30cb128397d993c9599ecc30"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC7579.sol",
+      "sha256": "75dded62f20a67e2e258bac498c88ea2258f3b78dfe58c79f26155e1920c0127"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC7674.sol",
+      "sha256": "5e4dab6f3e075df9a22ca7d99c407e813b3444e69b23be10fcf92be1de0fee05"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC7786.sol",
+      "sha256": "90b2bdf1062ce58479d22e8c6c32db6aa59deeccf3c41b133c6651f09815b450"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC7802.sol",
+      "sha256": "f710e268850d13695d0cbb01a3ec8490e704d4a9a98bf889ac7b4427e87eb687"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC7821.sol",
+      "sha256": "809a971f062b7961518c410357d2cfa234ee3e07b08eca863c6aff5c54b85de1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/metatx/ERC2771Context.sol",
+      "sha256": "d055ac4f56944eb059b84c2492f992675e10295532be27d0e6b41d9409f593d8"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/metatx/ERC2771Forwarder.sol",
+      "sha256": "d2cc65b0b8d4045455049594a0679600101d6e1e86617de5f3b66251cd3166f5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/metatx/README.adoc",
+      "sha256": "da696b2ed37e40942dff187df81a644c0bc41e407164f73e6ef25aa04df7c40d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/AccessManagedTarget.sol",
+      "sha256": "0d53af2ad074bfa1d7dd63df419da792d99cd135e26a4e1e51643ce6f7162b08"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/AccessManagerMock.sol",
+      "sha256": "3da07be539a695eaf28646b48a1ed8d1928c5a89a9c63729e6d70113abccf712"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ArraysMock.sol",
+      "sha256": "b058f439884c483f83c947aac8b5efb5afceb0df6c53e18a9c26bfafb06d014d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/AuthorityMock.sol",
+      "sha256": "26d0495cb85792e69ff5257066568a1135298b39dee65291f8bd2be97df9119e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/Base64Dirty.sol",
+      "sha256": "7327e18b158ed38951e5d9214dcea7302178fb3a99cf6f3249947ad953e0fac6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/BatchCaller.sol",
+      "sha256": "8b84caf564705e2e69562e47b768121c1f8db2eb9a61853591bb2c0e265a215a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/CallReceiverMock.sol",
+      "sha256": "c7ecea557e0d1565d267ae9a549d72fe7cf10e2f7462e8cb43a7fe5b7ce1d20a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ConstructorMock.sol",
+      "sha256": "74ebec9bdfdc48f62820ecf68f8d5afcbeb95e65fb20bc039393b9065e68e6f1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ContextMock.sol",
+      "sha256": "57506c9de3c72e7caac22fdf638684bf808b27a919264565fac2cc70c7c540ab"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/DummyImplementation.sol",
+      "sha256": "2e371b737298dd816f3d94b78f652468dd27d14f92ecae75aa2b46692e103daa"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/EIP712Verifier.sol",
+      "sha256": "aad680bae019c98fb0709be8bef8d640c40cd88d745ddd6962b3906b3488ff80"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ERC1271WalletMock.sol",
+      "sha256": "e5ba6044a8e724501576ad9eefb2b3a810512e943e097c1ab1e2aae607bf540e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ERC165Mock.sol",
+      "sha256": "608cfd35e8b9d2c81aaa0f3b0e94c3530f0004c9b134f1c92d8216a9c5be7a11"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ERC2771ContextMock.sol",
+      "sha256": "663f3efa768497dbc7f473a6e3ede2dd3d26a1b2270522f7f1b4139223157f89"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ERC3156FlashBorrowerMock.sol",
+      "sha256": "eabad73c5baaed691c687c685e9eacd84d98512724b6708e8c2cc6c74ef73dc4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/EtherReceiverMock.sol",
+      "sha256": "53a433c761a684c4c497c46744b6f547c88e52b6b20d945934c060b615524fe0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/InitializableMock.sol",
+      "sha256": "4986de7adbb19cc6c7c23708f549615995c630938dcf38f68ee224df97183f6c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/MerkleProofCustomHashMock.sol",
+      "sha256": "c3ce912881aa5fde215ddc6407f53c6663e9d115095d06f5e6c0e30e4ddd47f9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/MerkleTreeMock.sol",
+      "sha256": "fc66b235e6e1d2900b7e71a216dc2dbc03f9008a0475c6f15e6f2c231e76a637"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/MulticallHelper.sol",
+      "sha256": "7988ea6738d565238c3d590bd40d2fb8440932f6ea541fc94d3baf0aab0f213b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/MultipleInheritanceInitializableMocks.sol",
+      "sha256": "fe234184f9475fe0fa13a80bca8c853e6763db452eebb9b6f21d2686f3da8889"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/PausableMock.sol",
+      "sha256": "52bbb9188ed64756f18fc15541ce61417041a0fef0421a226e1ca7d4e1e082bc"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ReentrancyAttack.sol",
+      "sha256": "1463f9a02e3370cfe2c1b4a6a1316899d1c35dc19f86bd598ab9cbc8521a0b06"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ReentrancyMock.sol",
+      "sha256": "dc41d30180dabeffd4bf998fe9d1300a1df3e9f447369834e89a91d7b43cd97f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/ReentrancyTransientMock.sol",
+      "sha256": "e07bd70d5fc0c31a2c6c0778b268853cb7b0fef507b293291ce411bd35b7a2e6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/RegressionImplementation.sol",
+      "sha256": "07a42883048dad2cfc4bc28ec1273e6e3e200793e769dd6c9bb0ba7d5f9c2fc3"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/SingleInheritanceInitializableMocks.sol",
+      "sha256": "1f1ecd6de6e8f733dc2f9a5099937d06792cf1553c43030ce4571a0313d27732"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/Stateless.sol",
+      "sha256": "552e29b90535d0f0b382ef5ec95a330d5fba40fed99578d34df99e333ec75b55"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/StorageSlotMock.sol",
+      "sha256": "b8755ca2d8ff35877777d9e88d2074132c59f5a70642d600231c5aa47aae101f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/TimelockReentrant.sol",
+      "sha256": "22990b51d631c64fc1f0377a222e26127897b13463c87e1fe9fd1c5389e6166a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/TransientSlotMock.sol",
+      "sha256": "03587cecc565d549b34317a8fce9abaed370d8f9c8c031077e64925c1e244ce0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/UpgradeableBeaconMock.sol",
+      "sha256": "af6a9e366669679e29f76e3fdd7001ca89072f7cded1f023bfc0b0b406bd5497"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/VotesExtendedMock.sol",
+      "sha256": "4f7b173359f2afdff9085a82d20b9edf758c3b9744324a7316e875f65613aed6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/VotesMock.sol",
+      "sha256": "f99fe52ba9d4737d2645dca559c279f31b9d88e3a17db99de0ff18cf61c2c379"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/account/AccountMock.sol",
+      "sha256": "00d86cb5079e28028be8b76b67a6897d7a586ba08664109643a612e4c17d84a9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/account/modules/ERC7579Mock.sol",
+      "sha256": "90d1710d3f7b4c6e2821f5be54f40e939f9856dcdeb9e87fbe8b5f722d4e211d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/account/utils/ERC7579UtilsMock.sol",
+      "sha256": "9727a2d57d4d9923b6d72eb15f1cd433a70a48ad9940d7ab7babb1339a3daa4c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/compound/CompTimelock.sol",
+      "sha256": "225c359facb4105f89a587a6c2512af5a7fff23df850400e84378c21a52bc1e4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/crosschain/ERC7786GatewayMock.sol",
+      "sha256": "9b484a380ab1f59b99d8151457e81b6a7621b88c2c05c7bf338b864cf0a51146"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/crosschain/ERC7786RecipientMock.sol",
+      "sha256": "0975bd37fa359b660ee466379148403253a6801fa09383f07dcd64f4dee93075"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorCountingOverridableMock.sol",
+      "sha256": "91c3023a054ea70834f08ed86e4c9565f1f16580f4a8d3b912865d3582674b2f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorFractionalMock.sol",
+      "sha256": "0506e260693ffd4ca3fec12d484b6280a5ef2d42c5cb29ce26f311b70704f743"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorMock.sol",
+      "sha256": "371a67c23e6a4735ec927a044fe20b2bbd2ee5d857f8e6bc6d98a8c965db4b80"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorNoncesKeyedMock.sol",
+      "sha256": "d5b9526b961eb70c9cd83509143b1903e16c1c98709a0925a2d5bbb77d2cbcc9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorPreventLateQuorumMock.sol",
+      "sha256": "9f3c7c0132549a32661c2f24d403cc5342274d6ac88035161a9efcdf08d7af31"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorProposalGuardianMock.sol",
+      "sha256": "1bb2db8f630d00378a40f951bdfdd30564f099b1b3a7ae748d061ff1894506b9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorSequentialProposalIdMock.sol",
+      "sha256": "7961e1c941ab47109119c1b1a8c321a99913980f136873abba0f15419362f579"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorStorageMock.sol",
+      "sha256": "c865b519a6e30fb5489c5d7762212b8a56920874bd5fc9dac798b8c398e6410d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorSuperQuorumMock.sol",
+      "sha256": "d203ec7ccabfde3b8f3fa976057e6fb79b6640445c4e93931a6c071ca75f7ddb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorTimelockAccessMock.sol",
+      "sha256": "b9105bfc786dd0358f75c2858b288ab763d08fd84cda1d5c366dd667d489f91e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorTimelockCompoundMock.sol",
+      "sha256": "74216c1d736b8f1ad1f64633bff9b9c65cf4c1d008a81dc2abc87f9aea37d1c0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorTimelockControlMock.sol",
+      "sha256": "eaef7b29749a9e23eaa056f526017b170e0cee113f39e1ea7bd4d827560f631e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorVoteMock.sol",
+      "sha256": "5ef871672e03f016511814cc0aeb8e0e1fc2ae44eedf45f867d4d6c5602207e0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorVotesSuperQuorumFractionMock.sol",
+      "sha256": "71d83ba0f444ab6928c932a0159cbfd680ee37543278d651b87c1eb16e9683cf"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/governance/GovernorWithParamsMock.sol",
+      "sha256": "16d9704b19d6233ab9471353481fd7362981267d8341ebf156bb8f8ccb9af30c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/proxy/BadBeacon.sol",
+      "sha256": "ffe363f96af3e7acd3437f4f830d925928965bf6a372f1b31ce072da259ce69f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/proxy/ClashingImplementation.sol",
+      "sha256": "e74f331fa49469b66bb1465b149d4bf7772049bde159230bb7de57e9b66c293b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/proxy/UUPSUpgradeableMock.sol",
+      "sha256": "406ef570acf0352f7da6513eb07f4740e4980ec9f5edfb3ae711d7fa88412a01"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC1155ReceiverMock.sol",
+      "sha256": "02fbc285ea2ff6ade6221d5f983ee8492d4835945efdc20749973cbcf6e48a20"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC1363ForceApproveMock.sol",
+      "sha256": "88df5da5ffaa95287413d95f775c6ad10e075118a20eb00b0222e434981cdd7e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC1363NoReturnMock.sol",
+      "sha256": "f342f7a38aebe19a51308d1cfb728096928b7914b0310a3818da858668c7b925"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC1363ReceiverMock.sol",
+      "sha256": "6544ae62131ed094dc031d8b8404af47d20d2c6a0a533257b7b480c16f13f4e7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC1363ReturnFalseMock.sol",
+      "sha256": "cbb3ce37a6f80580902d286d040614ca0f2ffbdab0228aa8d340da18bd7f6b0e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC1363SpenderMock.sol",
+      "sha256": "813dc538ff5c6533b72488ed1f7b84f82eca98b8c49a1d99e9cce67f7f637985"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20ApprovalMock.sol",
+      "sha256": "fab161c474d3903aa9adcfaced6349bb542a1a7d4c313cb878feebc38d444b9f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20BridgeableMock.sol",
+      "sha256": "1077e4c6b266fb3ea8f4ebfdaef52807171ef8b73b9e0ab31a383b6b58c7b540"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20DecimalsMock.sol",
+      "sha256": "bf45ba44b3b4ce31eaafe5a21ada11e4658f076be46baa51da73ade60c89ee65"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20ExcessDecimalsMock.sol",
+      "sha256": "0f7bebb8cf57203514ba8335b738180866410e337bdd29fdb0245f8974708616"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20FlashMintMock.sol",
+      "sha256": "f3a1b3c12ac807afa796d92bf30ee23c4c7638f2d82f4e2ca52777b036aadbbb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20ForceApproveMock.sol",
+      "sha256": "d4c50de8a3b2f5385538510f5f75835bd9f08fa80cbf8af1410733e4f9b350ad"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20GetterHelper.sol",
+      "sha256": "610077af11bb79713f58a456cf003339b607718f55e1eef74efcc05585f333ba"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol",
+      "sha256": "fb8983f5a9605b1f870158696d1cbf386be6e5f399fd9323d812399eec2d61e1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20MulticallMock.sol",
+      "sha256": "462371aa537948eb3e2ec01c8196b29b7fbe1e018a08babc2453569f0a7d6415"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20NoReturnMock.sol",
+      "sha256": "0b181bbe38e832ca1c5a4257e093deb68c94e2df8444d4198ec20c1697cf2a7f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20Reentrant.sol",
+      "sha256": "eefe86a3e9a43f113dea149a3be1d1d8e2601543da2cb589b711325c26fac021"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20ReturnFalseMock.sol",
+      "sha256": "bd94a8d9b5990a2bf353d9341a9f53ace4413671feb2a62261699744d524d25d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20VotesAdditionalCheckpointsMock.sol",
+      "sha256": "b1f609ba1eaa51ae4bc952e838c0b7d1611f908db10a27b2a7bf5dd7e49f1e39"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20VotesLegacyMock.sol",
+      "sha256": "7be545a0c5176f9809dbe540ff4f715da7e462177db1244251f34c8292eda14b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC20VotesTimestampMock.sol",
+      "sha256": "1d814c01d7488c88532a9080cd09351b9759fde79dace3df689baaca0d13b9a0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC4626LimitsMock.sol",
+      "sha256": "ebbb1f4c5f418b734a391d117b70a5b0b50ac4a4dbc5123a91630c2808000d8f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC4626Mock.sol",
+      "sha256": "b294e59d252b0eeaca3ff845a940d867d79de8ef8ce21297a77139c95cf800f1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC4626OffsetMock.sol",
+      "sha256": "d89d3e6815dde34878968cbc59d8fe5923d4c1bfff8721d7add9cfdb24a22790"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC4646FeesMock.sol",
+      "sha256": "663083d7675130fde1dc847a22053e062b762dfe85351178e122545fca324d47"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC721ConsecutiveEnumerableMock.sol",
+      "sha256": "5f0e9cca296479ef61e4f76baedb3e8acbd0b487db070a162e2253d1d4957e81"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC721ConsecutiveMock.sol",
+      "sha256": "ebda2062f40803cb38df49d4ec53887be8d44f75840cbf859e461d781d04a8e7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC721ReceiverMock.sol",
+      "sha256": "d65c0b5b4554e708052043ca4b1e35c668e81927f8d085e816e47c123912e0d6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/token/ERC721URIStorageMock.sol",
+      "sha256": "72c9bdcec6b4f2131b32aae57adc4eeb8823eb02234c9139fdb055874aa7efe9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/mocks/utils/cryptography/ERC7739Mock.sol",
+      "sha256": "e844996c4b66fa57e50e2111181b2958c532117827872e95b5c2a163f1c856ef"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/package.json",
+      "sha256": "a9edc72c9461d8e9853be31eb632b4ee9b93de0fbeb70bab668fe5c55921b4b8"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/Clones.sol",
+      "sha256": "06c768a2b794ea59dd6d6c1bfe33cf5098a4a8921aec14cf066576a2bffafce6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol",
+      "sha256": "a06fe97082355529c1da9076ea6c4518875ca9fdb1a4fa1e194c35cff21b29a1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Utils.sol",
+      "sha256": "58c5b19893bf3d7f9e1aa0edc5b908b915eb7af4381800deb425a6e5331f4432"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/Proxy.sol",
+      "sha256": "fa8aae37b2939371fcbce48b814c0d5c7e57e3e267f348459f29941937746c98"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/README.adoc",
+      "sha256": "8487856db9639246a67cfcf2987ae34de58ecd794fef448570d7f752c4795053"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/beacon/BeaconProxy.sol",
+      "sha256": "220626a31d80fb0d7a625f0c9ac741d40cd9f3c98ef74eb5b3dd43d224701282"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/beacon/IBeacon.sol",
+      "sha256": "c1c9726bbb0ec4c540c7c98059dcded69a8586b46c168036672381033ee76239"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/beacon/UpgradeableBeacon.sol",
+      "sha256": "26dda9d5bb961b3df26602d49f9f5a0647cfdb78b63cc253aed8527030a64f25"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol",
+      "sha256": "4da9a90b1c8b45fdab7d73d8cf81f51cf7d990657ee4e3f943492c3bf0e4c2f1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
+      "sha256": "58c759fe76057e1cefa8909b446357aae5cac8a8ba7e6401650208d1b0481508"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol",
+      "sha256": "f527a063813c2bf60c153fb08e38539578935402894fcc36fac42324ca325d3b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/proxy/utils/UUPSUpgradeable.sol",
+      "sha256": "b5af3bfd79a32c6da2d09b0be38d9b63dcd0d159a1a4a0198431fd00acc1fd52"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol",
+      "sha256": "796462e5ae35ad86448fb058a2a976697fa6f2e29789e777ffcbbc06eacd2c3f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/IERC1155.sol",
+      "sha256": "62760e5ca354484140a29dddfa03b576c2e9e3adea6eb021eb28b394c085f3e4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/IERC1155Receiver.sol",
+      "sha256": "3df310870e0187a59020ea48e910ed2693778b1f758b57b97a47365d74b92af5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/README.adoc",
+      "sha256": "1dc473bbfc2b184966edec327773fc325ba4bdd066645894189ae3f8e3cfd5bd"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155Burnable.sol",
+      "sha256": "c58c02c83ea3c6bc8aaa98a8aa5e4eace719c423ad2701788012f035a2180dd6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155Pausable.sol",
+      "sha256": "eb3c9c1fb492ab948d0c147c2affd12d5b6c606a86d95142f7f7efaefc5373e4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155Supply.sol",
+      "sha256": "2a9213a04ac09d98321d40601fddbe17d8eac501ddfa2d7d7431182e8761279d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol",
+      "sha256": "f2f80858761cbf23ac5c1f318bca12ae8dd0236a3614155cc5194efd7d599881"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol",
+      "sha256": "d5a148ccf8ac24f69f734cb2bcfba55ecc1d24209bf7aaa022cf3bde4bbe274f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+      "sha256": "ee184c9620ae770a9ccf9d21d1e6fd1177eed668f4e92707b51e9ef36d7c9469"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Utils.sol",
+      "sha256": "8d75a5dd3db8f1c85362ef688d6f3cf5b2892dc62424bfe35678a49ce0d87956"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol",
+      "sha256": "50f34ae16a067a41c2c1091445d11d63788e54c717677cb6d6b0e4cdea2ad21d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
+      "sha256": "01b6f5c4fa45fd38822b286ecef6daf983d27306dd6362496fa71b3e4600b72c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/README.adoc",
+      "sha256": "a4ee3c9b52f4967683fd913528aa5e9db40e226d1faeb50181840deae114838d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC1363.sol",
+      "sha256": "4ab0473a77a4bbcc4bbb8a22e2f2c56a451e85aa7014b7f4fb61e98373ca31a9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol",
+      "sha256": "2e6108a11184dd0caab3f3ef31bd15fed1bc7e4c781a55bc867ccedd8474565c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Capped.sol",
+      "sha256": "2403fec28c40f964320bfb4a025b12392ce240c732f648f9080e3521418ffea1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20FlashMint.sol",
+      "sha256": "50a9e14561603af062887bb3820c32cca62e9339042d480a8bed92b637d93ecd"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Pausable.sol",
+      "sha256": "12919f23b3b408e67b3b9c9543e37b7474e314d8f1c596472fd9201d9990a278"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol",
+      "sha256": "53584e84cd4851447b3149219f8c1b41397f7c753f85da07eda7f17ac6846e47"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Votes.sol",
+      "sha256": "9e9b494831630db53ffd1d0bce7fe22d606ce9263fc8d4d1983d235261e918e9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Wrapper.sol",
+      "sha256": "2a616f686774600c51ae2ed8a81735bc1e4171e3776897b97a2d0f1dbe0d6d14"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC4626.sol",
+      "sha256": "3c733036e5bfef0158b21ee480be1e53da02bb600e03c30219c769742d4a82b5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+      "sha256": "0b7132f17d14d1d84b41b0bb429be62dafdff00fd3470f68724d8018eb07f57a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol",
+      "sha256": "c302edfbf7f396e1130be81278c5c994543868f0f5bf0c0fb3f557e166d8d3f2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/draft-ERC20Bridgeable.sol",
+      "sha256": "6cc20d017e037dfbe92542dd0136c15ed1c19809591d3f34c1f73f9f8fe434e6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/draft-ERC20TemporaryApproval.sol",
+      "sha256": "3f14e8e359e07a1407659201abc760461fe7d2335bec5c3733e7e7d7672b5536"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/utils/ERC1363Utils.sol",
+      "sha256": "17ed0dad7ec114eab7f188a8e5a410b37a43f556eb3893191f63da826052f860"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol",
+      "sha256": "c2394cb2a327f234711da34884947f4aa0f6dd2791d1d6303a0c7acfaf81bca3"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC6909/ERC6909.sol",
+      "sha256": "4fcbf3da03f0b84c7a99df1308ce93745e92ab6dd11c0dfddcd1a1f5a7b5b63c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC6909/README.adoc",
+      "sha256": "219f4481ca701bc22bf6afd900c1bfe4eeba7f407b725315defaeddd70a37dd1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC6909/extensions/ERC6909ContentURI.sol",
+      "sha256": "e0749335e2a4c7afa4039096bbb10c407cea3b4c8151cc8ade96331f721f8d55"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC6909/extensions/ERC6909Metadata.sol",
+      "sha256": "9bf60a80ae4b0a598c6b4a739216832499e331537e70270745baf5824cb87e4f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC6909/extensions/ERC6909TokenSupply.sol",
+      "sha256": "2d12d93989a3285a198178649ebbc67b2eaef44b2c530649c8f5c4529eb6241e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol",
+      "sha256": "2efabe13a67646e8e2b9b4e9db5a42057c26de8cfa6cccef83282328c72837ba"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol",
+      "sha256": "ff0eb9902bf0ac099205615fac90eacf34fae637571b05aab3ea35dea53d5f17"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol",
+      "sha256": "eafee3ffdc7cb2fba4bf6bd16fb28f8e5b4679742e81c2ad42a1b1df5c179feb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/README.adoc",
+      "sha256": "a8cadab13fcd99c13f2f3f430840539de1b846f0cfaca01fd78cd10e24113437"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Burnable.sol",
+      "sha256": "2d19ad1769de94d561d31b0713a073bcbd3eac4fef568c0e71f5b1a860619aa0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Consecutive.sol",
+      "sha256": "9d5f256e8513886359ee7569c98a3eacabe12a41b944f7e505034289540e8f74"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol",
+      "sha256": "e1a66d98956d130c8fc017996e33a462c15c4495f1e1c4d1b01f77679ac3d9f7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Pausable.sol",
+      "sha256": "dcd393061afac5cc964c93aca6612e262d9cd5a792b237cca33a2834b4e1e8dd"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Royalty.sol",
+      "sha256": "de8bed7f9d3c9fa450f61df1c83a0ecc3433d5505ea7c4df2d13e959c8365343"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721URIStorage.sol",
+      "sha256": "0876a69e53500a5be2d6fae30d971f118ee2a43e607acb075e818dcbca97aa59"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Votes.sol",
+      "sha256": "82ecd33cf7dd63cf8018e4af53791b967a813978c8979ddff449ff6cbc7aebf5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Wrapper.sol",
+      "sha256": "d1795982c65a93e2c87565397951426c7a44eb1ec7dff3184341b428ea896bdc"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/IERC721Enumerable.sol",
+      "sha256": "03c8c0b9ebbe6fe0a682332d9f980723996a1856ff0a767378eae95288069649"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/IERC721Metadata.sol",
+      "sha256": "33223782ea652dca413702ce92f9f59d91d758a035065b24bbedb7dc60c63a78"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol",
+      "sha256": "2d50f70b857cae57572c0139e3d9d84cbe3edcc18492581af36befa15c36cb3f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Utils.sol",
+      "sha256": "b48e95db8c85866c1d88af8e82f346e0d22d24b5aac5b936079d958c72e13b9f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/common/ERC2981.sol",
+      "sha256": "bac8f7ccae3c561a105a18cd1600ade43bb8856f9b7c9e0acc98d950af9ffa81"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/token/common/README.adoc",
+      "sha256": "7a0ae207c4a51977091b81feda5974e89f71fadfd8058cb98309f54d69054aee"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Address.sol",
+      "sha256": "73e54e15285455f0e01e136c3663732641537614723ae5dbd820eb3cb036b1fd"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Arrays.sol",
+      "sha256": "045f3776d288ed2ba96144bd8cd04135999cd159f8e64bb103c35fb8dfa184b4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Base58.sol",
+      "sha256": "41bacd6166c1980671d8bdef3c7560a255aa84c2465308f407c321801df8865c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Base64.sol",
+      "sha256": "442b3ac3e235a1e48d5efaf4b070171f4f6fedfaca44b434a5794815061a792a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Blockhash.sol",
+      "sha256": "558cae851261e33e7272037d547b40b891bb8c55dd99caa5acdb6566b79b6712"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Bytes.sol",
+      "sha256": "4902950980da33a4d0c52dbbe22d5c65fd665717163dab7f5325f73810d71f20"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/CAIP10.sol",
+      "sha256": "5a1b57f39ae27e7da01e3c647964a38e516581b0505cf358c99aebe6eeb4d437"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/CAIP2.sol",
+      "sha256": "cbf5e18e186a00400705880a4125d7e4534cdcefc484f96a33bd4b355bded8f6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Calldata.sol",
+      "sha256": "f400ffb13072d2cbe1de51c78e4fc38d1c29e2b1d7cb0b53c2641bed0effa4d6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Comparators.sol",
+      "sha256": "52fb1c8f57967d42a3214bde4a8a414ab25c2e3a844d00e171ca56487024e009"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Context.sol",
+      "sha256": "847fda5460fee70f56f4200f59b82ae622bb03c79c77e67af010e31b7e2cc5b6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Create2.sol",
+      "sha256": "9623aa59745a23a72f313adc5adbf583968bf366a7cbf3fc43c1148d7d2c3c86"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Errors.sol",
+      "sha256": "0704b9d6c032cca8512a3bc3f30f49f86f1f03102d2896a3d23e794b82efea66"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/LowLevelCall.sol",
+      "sha256": "9f8d9cc86dfa127c950545d7b569bd8fdec32dcce4c409ea04a3e3c5d8c9121d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Memory.sol",
+      "sha256": "6615d3323db6a0c6c67bb8a2e44209edb943d0060078561b9fa0f1d454918ff1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Multicall.sol",
+      "sha256": "bb203e6a32bb3f377e6b0c8269642ca2816f815deb4a533f35ef42eef0beda5c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Nonces.sol",
+      "sha256": "9b4cbb85d1f5053c744e83302538eb643a713ffd14bc37665b224f1c66529339"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/NoncesKeyed.sol",
+      "sha256": "ec835ccacbd09964b5ec4f46da1069e4bd6b943e5c7966ba6a4baad642ff62b1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Packing.sol",
+      "sha256": "766829f6d9758a1318dd009143912d7aa6bbafa4f4b2a137c94d7f81a73b38ac"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Panic.sol",
+      "sha256": "270fc8401c1a13fae6a7a4a2dd6e381b95d658896701e51f0d3e2688acab3dec"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Pausable.sol",
+      "sha256": "2c26130748f06552c65ca74d89eaf78c9324a3cbac3ba6fdbadaa8beba0cb0b4"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/README.adoc",
+      "sha256": "ca4d52ff2f24c21263de8c486e7f22ec56b95d7bee1da21b9e6216ecced7a06f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/RLP.sol",
+      "sha256": "961a35014ff20f64ed43d486605b599f2f46599a8e9ff0ac2e06241debb6ad75"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol",
+      "sha256": "94e409e8f6e3184236651a6cc2b1a6a3ea0f0a25eb85b71e524ad5791bb2fbc8"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/ReentrancyGuardTransient.sol",
+      "sha256": "cff7c20aed945d939b764d876adbd42e1b7725d62d5b1f2bd303db237567b575"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/RelayedCall.sol",
+      "sha256": "fd603a8e1c2c84f9acdfb976239bb33ca575d754e1997a637e7c2d4666837703"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/ShortStrings.sol",
+      "sha256": "1cfa08d3c551e9ec0b9cd249b09987f04e7e90f352e1a5e3b0d6a3bc426b3de7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/SlotDerivation.sol",
+      "sha256": "f8e5f2c672918a21720ce3b5e2637c6366aa0652d085c0478fc0d0d6edb76386"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/StorageSlot.sol",
+      "sha256": "75704538dcb223239280c6726d9a31cf769a7816718517c997fc7d63bdb70778"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/Strings.sol",
+      "sha256": "3de05dcb48f4e622fbe6af2ec9a157c11e536bd87e9ef0134c3ca83031620a52"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/TransientSlot.sol",
+      "sha256": "ea92f361d697ba8b1fbd322b4d84b989998862c21fbebfa4b45289dc94a9eea2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol",
+      "sha256": "cd5e6a1a5c4409a2d02a1e69fd07d8f2ef07bc52351a2529f7080469a29cb1b5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol",
+      "sha256": "2845caaaf70757b6cce612ae4ffbec2c382cb3d1cb9765c98fa649c0f5f1c794"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/Hashes.sol",
+      "sha256": "ecdbce11c5ecdf32b306e26b8ab1b878327c08154b4ccd04518b6b64b298cf31"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol",
+      "sha256": "a174525c74ab5d2f066206ec9cebb6b3c618384c53ec35ad224ac1fbbf06b3f0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol",
+      "sha256": "41dcf1b633941aed8e0b5373bb5bdfa1c70dfa9aaa2f518acc69b4d18d1d82cd"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/P256.sol",
+      "sha256": "0d7bb2f2b5e0ceb0e1a28523ee179c1aee5980cb793df739dd9ccf87170dffe2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/README.adoc",
+      "sha256": "1018deeb622ece46cb60294c971b627bb252d150fa8f42931f56674d59fdf972"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/RSA.sol",
+      "sha256": "036c1fab2a132d7acb7fa0873812f2ad22c873d2efc91032b8ac7a1fda5ff476"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol",
+      "sha256": "af2615d858601d2b6aae238a42f87ee0af74d42a3d91bd7022e79b97ca2a22b2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/WebAuthn.sol",
+      "sha256": "a2d7df56e1851f0f55c36d4415294c3415e5db731bea7b4777dff41bbaf28c92"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/draft-ERC7739Utils.sol",
+      "sha256": "6f526ac290c9c697f31a59ff5cd4fc9a722626381bf820714b30d86296d5413d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/AbstractSigner.sol",
+      "sha256": "1119a95e6a2b709a6961fc9d5aa0a3d43249857d2edd05a174e191c573329111"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/MultiSignerERC7913.sol",
+      "sha256": "aae5e64818e6ddc07063735bf0a98b8cdc370f02597e5c38af3d02041dbfbba2"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/MultiSignerERC7913Weighted.sol",
+      "sha256": "3ff83c3c739a4f42172e133783b3a0f3206b6183791af9123920e34b1d35f82f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/SignerECDSA.sol",
+      "sha256": "79348d2204c34623df89352128f66e0cada694cb9c0e2637670810692d395955"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/SignerEIP7702.sol",
+      "sha256": "1dd87eedf8e7a6a6c551488a1077584af28f4a500678e6b4e28a2a29dbebb129"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/SignerERC7913.sol",
+      "sha256": "de875f910e523a88cbb3f0851f6b1b958de52b52ae262cd74efc9d9923448b94"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/SignerP256.sol",
+      "sha256": "680777935eacce18916de879ce37d8c7592b35ada18ff701d94a0945589a3a74"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/SignerRSA.sol",
+      "sha256": "35d55e0adc031d49ac802949cf933f6cbef8e9a43ebb6770a49a3d96656ae4b5"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/SignerWebAuthn.sol",
+      "sha256": "5451c4906fad906a0186f55feb3d27f018b12995d6300e289dcc149f853e740e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/signers/draft-ERC7739.sol",
+      "sha256": "fb3e370a0eb733cf6a63df53ef0c438538d7684178bdbb17f43f44b4e19178ab"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/verifiers/ERC7913P256Verifier.sol",
+      "sha256": "5f9d91e2faed416e04d1e90f6441fa0c46ea46a036010b298fa3fb4b97de6321"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/verifiers/ERC7913RSAVerifier.sol",
+      "sha256": "483db930bf09137ea172b886e294f32adf6e50927bafc4905ac9a1c06225549d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/cryptography/verifiers/ERC7913WebAuthnVerifier.sol",
+      "sha256": "d4e0438777f660ad3a7ce200a1b7b1bd7d3f5b34ec8d06cc3d5a7ba8a85449f9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/draft-InteroperableAddress.sol",
+      "sha256": "b494790f39a1974169148dae702362901e16d9b9ff79ac5ac0a0614e713f1dae"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol",
+      "sha256": "61a2b12c96857aaa35f48aeda67a4281637a42494c0b3795be0ae976aa7b3793"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/introspection/ERC165Checker.sol",
+      "sha256": "a0df6984ba211bc6d6cad9701a3f12a513eb316226c555f2ba6fc4a2d6e93116"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol",
+      "sha256": "9055c2994b37dea1a41b7b7926dcb510f05dbe2540b0aafc5fbee9558fffd0ca"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/math/Math.sol",
+      "sha256": "8219debc76137c8103ea66340ae04185e34d6f33d1d735d2e9a88288cc435f10"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol",
+      "sha256": "9769274bf53f26a7c7896c526ea1980dc9bea5bf5c2a5fd04870008c4afc1de9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol",
+      "sha256": "1ed50b1056af886752f0fb48a0165d381e69bb4a4b18b893b066dc144a7e08d7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/Accumulators.sol",
+      "sha256": "e2eabab474c6729d41f920035b790a97da75b87faf79f8d925af22a5c1c9b1a6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/BitMaps.sol",
+      "sha256": "12d7dd76e44e30d2d076df04f970a272969f30c2a2d240a89b6e2cac3f3e7c55"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol",
+      "sha256": "e8efef277044b66b660e7888e0f7093022e4a437e2d95a82ffc590e6699abd94"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/CircularBuffer.sol",
+      "sha256": "ab05fcde8a20728edc231342688c01c0f199c161b8a23e018f970424c053157f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/DoubleEndedQueue.sol",
+      "sha256": "463c51e14acbb0b9afef3f1f6903203cce5798fb168742ccd7e049e0397b2184"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/EnumerableMap.sol",
+      "sha256": "79b4198546c980257ed7a0deffe55105537994973927200931ceece4516d1e15"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol",
+      "sha256": "66b0b3fcb937546975e7bf50c676444048c06d3fb2c41b49a8d41b0511b31c55"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/Heap.sol",
+      "sha256": "613051521eacd21cf35dce4af7c06ea8a0d10b933e1bebe06f17c8f5673fb031"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/structs/MerkleTree.sol",
+      "sha256": "e2350ba1cba5998b64877e60a2fd089e61d598c93f6897e735b28bcd1e7700b6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/utils/types/Time.sol",
+      "sha256": "8085f943150cce1a10aa843f83519960c3010efe5792a9ee58f87c1993d33472"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/vendor/compound/ICompoundTimelock.sol",
+      "sha256": "b1062b283d59aea38dbecafabe94dedb7152b89ae001f85b35f86b3817929c4c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/lib/openzeppelin-contracts/contracts/vendor/compound/LICENSE",
+      "sha256": "a5313ddb37e6343a90656fd17d8bc1421a7291ece9f67f4d10bfd89350f0c4dc"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/script/Deploy.s.sol",
+      "sha256": "2bd49d0aa34a85a0bfee0be1a6d0ffbe5c2cf0d20667c34f8f0b584cb9e3023f"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/script/DeployBridge.s.sol",
+      "sha256": "056b21398bdf3a2452342bea0542ccd539ad18a03cc271aabd8f8b9920026762"
+    },
+    {
+      "mode": "100755",
+      "path": "contracts-foundry/script/generate-abis.sh",
+      "sha256": "3570ff5bf3040c7c1a73cf6fa118707a6c7bcd26b238dfa7eaaf47949d0813a0"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/bridge/BridgeGateway.sol",
+      "sha256": "7faa0b20573f34ac7bd1b8675d3d84b53778fbc09bb9ec6a09df37aa6e2a894b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/core/PerpMarket.sol",
+      "sha256": "794918ae2130708110f4a515af132804b911a6293eac35b2528160d7f70ac675"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/core/PerpOracle.sol",
+      "sha256": "fe1ab16865a752003a20791408ee6671aa6b787f1bb27eb70a251a42c488f27d"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/core/PerpVault.sol",
+      "sha256": "0f167ab98d9f24e59c31eaa6903139d06ddb0866aa75aa64ea854d7367afe18e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/core/TradingPair.sol",
+      "sha256": "ee6a8e9693c5407887cf80c6ba76a14bcf1d0aa3d43b9ec8704e4fdf69986210"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/core/TradingPairFactory.sol",
+      "sha256": "5a5bdc4119dcc4082430938740eb7a5460a71ab38cd4ee6f8060a0a104f18c45"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/interfaces/IPerpMarket.sol",
+      "sha256": "30ab1c98181e2e397fe1c22091eeac0fe9778157e82f07e42b225ed9bee1dfff"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/interfaces/IPerpVault.sol",
+      "sha256": "77365920d0795031735905851de1dc024e25c52c538b89316d6342355bdb10d6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/interfaces/ITradingPair.sol",
+      "sha256": "0a06a814156f098c9730fc348e625edc27c8fea248116c70cd7455a4ec8cbbb9"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/launchpad/BondingCurve.sol",
+      "sha256": "dfbbf07ff2f39853b1a1d614fa28e75ad3cd40c0493262bdfe5b730bd9ac8122"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/launchpad/LaunchToken.sol",
+      "sha256": "96a1fce04f7cf5470ce5ac06a809fb1955ab27bdd85e7eb4d6952836e594b3ad"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/launchpad/StakingPool.sol",
+      "sha256": "219385cef7460bccb7f4c11a36893240316838ebc32e1e91aff08ee5ca18c0bb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/launchpad/TokenFactory.sol",
+      "sha256": "5ef6136d4519f5ed2f3f964dd9c31b2ee09633070907f78f2121d064a0ff12e1"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/nft/IpfsArtworkNFT.sol",
+      "sha256": "b67d22ab5eecf0ea812cb7216377250a68cc29b6221a6c44aec8b4233f5b612b"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/nft/OnchainArtworkNFT.sol",
+      "sha256": "b04b2b54ada165e8a1be557b43fd831a4f49d01ea566d6246b805620cb3962b7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/periphery/PositionManager.sol",
+      "sha256": "c0c543cb2c9b1eb57db77dda8cf1dbe63a7d7e1c425a9ecac9ee068ebab6b566"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/periphery/Router.sol",
+      "sha256": "97f78c99752e35e80f983ecd45e314213307708dcd817ccd85d1caf2a2fdea28"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/periphery/TradingLibrary.sol",
+      "sha256": "752020713c0e74728d33732b308314268a12780dbc887f3675914a07ecb1c262"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/tokens/MockERC20.sol",
+      "sha256": "8ca0bf857894be6a06bc7a593f85b65e9279b1adda0d3915fc3187f0875279cb"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/src/tokens/TestTokens.sol",
+      "sha256": "9e7b89e24778c057560abb43296f3b037d0c85ed0977fe594610ed03f2eb308e"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/BridgeGateway.t.sol",
+      "sha256": "a37c25d88f06443649b087a8728484bb3822c9a0c9fded8f37008fbdbe09e359"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/FeatureParity.t.sol",
+      "sha256": "5a24bb7abeaef4845874577c44adce8fb08fca0a6dfbcdee1f93b20796200693"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/TradingPair.t.sol",
+      "sha256": "3adbaa67ebd2aee74f4493cfb2b98cc290886680f5154061866373b49babdd70"
+    },
+    {
+      "mode": "100644",
+      "path": "docs/architecture.md",
+      "sha256": "c504e322551d6fd0862fd05a55357dff818bfc886c208f8246df711d9df49b9b"
+    },
+    {
+      "mode": "100644",
+      "path": "docs/public-mirror.md",
+      "sha256": "79bf08cdc2f5fb1d3a3f7799257844ff329817d96f481f80edaec670eace1da8"
+    },
+    {
+      "mode": "100644",
+      "path": "package.json",
+      "sha256": "33c8194548bfe8de0cb2ea89ce73bd0d957ff0384a2fb35e37739a0009a31544"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/database/package.json",
+      "sha256": "dcaf0fb176c940b37ac7f1a4a17f5a9a7e309d5d10a3e2ea04316da3050f37e5"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/database/prisma/schema.prisma",
+      "sha256": "f1ebe7356353419e768a4c367cdd91ba96da9f3c4b1807101cebc48ed917d036"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/database/src/database-runtime-env.test.ts",
+      "sha256": "2341e6cd6e1f49b2604aa91ead52d595c6a67afcd2e838702696eeedc8dfc987"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/database/src/database-runtime-env.ts",
+      "sha256": "c354f04696ae7fb14f26f91bced16dbf1f5ddee9285698bb5037da581cdcc0d7"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/database/src/index.ts",
+      "sha256": "e8e62e2eb519abb43925ef9a7f48c088d7b44d7a60191647aaf4088356fea5d3"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/database/tsconfig.json",
+      "sha256": "b30a667f5accf64aefc130f1cdcd2a7196b1bb3cfc1bdc4e107576c16b7b9149"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/README.md",
+      "sha256": "8a2d5d0df2f10bd615a78e80cc640e477071ab05267c415acd3cd39f740a8505"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/all-sepolia.json",
+      "sha256": "9b6e411b83cca99eec30e27d9aea4b6b8dc8a050a33140b6625388ba396187c5"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/arbitrum-sepolia.json",
+      "sha256": "94545a05d7811f5fef07ff7c7889e3eec96878583dcf61256cf57ba6a4011551"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/base-sepolia.json",
+      "sha256": "dd891a323e805cbd77d840e023cacdffa744979f77ddb395b46c267df33c0c1c"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/ipfs-art-nft-sepolia.json",
+      "sha256": "d554c138c7caebea95ca25141286f1e387c95cfd61b25357fca2e004e99a8a4d"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/launchpad-sepolia.json",
+      "sha256": "510c8047055aebc49c4a2302106852bed4c04db6dc4672dc8b72403b726da3c8"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/onchain-art-nft-31337.json",
+      "sha256": "039d83a7222b1a2236f230836638a1baa3236133dc564595b7b801cafb6dd65b"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/onchain-art-nft-sepolia.json",
+      "sha256": "c16a61231b4ef3c24bb765bbac6c3b0da5bb1a382b07590592327d60fc4ad3ce"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/perp-local.json",
+      "sha256": "9ced066da9dd1f11fb78c26700faa6952caf3ad9db87d9505f1d497297da75d7"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/deployments/sepolia.json",
+      "sha256": "016ed3063c08157b42412ff3e9ab36e71f220e59c1ea7645b382d8d8a3b21e4a"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/package.json",
+      "sha256": "9fd7f3fe164c21941f6392c4c7cbc9eae5fdc88eed9f38a684266a950dbecc4a"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/common.contract.ts",
+      "sha256": "d6a7e0953bc1c696682f234dfc9fd982ba8edf871380738a16e8b556947d022a"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/index.ts",
+      "sha256": "741ca10c4c9334c476f76635e37868e03d8d5f8e84edc5b88fbf8ac2cf4b8f51"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/analytics.contract.ts",
+      "sha256": "bcbc95a57f06d4e5f2dba38ba1bbfa80b1a8e196d0ac447e0c3d70baa919efca"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/bff.contract.ts",
+      "sha256": "f06532049959c7db1d70bc0ac854949072da58a0e3d326ed43c8ec3f0a2313bf"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/comment.contract.ts",
+      "sha256": "83479a0964ca2d39c5999c47ebc5effe9f2c341d60e616ef0a5f71ae9ae8ead0"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/host-api.contract.ts",
+      "sha256": "0a59734f4518bb1bc3cde7d0f30f0c7031a164ed3e2a3b0cfb9b0790c0e66ef8"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/route.contract.ts",
+      "sha256": "dad540880ce22c84b9878c550d68031464097ce000149cebf1fbee27035fed85"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/runtime.contract.ts",
+      "sha256": "a20ccdcc89831f9117b2b87bfbdfe68b44d8357fa9b53778d5cc86fe916f4563"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/session.contract.ts",
+      "sha256": "ab2c57102fd89a458d7ae2b70c15ddb9b111ff679f70ca5441aef71188f423ff"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/video.contract.ts",
+      "sha256": "0bdbac06135fd65cd7c8e0a55378bad8717eb457202ef49b7da529a8e2a8aee4"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/api-contracts/mobile/web-bootstrap.contract.ts",
+      "sha256": "0b4837e822b5a1ac8f55d256461a82c47ed12c5695690d6722cb5c6b49b640ee"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/index.ts",
+      "sha256": "31d4c1ee66a4cf0fce49d5bf6fa8770fd1ed1753c100692898c72fd87c73a785"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/node.ts",
+      "sha256": "6773e699721beb6ddd3dbbd54f6e9fefa5b4a922877c21b515846e4122edbb93"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/BondingCurve.ts",
+      "sha256": "cd267379b9450c2300f763dc503caecf20a5b98d5f25dda940fa4fe299784e1c"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/BridgeGateway.ts",
+      "sha256": "b853072bfcc42f55cc0fc3bfccf690e57724e3fdc11ac56c5fc254f7d87d193b"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/IpfsArtworkNFT.ts",
+      "sha256": "0e1abf3303a3152e150ca2e1dd205aeabc3dcddcbfaa6324aede6b8775259962"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/LaunchToken.ts",
+      "sha256": "6e24e6da033a3cf6c3dddb3fab4ce0d4fe724e76ba6eb443f9257e5ee30770af"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/OnchainArtworkNFT.ts",
+      "sha256": "f9db2eca8af00d92c0c465808a554aabd70d5dd1cada986e65112885ff3d5952"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/PerpMarket.ts",
+      "sha256": "b5fdfdb575b0d7dd598b0eaf76c3bbfd7665a5a32af9c46c3e47de4389c3ce3d"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/PerpOracle.ts",
+      "sha256": "61e386216d23969581311bb6539af9338864cc7e18568174b3bd1e16ddb8cab3"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/PerpVault.ts",
+      "sha256": "44c5f04412fbcb9f1ec43c7850ad70aeb94b5240fd0dc3da5d65f55abe74ac18"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/PositionManager.ts",
+      "sha256": "35d6bb69c340c2540081380742a3a58870166717eee2cbaedd67ecd7cb29ea44"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/Router.ts",
+      "sha256": "3a39fd6fc85411f0f00535233d296cb5381233f445957d2de1452fbdeb9014e0"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/StakingPool.ts",
+      "sha256": "21b3b78ba5f402ff3f2a7bb6ba12ea37177b0ad7d464468537c954ae1cbf27bb"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/TokenFactory.ts",
+      "sha256": "0fe8266b34ce8b0bcbbd4a0083c2dfca12850f48c36141ba6f98fa9b9dec5200"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/TradingPair.ts",
+      "sha256": "448e6d78d351ad4b835475320479ac34e9703407e5dd18eca690ba38b0e6275f"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/abis/TradingPairFactory.ts",
+      "sha256": "27cc9ab163f343e2ad36eaab68ce929d398fa79a45c25d136e4d97be23f2bb85"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/contract-addresses.generated.ts",
+      "sha256": "a28029802d2415f4dab00581d22a047c5aa6224d42ab8843ecbab47483a9ad53"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/contracts.ts",
+      "sha256": "a2db369a781fc742c312a5f6ab0ff499733643f9cb7df403c0de4d3d919322a8"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/index.ts",
+      "sha256": "321b797dc246443e3fc0a60ed6fe644366b8bc66782d176509e00f612412acf1"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/node.ts",
+      "sha256": "b02b0e0e8c0fc40acadc6865c2c1c5b05fe4fbe8a2db28e7111365554c678ce9"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/tokens.ts",
+      "sha256": "d21c1895bbce8e00e501a5fb42025f342507b0944fe475a569260314c867fc5c"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/src/web3/types.ts",
+      "sha256": "23500c5c7593b2321fa7c030cbc30149b2899e060ab2ce8839211b9c5f563f2b"
+    },
+    {
+      "mode": "100644",
+      "path": "packages/shared/tsconfig.json",
+      "sha256": "0c7972418ecb07a14176f703b0c4a0af099d21edd574e97ec544f719f0bffaf1"
+    },
+    {
+      "mode": "100644",
+      "path": "pnpm-lock.yaml",
+      "sha256": "e93f3fa25748173305a3bf815b761c1fe35d70acd5e0b367e7441cd2d418bbf3"
+    },
+    {
+      "mode": "100644",
+      "path": "pnpm-workspace.yaml",
+      "sha256": "29b0f78915e82ccd8e0c7dcf7c61e5a8aeb1a8ceef88b4218ba73a19b6313daf"
+    },
+    {
+      "mode": "100644",
+      "path": "scripts/promote_public_candidate.py",
+      "sha256": "7e641f5ca740d7f529de5fe77a6c7a83a7c7835677d91ad9727e77ebc08f1f1e"
+    },
+    {
+      "mode": "100644",
+      "path": "scripts/public_release_audit.py",
+      "sha256": "ae21073fb2c75e708621e6da8890e6530f4b1c93b11485dd8a8034ce5a6eda9c"
+    },
+    {
+      "mode": "100644",
+      "path": "scripts/strict/realtime-e2e.sh",
+      "sha256": "f965bba4de16313db16e4f0862c6df4fd04c5be1ca48fb0f72533930cfea5919"
+    },
+    {
+      "mode": "100644",
+      "path": "scripts/sync_from_private.py",
+      "sha256": "0e4b0207460e3d672feb3c9a92a62276a5b2b54803a0fbd4fcb30d683da11894"
+    },
+    {
+      "mode": "100644",
+      "path": "scripts/test_public_release_tools.py",
+      "sha256": "8d366132d6c6e62d655f25b8501bc73e04a96f8ec4a49b0b05fe0c52b840efb4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/.env.example",
+      "sha256": "104f53f6c525563e543d649e455ebb6d541b6aa419ac4c456f1460f3a69e00ae"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/.gitignore",
+      "sha256": "bc898f3a113e712a47ff128023e8dbbf75d4eef62f88f6a57f6e8b4294cbd6f0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/Dockerfile",
+      "sha256": "3e156626f2ce4f723178dc2aa388a1832f66e13510e11e850d600c42f7fcdcf7"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/Makefile",
+      "sha256": "9902eab9166e87adfff8d20243555f5d73e97da5e7d18154066e718a240d0e32"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/README.md",
+      "sha256": "26e4026762010cfb1f5f7ce9b4224ad903234122f8166b144fdb9bcd7725ad84"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/api/main.go",
+      "sha256": "7c993b3ebfd339c601cb5e98d802aa48588e759611584708a1ffad90788ac264"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/api/realtime.go",
+      "sha256": "b9473d98a670b32ae4fd5371c7ee6ebc8aa0340419c98205ba4fe67a6db451a4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/bridgerelayer/main.go",
+      "sha256": "b5e7d4a71eb42b67d378a6efee937b9a3732df92902416c0313d53b489ffeae0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/dbprobe/main.go",
+      "sha256": "5fca9de2fafc8e6157707063778e9394bd4d20d1e221f8403548b113b03c8060"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/i18n-bootstrap/main.go",
+      "sha256": "1f6056147a3e2997af22f813858658f50319e81133c10bc7b2a3adfc6614ceec"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/indexer/main.go",
+      "sha256": "9e583a5bc590d2838b67700f91d63c1b31cc1484d60764035796521b07f8b513"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/market-stream/main.go",
+      "sha256": "4007d76e0f3dfa69b7a0977699494399d021378a5295db34094fb9eca68fd9b6"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/pricefeed/main.go",
+      "sha256": "bfddf789a46517deafcbc71864213c65ed8c2fc8985b7608a1ae879dfc569679"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/routes/main.go",
+      "sha256": "9c07ad13108af4ac923e4966f90ec7d122d90ed80f77470b0f8fd696060066d7"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/go.mod",
+      "sha256": "e850cffbe1be142a0b862f17cd4df978baf327b2afa6d1106afd50de5ead5203"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/go.sum",
+      "sha256": "efb03e4e6d6605425086611d1be8d3801999b9cbe1575cdbdfaaea0af9dab13b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/abi/abi.go",
+      "sha256": "472ae9ad04297b0c9f23927303f777defd59de373dcc6a4da928329d8882a3e9"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/abi/abi_test.go",
+      "sha256": "8797da6c57d79f2ef6328bb5badc01b2303aaaca4bb49e4b9e868da623692731"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/abi/dynamic.go",
+      "sha256": "da8768733ab17832992b6b87c5bc4125a4ac849353d629a3419afc322c3d091f"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/abi/dynamic_test.go",
+      "sha256": "1a723f6d85a5f64e7cd3e541f568c980ae0f181a7f814e5f3a33dd05a7095d73"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/abi/parseunits.go",
+      "sha256": "590a4d338e4369f022f4b0fd368f3ef1994e6e8f722bfb8f1c5d625d2ff84382"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/activity/activity.go",
+      "sha256": "7a33775f815d225ad54c2d971924e93e6c7756dfcf3e0b7c788cf37cafa8e859"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/activity/activity_test.go",
+      "sha256": "7f41c9515b1c78c4131f78d6b109f3ab00d97e5442ac23a5beaa83d124e68458"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ai/ai.go",
+      "sha256": "5b5137449057f4323b2b2c671d1bf95bb1eed9509c1aaec458de2f79d7eb9e19"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ai/deepseek.go",
+      "sha256": "66acbc17b5f2dd648b9796d9caf0aa5e10207d71d96771ad0f5fc48f88baee1d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ai/deepseek_test.go",
+      "sha256": "407529122411ee1caa844917e9e0fa3210f8c7ceccb0f636f358294c48b2e327"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ai/explain.go",
+      "sha256": "f3665b8320442a2bac736803716cf21f1eade74291fdd502c8e9c36ad1f25a0e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ai/explain_test.go",
+      "sha256": "2b80fa9e143ead727c1e48e4b5e3469212828723b9be0ce4b1ea0eaf559b579c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ai/handlers.go",
+      "sha256": "598bbd03584c6ff27f3900e4847ec7e481a652ab6c5f4cac64528f2c0746b115"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ai/live_smoke_test.go",
+      "sha256": "0cd6d84e0c961192c590d6b729134d8d911c28e9ceb635c5fe83468d39a23cc4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/article/article.go",
+      "sha256": "57a8b9e19fa63e13166abd2463cfcbcf2192b43f40baca037a86ec7bde0c7123"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/article/article_test.go",
+      "sha256": "21afbfa3d2b917c731ed7218843e1bf7e42497707fd8eac212651ebe4891b3a9"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/auth/auth.go",
+      "sha256": "684ecc89400758e162ed7c1e44c59b473768936d1813400b00945e45cf48c86c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/auth/auth_test.go",
+      "sha256": "980c1cffaf1c605c5c85ca9115ede0471ba87fe919554004c87575e9c0689927"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/auth/user_auth.go",
+      "sha256": "1eebfefc05732c4c5420bd86dd0867a759627e462a66482db35707ca2685be04"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/auth/user_auth_test.go",
+      "sha256": "78e386bd73fa5a2e8ba1c33637378596351072655af75ccb6981b73cca811c79"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bigsum/bigsum.go",
+      "sha256": "b9917e290726bd6e387566f5ea6f80ec9fe552f42d458131f928cb7d5786067a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bigsum/bigsum_test.go",
+      "sha256": "b590cbe70ad84429727052dead87ce7efccc4f0a87c5ef93f88fd02ca1a8662c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/bridge.go",
+      "sha256": "591873562be6e94ccfa123f71abf3fbe95e46f164e559b12c77a1fcea712cc84"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/bridge_test.go",
+      "sha256": "a86cd0d94782ac34ac5a6de2808ea1482306be542e4d1131550d707718fd6343"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/chain.go",
+      "sha256": "ffdae23c2a2722b2a8c71d87e48b6769745e57c7505367d6c96ba02e2d75908e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/handlers.go",
+      "sha256": "57e7fd70d262e1ab188822ba6206cdb9edb5b73c3db40496d169098782daef06"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/relayer.go",
+      "sha256": "9c1965e8e54732262bafd291e0be46e6749de8bce872da89d370c5fa670b6662"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/relayer_test.go",
+      "sha256": "a70ffbc17e3ac7c82c65a20a8bcd0de72a872915dfca67b68b69dcc309af0acc"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/store.go",
+      "sha256": "49bd8160d9e28b817633b0b9fda78e3ad1db3e1ddf0d2d04f002631e631a2ec3"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/campaign/campaign.go",
+      "sha256": "e0efcb657adf6524c3a5095b87b562397695fdc58274d70550f93f4d750488cb"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/campaign/campaign_test.go",
+      "sha256": "ba40a1f551896db7f1635c7d72696cfc318e27479a1f32f6c3ffb5676f71b076"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/campaign/social.go",
+      "sha256": "39298e61af763f64c040f50a24fb4024b5d17616092d06db9dad6b24d811d95a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/campaign/social_test.go",
+      "sha256": "045c5bd1667e67cf0d9376d7e1384ffb6e6e3ffb1dcbaa1596e3a1e385224a06"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/contractconfig/contractconfig.go",
+      "sha256": "898d996420f4109205a770fac8633a79f3f0d9739f2873568f8c1be186a48924"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/contractconfig/contractconfig_test.go",
+      "sha256": "3f5cbfb587bce0162aaef20bf1e458c96cb37019ea1cf73f684351d35540724f"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/db/db.go",
+      "sha256": "cfe1e44bfb80fc48234c804559214883523661f444e272f6cea0f37eea3aebbb"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/db/db_test.go",
+      "sha256": "88f325e0e3b48c264c0b651c90068d0a53f6902cc053810a5d480f6a9365a9a6"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/deployments/contractinfo_marshal_test.go",
+      "sha256": "274e13e1e73cdd8dd27d738b9e8f86726376e20e0876ebbe6505efed8561b5fc"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/deployments/deployments.go",
+      "sha256": "5cbcf84f9b064ddf8ae5cc1ef74eae3bb8ad69cbf9adc83cf5ec4af172587f05"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/deployments/deployments_test.go",
+      "sha256": "8ea4ba1cd32f7ce05c74271fcae92baf858dcfd023eee112434f14451d4fb2b3"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/discover/discover.go",
+      "sha256": "ab8ffe4768d5850172f3c0db29bca569e3dba491c00a5e971626a3d44d006c6a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/discover/discover_realdb_test.go",
+      "sha256": "fe5740a000b606d1fb69e676fcbc575086a180dc1e35199ad185b148ea9dd684"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/discover/discover_test.go",
+      "sha256": "f13246809c11e6e856bb34007ecc53bdf27106e5daa44ca325301504e998c3c3"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/earn/earn.go",
+      "sha256": "b3cb0348c798cb22f066fa9d114f66c1dc15ee14c0b5020141c1186e32d1f165"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/earn/earn_test.go",
+      "sha256": "9b09fc60ffb7a94fec467bfd95cbceff46d48dadc94c9c22f361dd0f477fc8ce"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ethtx/ethtx.go",
+      "sha256": "b2e6675df59c7e31e4bed2c2eb554cb82b9ebbd0246daa94beb5e5ec3f4d95c1"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/ethtx/ethtx_test.go",
+      "sha256": "2d5220708f8fea9ab040b62142230cd8217c585a1233b9b34a8751700e53d011"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/eventbus/eventbus.go",
+      "sha256": "a6d6fe6446ff99cbeb0f7855773bfa6e8218b50f9029249b6fbe373970e9d0f4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/eventbus/eventbus_test.go",
+      "sha256": "d389567b2103fbf0896430c211ab1ed9bfeb803ded656ffd0f2c947de439c3fc"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/httpx/contract_test.go",
+      "sha256": "aabfd2af3117e0908205f3624b2d390b9b63c299efbf43dc0b20b06be870395b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/httpx/cors.go",
+      "sha256": "4c7b6a57f178d8e0959961ed43223f017d1da1670dcf297ba98cc746e4bf30b6"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/httpx/cors_test.go",
+      "sha256": "e10268a179b277e533d1299e34a518301402f5ee6cd596cba6613d155e841971"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/httpx/go_owned_error_test.go",
+      "sha256": "1d00af2f66f46f9b0ffcc3bfb08b955d5aa64af1ba6058a4a3c75dcd3e621950"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/httpx/server.go",
+      "sha256": "166bdb5b876af1f16afb69d4c85fdeeb15f4ef0376af0feff0479f1e2714d601"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/httpx/server_test.go",
+      "sha256": "3fa601f694313528691b638429e7c72a88d37a4b5da5b643c556da63f2e10a36"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/baseline/en.json",
+      "sha256": "9886d4caa39140f53a4567ae36484522c795f4fc5a3370e8b8455daeb5fcef25"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/baseline/zh.json",
+      "sha256": "a72e0829cf4122a4feff67fb50e3612202fdc8717f5e08a3768e30ba6821c868"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/baseline.go",
+      "sha256": "074413de684732de5c99e37e37f032d0802091fff840d30a58e57f93bb6116a6"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/http.go",
+      "sha256": "6f6a442c5b4d8d10f7cedf5796253f42a23301fd8908fa7b01fa2468b55d9cbd"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/http_test.go",
+      "sha256": "01cd7a0f892b7819c92c7c356136947bd2d31e422122fe48066d3dda7e3886e8"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/i18n_test.go",
+      "sha256": "a22d5253c595505612dc1da005727401a1d3deea163d1bc080c2d7f467680c7e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/icu.go",
+      "sha256": "d32f4709933818cde890988c334faeb1a607ca00956f9dd0b065473d262559d8"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/service.go",
+      "sha256": "34c1e3d182a08be69cdaf9a2b8ca7880d3fe8ef4f3428130a403ff73280d96c8"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/store.go",
+      "sha256": "9e46c811ecba456f9ceca0defd753a37ba649a9b0c4db17e8e346d72463bf270"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/i18n/validate.go",
+      "sha256": "2b0bc5a717f564f466203ea3f2ae8b2fe4e7446c60c94e6eadde95468dc07c67"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/backfill.go",
+      "sha256": "d979911bb1bdd32daa66cb39ed72dfe656f4f0cc29427f0b1870d7344d9f5e28"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/backfill_test.go",
+      "sha256": "86547c8ce92627538d04972659e9a56f842ad272508a19ad1eedc77f4d5269a6"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/checkpoint.go",
+      "sha256": "286e418886f6e81b55e0fe51a56c00ed6ebb8c40f54061d7e64139ed35d4c7e4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/checkpoint_test.go",
+      "sha256": "09af7d51b839483b37d260ee922057f5b2715b95b53188cdef0344a483b1880b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/config.go",
+      "sha256": "5ac57068b0eace43351ab1e62adefae414ee2978359dcb768d65a95748355a59"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/config_test.go",
+      "sha256": "f382059079a4b04bd09a00d0273ec699fa260d2221bc5a17fe60c3a76ae224a8"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/discovery.go",
+      "sha256": "71e99f8f9a301ff9ca3dd88fddd8a45e034e7d38cb43ad828a49b0903dfadb1d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/discovery_test.go",
+      "sha256": "2852056ee586c4ed18eb479a93aaf2294e030d945bd6e7d69530d878489451ea"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/events.go",
+      "sha256": "3e40e8ca72ecff0c3f3a97950794d0ed563592004038a3d9eefaf2d7109eb12d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/logparser.go",
+      "sha256": "6fdf5a1ece93de9910e874df9be89ee66207e127c96cf8cfa9aa2792ba388c69"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/logparser_test.go",
+      "sha256": "cb090e2d71e03de6d94f6f1b580dcb91ba2251781883c990e351c567fd8b0503"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/sink_db.go",
+      "sha256": "0d697264ea9c4944099758124b2411b485b384d592caf1059d6946678762e79d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/sink_db_test.go",
+      "sha256": "7f47b92f53ad3f3f73dd5f307b00d7319bcd5c6c6e07672d7cf95e00bdc826f2"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/sink_perp.go",
+      "sha256": "8b3ad0d1ad795a10f1eff1b9bafbfb5f72ecd01a50c2469ca10570d8fe62bc7d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/sink_perp_test.go",
+      "sha256": "ebb37c1e2920f1d1d29e90241193dd6e07548569a5e1129858366f19ec8d2a33"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/sink_staking.go",
+      "sha256": "5d216aa575e953098064d7c26edca5b734674a4752759a67be7023a514edd478"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/worker.go",
+      "sha256": "8011fbd0d492f951f90d2d84e7d807adba9ec5245b20cacdfbfecebd4ea7dfeb"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/worker_test.go",
+      "sha256": "a44b9f775eaaf13e60396f9472aa9b42fba07b18917ad2b993a9dcca91aab12b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexeradmin/indexeradmin.go",
+      "sha256": "3825df562f92abec62752d2656873e83be357e9d7772b1fc6b484da69ad385f1"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexeradmin/indexeradmin_test.go",
+      "sha256": "11b2adf1ed7aa687115f6b9de82820f817073cd34430c8220b75886cf2376004"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/livekit/livekit.go",
+      "sha256": "1f16bfc7f0a9cae923e3f0475a1fda66b2cec076cb134916f4b2bd13606b090d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/livekit/livekit_test.go",
+      "sha256": "d263b441660e8ba268efcd0dbe504e6f9ec69880fa8bc1e5e5fc4b300bf4a5eb"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/config.go",
+      "sha256": "b4f3d9b6ba3c5f258c9043703acaad9e0338ac0ce46e8172c77747e3cd01326b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/config_test.go",
+      "sha256": "81f5a688fb45862da2c0c0fc52161dabdba6f06a048e9d67dcb76b1c45f06f74"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/handlers.go",
+      "sha256": "0042cef57476f490793a46a6fcbbfe50bacd7c1e6eb71fc9916db4ae08b76963"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/handlers_test.go",
+      "sha256": "a9a341ae7cce564e3f047d2083fdd56fb302000d1ee2f4480ed1e569a3fe98ce"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/loader.go",
+      "sha256": "3319d5e473f449de3245176514b268095e85c2d684ed44c27801c51f804b3e75"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/realtime.go",
+      "sha256": "3c490b792d40b7dc2187335c6b620b3c183d65b627aa7dfb1a8393b87aae7c32"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/realtime_test.go",
+      "sha256": "87a1db761e17a0cf9cf67684687b44a80cf4995453ecc40d07f49b4f95fde3db"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/service.go",
+      "sha256": "d92d3698c91d997725493a66910e085abe73bacb1b9b7dd95123a5ace2078eb2"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/service_test.go",
+      "sha256": "5141f57184ba24fbdd5da895861de84a3f1ff2ad7e3bb15b785459c3da16600a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/markets/snapshot_test.go",
+      "sha256": "242604fd922adf2a1dc3221dd3816180664778f360101850f611caabb8524309"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstream/config.go",
+      "sha256": "de8f7e2c8fc482a78c1d099b2cef7ac23d50c5830b9e7576661206389ec868ee"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstream/config_test.go",
+      "sha256": "fb14a1eb6812d4f02f6091ee9729dfdd2e10b297a49e30c084b9921edf926b1b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstream/marketstream.go",
+      "sha256": "99fe3ed1ca8a955672747337cb142ea5e77d936dddef8cd016d4ace0a78d1549"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstream/marketstream_test.go",
+      "sha256": "2c5d8d60fd80e6af65e53562f26642287a2be9506551ba470eab42d51c1dc365"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstream/memory_driver.go",
+      "sha256": "ec4338b7d898b34dc35bee7426ab44cfee368c6f75af3c51b6e7771d3a6486e3"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstream/redis_driver.go",
+      "sha256": "0e25b4879230d8d29b1db327026207ae97c685122eb446c14848d1e4daadca08"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstream/redis_driver_test.go",
+      "sha256": "09b353d3823845dab630a47a8b69f1215a65385afdb2ebadd00066c6bcd6fd5f"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstream/worker.go",
+      "sha256": "5776aedd37f6a00b537f47ef1c956a432ac42680982b90aae1f3177329913706"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/marketstreamwire/wire.go",
+      "sha256": "ffcacd206d46aac04e73599a0e3907694aa97856916b375292ecd4539c778856"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/media/handlers.go",
+      "sha256": "647a0e2b5db9a1dc0eac11d33917b0acac5c055f8861dacd62d2bb2a14e1424f"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/media/media.go",
+      "sha256": "d2ac2f2ee90e385c34b064fa7eaa79d5100c90370bb025cf4a7c701a6f913a19"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/media/media_test.go",
+      "sha256": "ce8d97a7b1a5a592dbbf9ccdb177a6b16a9657b8ec38369cf93d00da910222e3"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/media/s3.go",
+      "sha256": "32df721b4e55d2f3b2372b5ca0681f17aefcd09cf878f26ab8be5782f3e2d49c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilebff/contracts.go",
+      "sha256": "242100591f4267f6f991cb220c3d8fbc59ecc743f8b8faf03fce6773ab334528"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilebff/fixtures.go",
+      "sha256": "9e83da907bdd486675ef0730a97d4fd509391c6feb9a44fc61c7f70febff9931"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilebff/http.go",
+      "sha256": "3de64e87adb1b734f33c564917618e9ebbfde6f44e3d37e6173f51ade991a7e7"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilebff/mobilebff_test.go",
+      "sha256": "6f94d6efa01f47cddf502640f51127b5e567e180e2cb1cc44f1c46b369f91c2c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilebff/repo.go",
+      "sha256": "c4b77d18636101fb65869d0fb38226d0ee99be58f7b527de084366babe1e67bf"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilebff/service.go",
+      "sha256": "6c3da1e7cd7c21c4e72aba7ca3a0f5d6fcafa12d18d9b06017b4b970e3e12e4c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilebff/util.go",
+      "sha256": "e73c42ac1fc304f2d07f5c9a0a2a7a19b0f03b94010760b39ebbd0aca390c502"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilecontrol/http.go",
+      "sha256": "96433ab436b2b303d01fdaaf1fc2485b2e0c5e9639030fb869e1be5aa85ec37a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilecontrol/mobilecontrol.go",
+      "sha256": "264554c65795d3d908121a87ce4a4043b77ed62810c7dfec703601057653711f"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobilecontrol/mobilecontrol_test.go",
+      "sha256": "88bdb88602a934404315a324b41dfd034acd743316d51091433bbfbfba181ad0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobiledoc/http.go",
+      "sha256": "91512933e6d6d0eb55fdadefff24a7c4a86c7c4b975be749e52906b82ac5076d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobiledoc/mobiledoc.go",
+      "sha256": "7a66304d6c0176165763ac61f05d64840018838d2e1d9f6875f628ace77ec3d1"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/mobiledoc/mobiledoc_test.go",
+      "sha256": "5f4fd1839f04e5dcf25908cc0204a1cbc0e8cac54aad1440410db301b46f31ca"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/num/num.go",
+      "sha256": "ab36a5d0d403c1a473684e7c9b11b1d41c95ca1cabb0423c05189d9fd35aecf9"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/num/num_test.go",
+      "sha256": "d06366cb7acbd1b9e3fbf78cb2da247a91235aff2aebeed06049019ba908a3f0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/papertrade/gating_test.go",
+      "sha256": "9ace666587eb8fe1009857b24d7a5ab7410c12cd17d2820fcb35d7aeaadf007c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/papertrade/papertrade.go",
+      "sha256": "bfc7c07fbcf348f9fc7d706291655a4ce6043d5d921c52d6fb134985cf7ba8bd"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/papertrade/papertrade_test.go",
+      "sha256": "24eed62e4f018f6a950979cd5582c3efea787a472e03be2a837b67f76d367df5"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/portfolio/portfolio.go",
+      "sha256": "ad11359f9b7681aa077149652fc11e806773a0a24125202a78e788898d02d9fc"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/portfolio/portfolio_test.go",
+      "sha256": "bc429c76c62a01a1ec5b371166e214a175b69fd0aa79ba3d92153cfaa96e1f2a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/portfolio/visibility.go",
+      "sha256": "ca23b68a4f27ed5146409de4b7044fdeb493246b0cdb9ea0f0da3013a09074aa"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/portfolio/visibility_test.go",
+      "sha256": "0c07736bbe0402329aa801e276b3454bc2bed35a82c0f67e36db12df0d8be0f4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/chainlink.go",
+      "sha256": "8c9397ab5cd24ded734e4bad4996b8bb725db3be483530268189280fd7e4636e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/chainlink_test.go",
+      "sha256": "a6ea6616b21007d61a56c531ac29663d8e89810eb37cbfec3d3e933e335ac6f7"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/config.go",
+      "sha256": "6e9c245d098fe8c887267d810bb6112313d6d93480e8a3c00fb1ae6ee6d54597"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/gateio.go",
+      "sha256": "57fad2b61507b79a74f1e137549ae17007caf3c4cafbd2842e4b734244ae45bf"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/gateio_test.go",
+      "sha256": "7029b5391748fbfe05d5ebe8aa61a4f664360dcfe0f9bcb75db89fcd5ad0266e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/handlers.go",
+      "sha256": "11faa28840929462b617e568b4bf1ddb358606b09aee911f9f56b447321f7cb4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/pricefeed.go",
+      "sha256": "6de3d6f4580cdd4cdb16e79e61c85f8ac34a62b64762a8ab4c0b364a0cf1316b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/pricefeed_test.go",
+      "sha256": "851b13bb8a296136b37df9214e6045be05c79ded1d22714dfa3fdd9c7bcb24b4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/service.go",
+      "sha256": "d784b6df9a59b5d0d67184a01323fc6f049099786e54053fab6bad3337c7f904"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/store.go",
+      "sha256": "4bc90320a01d81e2b12940545bfb274481f86e83596ec6e478ffe1e8daaa0610"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/pricefeed/worker.go",
+      "sha256": "29c2dd1b7bdaa39564770a00901bc970e3cdb541355694321b6c9f2f8f6aed28"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/productstatus/productstatus.go",
+      "sha256": "66fa969929bc380261ee30caf1dc8150af44ce5112f95b9952d614eb4808e676"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/productstatus/productstatus_test.go",
+      "sha256": "724217bb7f8410a52f04f5e14d9fa84e5e7627208e80511db522309196a24749"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/ack.go",
+      "sha256": "ec9c9573ae789ef0629f5c0e59b73789063865f2964ad40d4e9241e3fe884dee"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/ack_test.go",
+      "sha256": "a93081d9bb645e2cb7e7b0a25b60e43b0b8f219863d300f1f75a39f2bcb1dc8c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/guard.go",
+      "sha256": "b83e075e68aee3aa9d187c594f32fa954f59fbc1fe131447f58519ab1d459de7"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/guard_test.go",
+      "sha256": "a0974bff82508ce49a02c7290ddd5e8ff203750dc233053111c3bb3d136683d8"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/markets.go",
+      "sha256": "8a63c1feaf2385681dc2655e8ad5d3f1420bfdf1cc7c071d2c9c5ad6ef01fe02"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/server.go",
+      "sha256": "00789492773505b09e17dfe047dc641cf5285402daa5fdc682d11ab563feba5a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/server_test.go",
+      "sha256": "b035bef0c8a87e037c87984b79e885339b887c54768639fa766a095e84e595bb"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/subscription.go",
+      "sha256": "24d9bb89342f315c84b0126f773fd87313c1e0860b9c491d0fc76d4318e5834c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/subscription_test.go",
+      "sha256": "39a1f1b15144d7a75e58824740e197d75314a708645bfd9dbfc42cd1cfa3a73f"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/tokenevents.go",
+      "sha256": "dc416a69a2ed6b923a38043b5abaf6725e78bffaaac2eee7fd0160cb4ae189d9"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/realtime/tokenevents_test.go",
+      "sha256": "c8dee83cec72f1032876975f1d346b364b267bb3cc0ef3cdeefad238349d8ad5"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/rpc/client.go",
+      "sha256": "dfb4370cd809c6aef588c551c40511a9da1f8cd21ab07f099aa2fd2c1f0cb3ba"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/rpc/client_test.go",
+      "sha256": "b17b55e20d746297eae79c6251a56973e5bdbbc763b4e9ebc649ef2a372168af"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/rpc/redact_test.go",
+      "sha256": "4782fa1537b6000073c0e0d2564bfb5a322befea69f5752c294cf273bef250cc"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/runtimeenv/runtimeenv.go",
+      "sha256": "163a30719425efd7b13363a2e4008d706b7f438a6b80e5270127ec24caee392c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/runtimeenv/runtimeenv_test.go",
+      "sha256": "ea6e064197014495cfc8f324356af1f230a762c066ef9bc90fff474f4c726ebd"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/security/mutations.go",
+      "sha256": "016d55de972d105e7224029d93941f43e65bfd852a1d0ed7af030079ae8a0689"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/security/mutations_test.go",
+      "sha256": "edb15ee6381ede9e9977e2fcc691b98473551f32d950da8f7c024b4a872ee7a5"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/security/security.go",
+      "sha256": "48adb3dfb4d0f066b46e338ad9400a58aeb167e142e94770bd93d788e08a8e76"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/security/security_test.go",
+      "sha256": "a57c9f789f191ae7fff686e45bfce16d06a77b586d291e953376ac4dc239f20e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/settings/mutations.go",
+      "sha256": "b364e4b8dc33c4d81b4244ae2877db7f7584535d38708d0feed6a9dc1b24654e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/settings/mutations_test.go",
+      "sha256": "4e4c890a523929ed9daffec07f313328aa7f9bd0b1a81249779c573b5d1a1175"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/settings/settings.go",
+      "sha256": "8331e6d6385664d6a1d0c09b6d76aa4a697ffd55a8afec82b4f9dea701a9e98a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/settings/settings_test.go",
+      "sha256": "946627b55e6fdadcf4a26a6d20bc535f595300a018cb490e4f903c4730a3a5ed"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/social/social.go",
+      "sha256": "245d00bbac3c49e0af9fb1a45d8e2c39e81b1e37c90296f855ed501a0bcbfbe0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/social/social_test.go",
+      "sha256": "c2c273f2fe17e6b0138075f2db1200bca5a1c0947b31dde0a32ac29af125f606"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/staking/handlers.go",
+      "sha256": "4b9a0eb775b292003ae198909ce9d0d58d46389dda7f0c014bef77108b553406"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/staking/handlers_test.go",
+      "sha256": "9a0204783578bb430e3befc5e7e3678211eb815f8860227c183a616e41609c18"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/staking/staking.go",
+      "sha256": "5ea0b28853a20d7a0e664549241eb9c96a49fa43a3d3561e5e425035889abbc7"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/swap/swap.go",
+      "sha256": "528ab0114da0fb1b162d2ab968d867910d708ea002c86d7f0365194696c86eb2"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/swap/swap_test.go",
+      "sha256": "33d9b2828b971e853c69c69319fce65e65ab40179dc4e37c34e8b37787f993d0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/sysapi/sysapi.go",
+      "sha256": "a7675b899d5e4e92b4ffdf8c306bd260428340ccff1747c2c41eb4aae690ff7d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/sysapi/sysapi_test.go",
+      "sha256": "39c92ec24cb5b483cd4405d738f77bc8a9528705b9dc17b91bddb0ece1a7f4bf"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/tags/tags.go",
+      "sha256": "bc8f609c86c6d5eb084a716a6a59f87ba210f5eca09c9c9132f22357f7ba16a0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/tags/tags_test.go",
+      "sha256": "65364bfefb642e99e7d4a2fdcb6687a71dfe9f6abe80fc4aea7e81ba0e198179"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/token/candles.go",
+      "sha256": "d8b80522d53cd5d8708096f23c83f8493a78884ef02554651cdd27c3edbf8c9d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/token/candles_integration_test.go",
+      "sha256": "5a4481b7e91cbe34129d99b2fd3bfda338061f0e3b917f6548ade7c474ef54be"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/token/candles_test.go",
+      "sha256": "eeb274c9a19d812de8aa87d5aa67461e973c5a117192225be305b5d29b5fce34"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/token/create.go",
+      "sha256": "f2c5c3883fb222b4591215daa91b786a4fa5e7b4c413703ca7aa371cb78a3f2b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/token/create_test.go",
+      "sha256": "df97ce098b0c17578ab93ba4e7beeeab5bc713970b66da1464c5b1107e611d60"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/token/limits.go",
+      "sha256": "69b6212bf741dc70a8e1c3ccabfea2bcacd3d70d66462eef73c908eb7853f524"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/token/token.go",
+      "sha256": "940b23f974ff2f9b50d4abd1bc77c3ad0e5c487e8774fa65c3096b43db88c535"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/token/token_test.go",
+      "sha256": "628401ed520b13d83ab8586d0a164a888343cd38b8651bbc43bd323064fc3c73"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/trading/candles.go",
+      "sha256": "f08f778cca819e81521ee82565f812fbedfb4e52779eec4ca97bf9f305491e1f"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/trading/handlers.go",
+      "sha256": "fb589cf29b94eb926ea56e2c81875a0d6610923fe3ec8cdb6946255551ef7ab7"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/trading/handlers_test.go",
+      "sha256": "ec9c4fbfb8d355afa058aeccc1a9456fe931110c55483111340435eaa279fea8"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/trading/helpers.go",
+      "sha256": "b6a7c478283ccd6a2e99d06f6abfccdd5a7f40d1a22e9c248ba4d12cb209a2b3"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/trading/helpers_test.go",
+      "sha256": "e411a3ec5600aed625b1f57b10d1d7dde7976f5bd24f6df8bdc58b627ddddcdb"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/trading/order_query_test.go",
+      "sha256": "6bdd0f2d85ef162cd6deca79ed2afa64677555c4f48d5068f3ef7e0f0426c161"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/trading/trading.go",
+      "sha256": "21b1588bedae5700b030ead50cbed6be301ca6d202a1c52519f7145d649fc8e6"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/trading/trading_test.go",
+      "sha256": "b2c8328d83744efaee2810743ba9650d8ea578d9655f68cc41ce05dff10ed305"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/bridge.go",
+      "sha256": "29ddb6b853e40471ebff3f2c8b349627eba39f5f8c90b88c64e59f602c1d445d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/bridge_test.go",
+      "sha256": "2c7d4aec7ed1b7d22ebeeda889c333fc5f2c4ddfc742f0ba682bbf40aa43c4c5"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/helpers.go",
+      "sha256": "7fc25c508685e36b43ec9b5f96b1a62f8f6790c10202e5d5c13756380a258801"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/helpers_test.go",
+      "sha256": "75c6b1fb8977a061fd581061eb96d48d070969e5d038b5183d2db3b08f1c9fcd"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/rules.go",
+      "sha256": "fdb5ab1584a1c1485032a0611d7a4771e35d7e37d14205a3983fb85452894f3b"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/rules_test.go",
+      "sha256": "81dcfce5babf24e2164e4a879afa5e73c208521ad4ea12e442a56bab77aa3e57"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/service.go",
+      "sha256": "d466d4a80f9354392d539d99763a9fc0ae35d6a1b03b90bfeb1d07ff829e5fb2"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/service_test.go",
+      "sha256": "e8e416ec1702023b63b9adc6beb04ffa8212ecb678209983c74efdd706cbf78d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/simulator.go",
+      "sha256": "429bfd2bff8686fc0213568e485c5062d0f6689bab721255d334e0155602f88f"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/simulator_test.go",
+      "sha256": "099eccb6286ca1a07b43353268798efb29ecb65dbc4174d5a6a76632cfb9df0e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/txreview/types.go",
+      "sha256": "ad459ce1866c6a7c7c6e43f1848ce9f5576efa622f84a581017d9e4b91e3ef64"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/userauth/access_check_test.go",
+      "sha256": "78cc724675eb14b1a01fa0de70f9d59212eb73d7894d0b3f30643b6b54dfcf80"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/userauth/userauth.go",
+      "sha256": "dd70b4dd62a83f76aa183f4946bdde0d4e12fa2388ff5c21ea88159799541638"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/userauth/userauth_test.go",
+      "sha256": "58895405176c0d638ba0df998203e8995ab5666a1da4a944189ff308c4443562"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/users/handlers.go",
+      "sha256": "5d5fd1d51526b6b112a79acd07d3c2ec9018c66c6851072437a41f0731f80a5d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/users/handlers_test.go",
+      "sha256": "3ef597aca81410b68aa12b280b5493290fcb3c70c951c78906e870ea98a73fa2"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/users/users.go",
+      "sha256": "ae824b4610a94fe9117f06d08da0cb531e3c778427b651e4ae3733eb238f8ab2"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/wallets/mutations.go",
+      "sha256": "861eaa6ff9ee2ae007578ecb5242c0dcad1cfc267ba0907df8c772032c3ed0fa"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/wallets/mutations_test.go",
+      "sha256": "30d60ca49c8739406203c5974acdd424b2c1d8c36bced89513a0bb0f44b783a5"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/wallets/wallets.go",
+      "sha256": "750c1148bd772add56057d782a6dfa2de76c99a996807d74f043c8df8b20e09d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/wallets/wallets_test.go",
+      "sha256": "0a1e24602fde52d09f16c04c51cb2a548ba818f6c36136828cf5cb3c80a8c26c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/service.go",
+      "sha256": "7fd468131fae4b44f02f5840761fcdd4115b06abc44b8204a80c62b4c1fbd39e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/siwe.go",
+      "sha256": "712f6190a837bac103d9a973d9cafd9523e9aae01dd15da4eebb0f6049820e68"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/siwe_test.go",
+      "sha256": "9b74d450f20f8bc776210b3369979a1bd9800309ccc19b79229ed058e4ea6e52"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/handlers.go",
+      "sha256": "511d1acf6ef36368ce6d7d3e81cda6a7aff640624e37ece0f65f7682b3b3fe4c"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/handlers_test.go",
+      "sha256": "27deba2d1da8a422d42b302d438d3dd5110f4e5dd5ac56bdc39cc9630d272eef"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/web3events.go",
+      "sha256": "905ed8fe3713b8354c407bbedf83b7c5457ebb14fba97da55e41df76e7303757"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/writes_test.go",
+      "sha256": "a4b02210f145ed3335a48cab539ca7500d4ae6ff2c905922403aa33fe27c6ac5"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/test/realtime-e2e/client.e2e.js",
+      "sha256": "2c95f61d484fc0d8f501234ab84adadf9c674a2171cdfe6679ae51c1151a892a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/test/realtime-e2e/local-topology.e2e.js",
+      "sha256": "74fb39489e8b5e739b9035d8d5bcd1f91f8d721ccbf31a11f68bb235586d623e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/test/realtimeserver/main.go",
+      "sha256": "26787aa28df596efc2007a21553dc4e464f79cf64cbd27da998b79e5aed3b975"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/testdata/parity/go-routes.txt",
+      "sha256": "f4ca74ca13975d32ef8d62840f06782a0180da77c022c838c88387b936d3ed63"
+    },
+    {
+      "mode": "100644",
+      "path": "tsconfig.base.json",
+      "sha256": "bcc0ed4a3b10372629ee68e1f30946dd3aa48a47f84503ddbbf31ef7b015e053"
+    }
+  ],
+  "format": 1,
+  "public_base_commit": "149e99877b0cc2bc3d8a9617209b71054839ce94"
+}
