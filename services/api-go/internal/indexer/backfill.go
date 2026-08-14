@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -44,9 +43,9 @@ type Checkpointer interface {
 type ParsedEvent struct {
 	ChainID         int
 	ContractAddress string // the emitting contract (lower-case)
-	BlockNumber     uint64
+	BlockNumber     int64
 	TxHash          string
-	LogIndex        uint64
+	LogIndex        int
 	Parsed          ParsedIndexedLog
 }
 
@@ -161,7 +160,11 @@ func (b *Backfiller) Run(ctx context.Context, contractAddress string) (int, erro
 		slog.Debug("backfill batch", "contract", contractAddress, "from", start, "to", end, "events", len(logs))
 
 		for _, raw := range logs {
-			if err := b.sink.HandleEvent(ctx, toParsedEvent(b.cfg.ChainID, contractAddress, raw)); err != nil {
+			event, err := toParsedEvent(b.cfg.ChainID, contractAddress, raw)
+			if err != nil {
+				return processed, fmt.Errorf("backfill normalize event %s#%d: %w", raw.TxHash, raw.LogIndex, err)
+			}
+			if err := b.sink.HandleEvent(ctx, event); err != nil {
 				return processed, fmt.Errorf("backfill handle event %s#%d: %w", raw.TxHash, raw.LogIndex, err)
 			}
 			processed++
@@ -246,25 +249,6 @@ func backfillRetryDelay(attempt int) time.Duration {
 		}
 	}
 	return time.Duration(ms) * time.Millisecond
-}
-
-// toParsedEvent decodes a fetched log and pairs it with its on-chain
-// coordinates. ContractAddress is the log's own emitter (lower-cased),
-// which is what the persist layer records — distinct from the watched
-// address that keys the checkpoint.
-func toParsedEvent(chainID int, contractAddress string, raw rpc.Log) ParsedEvent {
-	emitter := raw.Address
-	if emitter == "" {
-		emitter = contractAddress
-	}
-	return ParsedEvent{
-		ChainID:         chainID,
-		ContractAddress: strings.ToLower(emitter),
-		BlockNumber:     raw.BlockNumber,
-		TxHash:          raw.TxHash,
-		LogIndex:        raw.LogIndex,
-		Parsed:          ParseIndexedLog(Log{Address: raw.Address, Topics: raw.Topics, Data: raw.Data}),
-	}
 }
 
 // sleepCtx is a context-aware sleep: it returns early with ctx.Err() if

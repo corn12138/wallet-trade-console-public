@@ -118,8 +118,8 @@ func (s *DBSink) HandleEvent(ctx context.Context, ev ParsedEvent) error {
 		ev.ContractAddress, // already lower-cased by toParsedEvent
 		ev.Parsed.EventName,
 		ev.TxHash,
-		int(ev.LogIndex),
-		int64(ev.BlockNumber),
+		ev.LogIndex,
+		ev.BlockNumber,
 		actorOrNil(ev.Parsed.ActorAddress),
 		args,
 	)
@@ -335,7 +335,7 @@ func tradeRowFrom(ev ParsedEvent, side string) (tradeRow, bool) {
 		newPrice:    argBigInt(a["newPrice"]),
 		curve:       strings.ToLower(ev.ContractAddress),
 		txHash:      ev.TxHash,
-		blockNumber: int64(ev.BlockNumber),
+		blockNumber: ev.BlockNumber,
 	}
 	if r.user == "" || r.tokenAmount == nil || r.newPrice == nil {
 		return tradeRow{}, false

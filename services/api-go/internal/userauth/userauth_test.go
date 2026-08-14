@@ -176,6 +176,38 @@ func TestReadCookie(t *testing.T) {
 	}
 }
 
+func TestClearAuthCookiesPreservesSecurityAttributes(t *testing.T) {
+	t.Setenv("NODE_ENV", "production")
+	rec := httptest.NewRecorder()
+
+	clearAuthCookies(rec)
+
+	cookies := rec.Result().Cookies()
+	if len(cookies) != 2 {
+		t.Fatalf("cookies = %d, want 2", len(cookies))
+	}
+	byName := make(map[string]*http.Cookie, len(cookies))
+	for _, cookie := range cookies {
+		byName[cookie.Name] = cookie
+	}
+	for _, name := range []string{"refreshToken", "XSRF-TOKEN"} {
+		cookie := byName[name]
+		if cookie == nil {
+			t.Fatalf("missing %s deletion cookie", name)
+		}
+		if cookie.Value != "" || cookie.Path != "/" || cookie.MaxAge != -1 ||
+			!cookie.Secure || cookie.SameSite != http.SameSiteStrictMode {
+			t.Errorf("%s deletion attributes = %+v", cookie.Name, cookie)
+		}
+	}
+	if !byName["refreshToken"].HttpOnly {
+		t.Error("refreshToken deletion cookie must remain HttpOnly")
+	}
+	if byName["XSRF-TOKEN"].HttpOnly {
+		t.Error("XSRF-TOKEN must remain readable by the CSRF client")
+	}
+}
+
 // Ensure that the chi Router wiring exposes the expected paths even
 // when no guard middlewares are provided (the 4 public routes still
 // register).

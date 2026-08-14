@@ -300,14 +300,8 @@ func (r *Repository) ListEvents(ctx context.Context, q ListEventsQuery) (ListEve
 		return ListEventsResult{}, fmt.Errorf("count web3_events: %w", err)
 	}
 
-	limit := q.Limit
-	if limit <= 0 {
-		limit = 20
-	}
-	page := q.Page
-	if page <= 0 {
-		page = 1
-	}
+	limit := boundedLimit(q.Limit, defaultEventListLimit, maxEventListLimit)
+	page := boundedPage(q.Page, defaultEventListPage, maxEventListPage)
 	offset := (page - 1) * limit
 
 	listArgs := append(args, limit, offset)
@@ -377,9 +371,7 @@ func (r *Repository) UserEvents(ctx context.Context, address string, chainID, li
 	if r.pool == nil {
 		return nil, ErrPoolUnavailable
 	}
-	if limit <= 0 {
-		limit = 50
-	}
+	limit = boundedLimit(limit, defaultUserEventLimit, maxUserEventLimit)
 
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, chain_id, contract_address, event_name, tx_hash,
@@ -403,9 +395,7 @@ func (r *Repository) RecentTransactions(ctx context.Context, chainID, limit int)
 	if r.pool == nil {
 		return nil, ErrPoolUnavailable
 	}
-	if limit <= 0 {
-		limit = 20
-	}
+	limit = boundedLimit(limit, defaultRecentTransactionCap, maxRecentTransactionCap)
 
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, chain_id, tx_hash, from_address, to_address,
