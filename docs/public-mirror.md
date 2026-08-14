@@ -63,14 +63,19 @@ python3 scripts/sync_from_private.py \
 
 Deletions are equally fail-closed. Approve each removed source-managed file for
 that export only with `--allow-delete-path`. The exporter writes a complete
-path/mode/SHA-256 manifest after the candidate passes the trusted scanner; a
-partial or modified candidate cannot be promoted silently.
+path/mode/SHA-256 manifest after the candidate passes the trusted scanner. The
+manifest also binds the candidate to the exact public `main` commit that
+supplied its overlays, so a partial, modified, or stale candidate cannot be
+promoted silently.
 
 The generated candidate is a complete tree, not an overlay patch. Promote it
 only into a clean, disposable public worktree created from `origin/main`. The
 promotion helper refuses `main`, a stale base, the wrong remote, and any
-tracked, untracked, or ignored worktree content. It replaces the complete tree
-with deletion semantics while preserving only Git metadata:
+tracked, untracked, or ignored worktree content. It also verifies every
+public-owned overlay byte and file mode against that exact base. If public
+`main` advances after export, discard the candidate and generate a new one. It
+replaces the complete tree with deletion semantics while preserving only Git
+metadata:
 
 ```bash
 git fetch origin main

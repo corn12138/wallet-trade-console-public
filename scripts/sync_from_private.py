@@ -467,9 +467,11 @@ def normalize_trailing_whitespace(candidate: Path) -> None:
         path.write_text("".join(normalized))
 
 
-def write_candidate_manifest(candidate: Path) -> None:
+def write_candidate_manifest(candidate: Path, public_revision: str) -> None:
     """Bind every candidate path, mode, and byte sequence before promotion."""
 
+    if not re.fullmatch(r"[0-9a-f]{40}", public_revision):
+        raise ValueError("public base revision must be a full commit SHA")
     validate_regular_tree(candidate)
     files: list[dict[str, str]] = []
     for path in sorted(candidate.rglob("*")):
@@ -486,7 +488,7 @@ def write_candidate_manifest(candidate: Path) -> None:
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             }
         )
-    manifest = {"format": 1, "files": files}
+    manifest = {"format": 1, "public_base_commit": public_revision, "files": files}
     (candidate / PUBLIC_MANIFEST).write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
@@ -536,7 +538,7 @@ def main() -> int:
         validate_go_module_rewrite(staged, private_module)
         scrub_generic_test_examples(staged)
         normalize_trailing_whitespace(staged)
-        write_candidate_manifest(staged)
+        write_candidate_manifest(staged, public_revision)
         run_trusted_audit(staged)
         publish_candidate(staged, output)
 

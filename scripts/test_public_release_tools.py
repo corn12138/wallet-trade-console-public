@@ -51,7 +51,12 @@ class PublicReleaseToolsTest(unittest.TestCase):
 
     def write_manifest(self, candidate: Path) -> None:
         sync = load_module("sync_manifest_test", SCRIPT_DIR / "sync_from_private.py")
-        sync.write_candidate_manifest(candidate)
+        sync.write_candidate_manifest(candidate, "a" * 40)
+
+    def test_exporter_and_promoter_share_public_overlay_contract(self) -> None:
+        sync = load_module("sync_overlay_contract_test", SCRIPT_DIR / "sync_from_private.py")
+        promote = load_module("promote_overlay_contract_test", SCRIPT_DIR / "promote_public_candidate.py")
+        self.assertEqual(sync.PUBLIC_OVERLAYS, promote.PUBLIC_OVERLAYS)
 
     def test_clean_public_snapshot_rejects_untracked_overlay(self) -> None:
         sync = load_module("sync_from_private_test", SCRIPT_DIR / "sync_from_private.py")
@@ -233,6 +238,27 @@ class PublicReleaseToolsTest(unittest.TestCase):
             (candidate / "kept.txt").write_text("tampered\n")
             with self.assertRaisesRegex(ValueError, "does not match"):
                 promote.validate_manifest(candidate, promote.validate_regular_tree(candidate))
+
+    def test_candidate_is_bound_to_public_base_and_overlay_bytes(self) -> None:
+        promote = load_module("promote_public_base_test", SCRIPT_DIR / "promote_public_candidate.py")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            candidate = root / "candidate"
+            target = root / "target"
+            (candidate / "scripts").mkdir(parents=True)
+            (target / "scripts").mkdir(parents=True)
+            (candidate / "README.md").write_text("reviewed\n")
+            (target / "README.md").write_text("reviewed\n")
+            (candidate / "scripts/public_release_audit.py").write_text("reviewed\n")
+            (target / "scripts/public_release_audit.py").write_text("reviewed\n")
+
+            promote.validate_public_base(candidate, "a" * 40, target, "a" * 40)
+            with self.assertRaisesRegex(ValueError, "different public main commit"):
+                promote.validate_public_base(candidate, "a" * 40, target, "b" * 40)
+
+            (candidate / "scripts/public_release_audit.py").write_text("tampered\n")
+            with self.assertRaisesRegex(ValueError, "overlays do not match"):
+                promote.validate_public_base(candidate, "a" * 40, target, "a" * 40)
 
     def test_public_overlay_requires_expected_origin_main_and_upstream(self) -> None:
         sync = load_module("sync_identity_test", SCRIPT_DIR / "sync_from_private.py")

@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -27,6 +28,31 @@ EXPECTED_ORIGIN_URLS = {
 TRUSTED_ROOT = Path(__file__).resolve().parents[1]
 TRUSTED_AUDITOR = TRUSTED_ROOT / "scripts/public_release_audit.py"
 PUBLIC_MANIFEST = ".public-release-manifest.json"
+
+# These paths are owned by the public repository and copied verbatim into each
+# candidate. Promotion verifies them against the exact public base commit so a
+# stale or self-signed candidate cannot replace newer release safeguards.
+PUBLIC_OVERLAYS = (
+    ".github",
+    ".gitleaks.toml",
+    ".trufflehog-exclude-paths.txt",
+    "CONTRIBUTING.md",
+    "README.md",
+    "SECURITY.md",
+    "docs",
+    "scripts",
+    "pnpm-workspace.yaml",
+    "apps/web/.env.vercel.example",
+    "apps/web/next.config.js",
+    "apps/web/src/lib/api/base-url.spec.ts",
+    "apps/web/src/lib/api/base-url.ts",
+    "contracts/.env.example",
+    "contracts-foundry/README.md",
+    "contracts-foundry/script/Deploy.s.sol",
+    "packages/database/package.json",
+    "services/api-go/.env.example",
+    "services/api-go/README.md",
+)
 
 REQUIRED_CANDIDATE_PATHS = (
     PUBLIC_MANIFEST,
@@ -133,13 +159,20 @@ def validate_trusted_checkout() -> None:
         raise ValueError("promotion helper checkout must be clean")
 
 
-def validate_manifest(candidate: Path, files: set[str]) -> None:
+def validate_manifest(candidate: Path, files: set[str]) -> str:
     manifest_path = candidate / PUBLIC_MANIFEST
     if manifest_path.stat().st_size > 5_000_000:
         raise ValueError("candidate manifest is unexpectedly large")
     manifest = json.loads(manifest_path.read_text())
-    if not isinstance(manifest, dict) or set(manifest) != {"format", "files"} or manifest["format"] != 1:
+    if (
+        not isinstance(manifest, dict)
+        or set(manifest) != {"format", "public_base_commit", "files"}
+        or manifest["format"] != 1
+    ):
         raise ValueError("candidate manifest has an unsupported structure")
+    public_base_commit = manifest["public_base_commit"]
+    if not isinstance(public_base_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", public_base_commit):
+        raise ValueError("candidate manifest has an invalid public base commit")
     if not isinstance(manifest["files"], list):
         raise ValueError("candidate manifest files must be a list")
 
@@ -170,13 +203,14 @@ def validate_manifest(candidate: Path, files: set[str]) -> None:
     if expected_paths != actual_paths:
         missing = sorted(actual_paths - expected_paths)
         raise ValueError("candidate manifest omits files: " + ", ".join(missing))
+    return public_base_commit
 
 
 def run_trusted_audit(root: Path) -> None:
     run("python3", "-I", str(TRUSTED_AUDITOR), "--root", str(root), cwd=TRUSTED_ROOT)
 
 
-def validate_candidate(candidate: Path) -> Path:
+def validate_candidate(candidate: Path) -> tuple[Path, str]:
     candidate = candidate.expanduser().resolve()
     if not candidate.is_dir() or candidate == Path(candidate.anchor):
         raise ValueError(f"candidate is not a safe directory: {candidate}")
@@ -186,12 +220,12 @@ def validate_candidate(candidate: Path) -> Path:
     if missing:
         raise ValueError("candidate is missing required paths: " + ", ".join(missing))
     files = validate_regular_tree(candidate)
-    validate_manifest(candidate, files)
+    public_base_commit = validate_manifest(candidate, files)
     run_trusted_audit(candidate)
-    return candidate
+    return candidate, public_base_commit
 
 
-def validate_target(target: Path) -> Path:
+def validate_target(target: Path) -> tuple[Path, str]:
     target = target.expanduser().resolve()
     result = run("git", "rev-parse", "--show-toplevel", cwd=target, capture=True)
     if Path(result.stdout.decode().strip()).resolve() != target:
@@ -242,7 +276,43 @@ def validate_target(target: Path) -> Path:
     if status.stdout or ignored.stdout:
         raise ValueError("target worktree must contain no tracked, untracked, or ignored changes")
     validate_regular_tree(target, allow_root_git=True)
-    return target
+    return target, head.decode().strip()
+
+
+def is_within(relative: str, roots: tuple[str, ...]) -> bool:
+    return any(relative == root or relative.startswith(f"{root}/") for root in roots)
+
+
+def overlay_fingerprints(root: Path, files: set[str]) -> dict[str, tuple[str, str]]:
+    """Return mode and digest for every public-owned overlay file."""
+
+    fingerprints: dict[str, tuple[str, str]] = {}
+    for relative in files:
+        if not is_within(relative, PUBLIC_OVERLAYS):
+            continue
+        path = root / relative
+        mode = "100755" if path.stat().st_mode & stat.S_IXUSR else "100644"
+        fingerprints[relative] = (mode, hashlib.sha256(path.read_bytes()).hexdigest())
+    return fingerprints
+
+
+def validate_public_base(
+    candidate: Path,
+    candidate_base: str,
+    target: Path,
+    target_head: str,
+) -> None:
+    """Bind a candidate to its reviewed public base and overlay bytes."""
+
+    if candidate_base != target_head:
+        raise ValueError(
+            "candidate was generated from a different public main commit; "
+            "discard it and export again"
+        )
+    candidate_files = validate_regular_tree(candidate)
+    target_files = validate_regular_tree(target, allow_root_git=True)
+    if overlay_fingerprints(candidate, candidate_files) != overlay_fingerprints(target, target_files):
+        raise ValueError("candidate public overlays do not match its trusted public base")
 
 
 def normalize_allowed_deletions(paths: list[str]) -> set[str]:
@@ -290,10 +360,11 @@ def replace_tree(candidate: Path, target: Path) -> None:
 def main() -> int:
     args = parse_args()
     validate_trusted_checkout()
-    candidate = validate_candidate(args.candidate)
-    target = validate_target(args.target)
+    candidate, candidate_base = validate_candidate(args.candidate)
+    target, target_head = validate_target(args.target)
     if candidate == target or target in candidate.parents or candidate in target.parents:
         raise ValueError("candidate and target must be separate directory trees")
+    validate_public_base(candidate, candidate_base, target, target_head)
     allowed_deletions = normalize_allowed_deletions(args.allow_delete_path)
     validate_deletions(candidate, target, allowed_deletions)
 
