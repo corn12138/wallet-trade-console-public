@@ -151,6 +151,19 @@ class PublicReleaseToolsTest(unittest.TestCase):
                 sync.rewrite_go_module(candidate)
             self.assertEqual(external.read_text(), "module private.example/module\n")
 
+    def test_git_archive_rejects_tracked_symlink_mode(self) -> None:
+        sync = load_module("sync_git_mode_test", SCRIPT_DIR / "sync_from_private.py")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.init_repo(root)
+            (root / "target.txt").write_text("target\n")
+            (root / "linked.txt").symlink_to(root / "target.txt")
+            self.run_git(root, "add", "target.txt", "linked.txt")
+            self.run_git(root, "commit", "-qm", "symlink fixture")
+
+            with self.assertRaisesRegex(ValueError, "symlink, submodule, or special"):
+                sync.validate_git_tree_modes(root, "HEAD", None)
+
     def test_directory_symlink_is_rejected_by_audit_and_promotion(self) -> None:
         promote = load_module("promote_symlink_test", SCRIPT_DIR / "promote_public_candidate.py")
         with tempfile.TemporaryDirectory() as temporary:
