@@ -17,7 +17,7 @@ environment.
 - Go API, chain indexer, price feed, bridge relayer, and Socket.IO-compatible realtime service.
 - Perpetuals, launchpad, swap, staking, bridge, NFT, and portfolio product surfaces.
 - Hardhat deployment tooling plus Foundry parity, fuzz, and invariant-oriented tests.
-- Prisma schema and migrations as the database contract.
+- Prisma schema as the portable database contract.
 
 ## Architecture
 
@@ -46,7 +46,7 @@ platform. See [Architecture](docs/architecture.md) for the component boundaries.
 | `apps/web` | Next.js 16 App Router frontend |
 | `services/api-go` | Go API and background workers |
 | `packages/shared` | Shared TypeScript contracts, ABIs, and deployment registry |
-| `packages/database` | Prisma schema, migrations, and database helpers |
+| `packages/database` | Portable Prisma schema and database helpers |
 | `contracts` | Hardhat contracts, tests, and deployment tooling |
 | `contracts-foundry` | Foundry parity, fuzz, and Solidity tests |
 
@@ -54,7 +54,7 @@ platform. See [Architecture](docs/architecture.md) for the component boundaries.
 
 - Node.js 22.12 or newer
 - pnpm 9.15.4
-- Go 1.24.1 or newer
+- Go 1.25.13 or newer
 - PostgreSQL 16 for data-backed local flows
 - Foundry for Solidity tests
 
