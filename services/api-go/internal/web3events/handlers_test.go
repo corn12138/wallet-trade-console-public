@@ -130,6 +130,7 @@ func TestHandler_ListEventsRejectsBadQuery(t *testing.T) {
 	}{
 		{"bad page", "/?page=zero"},
 		{"page=0", "/?page=0"},
+		{"page too big", "/?page=1001"},
 		{"limit too big", "/?limit=10000"},
 		{"bad chainId", "/?chainId=abc"},
 		{"chainId=0", "/?chainId=0"},

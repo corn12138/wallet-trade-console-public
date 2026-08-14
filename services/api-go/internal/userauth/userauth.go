@@ -535,9 +535,26 @@ func setRefreshCookie(w http.ResponseWriter, token string) {
 }
 
 func clearAuthCookies(w http.ResponseWriter) {
-	for _, name := range []string{"refreshToken", "XSRF-TOKEN"} {
-		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1})
-	}
+	// Security flags are not part of cookie identity, but every Set-Cookie for
+	// these names should carry the same policy. Keeping deletion responses
+	// aligned prevents a weaker refresh-token variant at proxies and scanners.
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refreshToken",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   isProduction(),
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "XSRF-TOKEN",
+		Value:    "",
+		Path:     "/",
+		Secure:   isProduction(),
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+	})
 }
 
 func readCookie(r *http.Request, name string) string {

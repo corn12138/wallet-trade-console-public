@@ -3783,12 +3783,22 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/article/article.go",
-      "sha256": "57a8b9e19fa63e13166abd2463cfcbcf2192b43f40baca037a86ec7bde0c7123"
+      "sha256": "71bb072112eabf0847343beade0d8119196b6b809921c955cf5bfb744da36b10"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/article/article_test.go",
-      "sha256": "21afbfa3d2b917c731ed7218843e1bf7e42497707fd8eac212651ebe4891b3a9"
+      "sha256": "d6d82e47033e9f9aa91036840bf877853a85530737c9f1a505f22aa0ee3c50cb"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/article/pagination.go",
+      "sha256": "9f790f28dffc530b507f58767e67d7669e9b533e7060ef5d2c6b3c046c736337"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/article/pagination_test.go",
+      "sha256": "ecbb00e99a3b4fd18576ad8607ce87f79de2f41a0ebde9b07a970eb880eac0a1"
     },
     {
       "mode": "100644",
@@ -3837,13 +3847,23 @@
     },
     {
       "mode": "100644",
+      "path": "services/api-go/internal/bridge/coordinates.go",
+      "sha256": "4c15e11f3472b66dce9d96924f1ddf733078d801fcd0d3fed55162fd2a8f2565"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/coordinates_test.go",
+      "sha256": "b4e01424f6103566b9256d9196e4723d6812325b19777548fc1376fe745b8180"
+    },
+    {
+      "mode": "100644",
       "path": "services/api-go/internal/bridge/handlers.go",
       "sha256": "57e7fd70d262e1ab188822ba6206cdb9edb5b73c3db40496d169098782daef06"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/bridge/relayer.go",
-      "sha256": "9c1965e8e54732262bafd291e0be46e6749de8bce872da89d370c5fa670b6662"
+      "sha256": "7f49a08dd1770e5022eb049dc6423d557ac173135eb8ac63eb9be8ae5a959c27"
     },
     {
       "mode": "100644",
@@ -4038,7 +4058,7 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/backfill.go",
-      "sha256": "d979911bb1bdd32daa66cb39ed72dfe656f4f0cc29427f0b1870d7344d9f5e28"
+      "sha256": "6cb7bf7ecb9a0575e1e545827261a6c200509012857012702a3ddd2f4e875261"
     },
     {
       "mode": "100644",
@@ -4077,6 +4097,16 @@
     },
     {
       "mode": "100644",
+      "path": "services/api-go/internal/indexer/event_coordinates.go",
+      "sha256": "2d2f2dfcbdd65af650ca9e4f0bcc19eec5582547c6eaccc59a32bcaa8680caf1"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/event_coordinates_test.go",
+      "sha256": "ca49b0a877d373fd0a1bf46bd57f7251f01c8265adc995ca9240c444c62c4ff1"
+    },
+    {
+      "mode": "100644",
       "path": "services/api-go/internal/indexer/events.go",
       "sha256": "3e40e8ca72ecff0c3f3a97950794d0ed563592004038a3d9eefaf2d7109eb12d"
     },
@@ -4093,7 +4123,7 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/sink_db.go",
-      "sha256": "0d697264ea9c4944099758124b2411b485b384d592caf1059d6946678762e79d"
+      "sha256": "fd77ab6432c93a3e66a4881905aa5abe3ac14f379ce55d72adbbc836cb0b2e64"
     },
     {
       "mode": "100644",
@@ -4103,7 +4133,7 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/sink_perp.go",
-      "sha256": "8b3ad0d1ad795a10f1eff1b9bafbfb5f72ecd01a50c2469ca10570d8fe62bc7d"
+      "sha256": "5c18009760a4f5760ee933a3392148310e5321eb80fe969fee0dd32e75982ff0"
     },
     {
       "mode": "100644",
@@ -4113,7 +4143,7 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/sink_staking.go",
-      "sha256": "5d216aa575e953098064d7c26edca5b734674a4752759a67be7023a514edd478"
+      "sha256": "0d5b3856ee1a6e8038eb9f5ef05fb04f565ddb58a287bf9038f7565da921b387"
     },
     {
       "mode": "100644",
@@ -4753,12 +4783,12 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/userauth/userauth.go",
-      "sha256": "dd70b4dd62a83f76aa183f4946bdde0d4e12fa2388ff5c21ea88159799541638"
+      "sha256": "dc06508e1a9f7e0874566fee8fda5171322b045d378092549178c967bbc84199"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/userauth/userauth_test.go",
-      "sha256": "58895405176c0d638ba0df998203e8995ab5666a1da4a944189ff308c4443562"
+      "sha256": "78d844c0ba106aaf0fab92df76d423c5c82cd40e7f322044944ed5a963f72f4b"
     },
     {
       "mode": "100644",
@@ -4813,17 +4843,27 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/web3events/handlers.go",
-      "sha256": "511d1acf6ef36368ce6d7d3e81cda6a7aff640624e37ece0f65f7682b3b3fe4c"
+      "sha256": "c089e0b5328e759551adb5238ee575a234e1cf5745547f59abc4504e8bbf7480"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/web3events/handlers_test.go",
-      "sha256": "27deba2d1da8a422d42b302d438d3dd5110f4e5dd5ac56bdc39cc9630d272eef"
+      "sha256": "0036e4979ba38b9dec0ca269e0e054794584d91cd1187764693e79091d88e2e8"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/limits.go",
+      "sha256": "26d31b91892f0e6304ae1581a11aa6b2d00a1e3c3d46921b53e2f835315e570a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/limits_test.go",
+      "sha256": "e3de7740eee96bcb3792014d79a03078c6e2ebba1ce6b795e32e38190ec421e5"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/web3events/web3events.go",
-      "sha256": "905ed8fe3713b8354c407bbedf83b7c5457ebb14fba97da55e41df76e7303757"
+      "sha256": "eb9b5b3a7e72d2eb7e627c94030e958f71249cb07a3e08573d2eba4c12c7b026"
     },
     {
       "mode": "100644",
@@ -4857,5 +4897,5 @@
     }
   ],
   "format": 1,
-  "public_base_commit": "149e99877b0cc2bc3d8a9617209b71054839ce94"
+  "public_base_commit": "bb29b06225dcc1c0a847ccd9f4c2d943adbc96c2"
 }

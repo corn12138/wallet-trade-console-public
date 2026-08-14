@@ -76,7 +76,7 @@ func (s *DBSink) handleStakingEvent(ctx context.Context, ev ParsedEvent, action 
 		ON CONFLICT (chain_id, tx_hash, log_index) DO NOTHING
 	`,
 		ev.ChainID, poolIDArg, poolAddr, r.user, r.action, r.amount.String(),
-		ev.TxHash, int(ev.LogIndex), int64(ev.BlockNumber),
+		ev.TxHash, ev.LogIndex, ev.BlockNumber,
 	)
 	if err != nil {
 		return fmt.Errorf("insert staking_action %s#%d: %w", ev.TxHash, ev.LogIndex, err)

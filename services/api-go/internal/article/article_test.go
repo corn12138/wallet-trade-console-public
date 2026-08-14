@@ -71,6 +71,7 @@ func TestHandler_ListRejectsBadInput(t *testing.T) {
 	}{
 		{"bad page", "/?page=abc"},
 		{"page=0", "/?page=0"},
+		{"page too big", "/?page=1001"},
 		{"limit too big", "/?limit=999"},
 	}
 	for _, tc := range cases {

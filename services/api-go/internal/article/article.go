@@ -142,14 +142,8 @@ func (r *Repository) List(ctx context.Context, q ListQuery) (ListResult, error) 
 		return ListResult{}, fmt.Errorf("count articles: %w", err)
 	}
 
-	limit := q.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-	page := q.Page
-	if page <= 0 {
-		page = 1
-	}
+	limit := boundedArticleListLimit(q.Limit)
+	page := boundedArticleListPage(q.Page)
 	offset := (page - 1) * limit
 	listArgs := append(args, limit, offset)
 	limPH := "$" + strconv.Itoa(len(args)+1)
@@ -720,12 +714,12 @@ func authUserID(r *http.Request) string {
 
 func (s *Service) list(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	page, ok := parsePositiveInt(q.Get("page"), 1, 1, 0)
+	page, ok := parsePositiveInt(q.Get("page"), defaultArticleListPage, 1, maxArticleListPage)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid page")
 		return
 	}
-	limit, ok := parsePositiveInt(q.Get("limit"), 10, 1, 100)
+	limit, ok := parsePositiveInt(q.Get("limit"), defaultArticleListLimit, 1, maxArticleListLimit)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid limit")
 		return

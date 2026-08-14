@@ -97,12 +97,12 @@ func Router(svc *Service) chi.Router {
 func (s *Service) listEvents(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	page, ok := parsePositiveInt(q.Get("page"), 1, 1, 0)
+	page, ok := parsePositiveInt(q.Get("page"), defaultEventListPage, 1, maxEventListPage)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid page")
 		return
 	}
-	limit, ok := parsePositiveInt(q.Get("limit"), 20, 1, 100)
+	limit, ok := parsePositiveInt(q.Get("limit"), defaultEventListLimit, 1, maxEventListLimit)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid limit")
 		return
@@ -245,7 +245,7 @@ func (s *Service) userEvents(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid chainId")
 		return
 	}
-	limit, ok := parsePositiveInt(q.Get("limit"), 50, 1, 200)
+	limit, ok := parsePositiveInt(q.Get("limit"), defaultUserEventLimit, 1, maxUserEventLimit)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid limit")
 		return
@@ -276,7 +276,7 @@ func (s *Service) recentTransactions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid chainId")
 		return
 	}
-	limit, ok := parsePositiveInt(q.Get("limit"), 20, 1, 100)
+	limit, ok := parsePositiveInt(q.Get("limit"), defaultRecentTransactionCap, 1, maxRecentTransactionCap)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid limit")
 		return

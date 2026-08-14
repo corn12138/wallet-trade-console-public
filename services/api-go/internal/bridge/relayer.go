@@ -360,20 +360,32 @@ func (r *Relayer) handleInitiated(ctx context.Context, chainID int, lg rpc.Log) 
 	if err != nil {
 		return err
 	}
+	dstChain, err := bridgeChainID("destination chain ID", dstChainID)
+	if err != nil {
+		return err
+	}
+	logIndex, err := bridgeLogIndex(lg.LogIndex)
+	if err != nil {
+		return err
+	}
+	blockNumber, err := bridgeBlockNumber(lg.BlockNumber)
+	if err != nil {
+		return err
+	}
 
 	gw, _ := r.registry.Gateway(chainID)
 	transfer := Transfer{
 		TransferID:      strings.ToLower(lg.Topics[1]),
 		SrcChainID:      chainID,
-		DstChainID:      int(dstChainID.Int64()),
+		DstChainID:      dstChain,
 		SrcGateway:      gw.Address,
 		Sender:          topicAddress(lg.Topics[2]),
 		Recipient:       topicAddress(lg.Topics[3]),
 		SrcToken:        srcToken,
 		Amount:          amount.String(),
 		DepositTxHash:   lg.TxHash,
-		DepositLogIndex: int(lg.LogIndex),
-		DepositBlock:    int64(lg.BlockNumber),
+		DepositLogIndex: logIndex,
+		DepositBlock:    blockNumber,
 		DepositedAt:     time.Now().UTC(),
 	}
 
@@ -408,9 +420,17 @@ func (r *Relayer) handleFulfilled(ctx context.Context, lg rpc.Log) error {
 	if err != nil {
 		return err
 	}
+	srcChain, err := bridgeChainID("source chain ID", srcChainID)
+	if err != nil {
+		return err
+	}
+	blockNumber, err := bridgeBlockNumber(lg.BlockNumber)
+	if err != nil {
+		return err
+	}
 
 	updated, err := r.store.MarkFulfilled(ctx,
-		int(srcChainID.Int64()), lg.Topics[1], lg.TxHash, int64(lg.BlockNumber), time.Now().UTC())
+		srcChain, lg.Topics[1], lg.TxHash, blockNumber, time.Now().UTC())
 	if err != nil {
 		return err
 	}

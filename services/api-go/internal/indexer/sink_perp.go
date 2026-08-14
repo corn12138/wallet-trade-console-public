@@ -224,7 +224,7 @@ func (s *DBSink) handlePerpEvent(ctx context.Context, ev ParsedEvent, kind strin
 	`,
 		ev.ChainID, r.account, symbol, r.isLong, r.sizeDelta.String(),
 		tradePrice.String(), r.fee.String(), pnlArg, kind,
-		ev.TxHash, int(ev.LogIndex), int64(ev.BlockNumber),
+		ev.TxHash, ev.LogIndex, ev.BlockNumber,
 	)
 	if err != nil {
 		return fmt.Errorf("insert perp_trade %s#%d: %w", ev.TxHash, ev.LogIndex, err)
