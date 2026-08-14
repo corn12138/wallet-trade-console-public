@@ -1,0 +1,81 @@
+# --- Dependencies ---
+node_modules
+.pnpm-store
+
+# --- Build outputs ---
+.next
+.turbo
+dist
+out
+build
+*.tsbuildinfo
+
+# --- Test artifacts ---
+coverage
+test-results
+.vitest
+*.lcov
+# browser-smoke screenshot artifacts (local evidence, not source)
+/artifacts/
+
+# --- Hardhat / Foundry ---
+contracts/artifacts
+contracts/cache
+contracts-foundry/cache
+contracts-foundry/out
+typechain-types
+
+# --- IDE / OS ---
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+Thumbs.db
+
+# --- Environment files ---
+# Ignore every variant of .env then explicitly allow examples/templates.
+# This catches .env, .env.local, .env.production, .env.staging, and any
+# ad-hoc names like .env.tencent or .env.staging.local.
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.template
+!.env.*.template
+
+# --- Runtime output ---
+logs
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# --- Secret material that must never be committed ---
+*.key
+*.pem
+.secret
+mnemonic.txt
+keystore/
+
+# --- Local databases ---
+*.db
+*.db-journal
+
+# --- Local media uploads (MEDIA_STORAGE=local runtime data, never source) ---
+services/api-go/data/
+
+# Redis persistence dumps left by a local redis-server during strict-topology /
+# realtime testing — never a source artifact.
+*.rdb
+dump.rdb
+
+# --- Deployment artifacts that ARE meant to be committed ---
+# (Per the repo's contract sync rule — keep these tracked.)
+!contracts/deployments
+!packages/shared/deployments
+
+# Python bytecode cache (smoke scripts)
+__pycache__/
+*.pyc

@@ -1,0 +1,5 @@
+packages:
+  - 'apps/*'
+  - 'contracts'
+  - 'packages/*'
+  # services/api-go is a Go module and is intentionally outside the pnpm graph.

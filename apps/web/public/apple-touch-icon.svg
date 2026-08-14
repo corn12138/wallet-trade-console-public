@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <rect width="180" height="180" rx="40" fill="#FFF8EC"></rect>
+
+  <pattern id="dots" width="14" height="14" patternUnits="userSpaceOnUse">
+    <circle cx="2" cy="2" r="1" fill="rgba(26,18,7,0.10)"></circle>
+  </pattern>
+  <rect width="180" height="180" rx="40" fill="url(#dots)"></rect>
+
+  <g transform="translate(40 30)">
+    <polygon points="50,8 92,32 50,56 8,32" fill="#FFD23F" stroke="#1A1207" stroke-width="5" stroke-linejoin="round"></polygon>
+    <polygon points="8,32 8,72 50,96 50,56" fill="#FF7043" stroke="#1A1207" stroke-width="5" stroke-linejoin="round"></polygon>
+    <polygon points="92,32 92,72 50,96 50,56" fill="#C44CE8" stroke="#1A1207" stroke-width="5" stroke-linejoin="round"></polygon>
+  </g>
+
+  <text x="90" y="156" text-anchor="middle" font-family="Unbounded, system-ui, sans-serif" font-weight="900" font-size="13" letter-spacing="-0.4" fill="#1A1207">ATLAS·X</text>
+</svg>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" shape-rendering="geometricPrecision">
+  <style>
+    .top   { fill: #FFD23F; stroke: #1A1207; }
+    .left  { fill: #FF7043; stroke: #1A1207; }
+    .right { fill: #C44CE8; stroke: #1A1207; }
+    @media (prefers-color-scheme: dark) {
+      .top   { fill: #FFE07A; stroke: #FFFFFF; }
+      .left  { fill: #FF8E5C; stroke: #FFFFFF; }
+      .right { fill: #D572EC; stroke: #FFFFFF; }
+    }
+  </style>
+  <polygon class="top"   points="50,8 92,32 50,56 8,32"    stroke-width="6" stroke-linejoin="round"/>
+  <polygon class="left"  points="8,32 8,72 50,96 50,56"   stroke-width="6" stroke-linejoin="round"/>
+  <polygon class="right" points="92,32 92,72 50,96 50,56" stroke-width="6" stroke-linejoin="round"/>
+</svg>

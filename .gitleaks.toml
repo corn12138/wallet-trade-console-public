@@ -1,0 +1,19 @@
+title = "Wallet Trade Console public-source policy"
+
+[extend]
+useDefault = true
+
+# Ethereum addresses and transaction hashes are public testnet identifiers.
+# Limit this exception to the generic API-key heuristic; provider-specific and
+# private-key rules still run normally, as does scripts/public_release_audit.py.
+[[allowlists]]
+description = "Public Ethereum address and transaction-hash literals"
+targetRules = ["generic-api-key"]
+regexTarget = "match"
+regexes = ['''0x[0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?''']
+
+[[allowlists]]
+description = "Non-secret browser localStorage namespace"
+targetRules = ["generic-api-key"]
+regexTarget = "match"
+regexes = ['''atlas-x\.trading-defaults\.v1''']

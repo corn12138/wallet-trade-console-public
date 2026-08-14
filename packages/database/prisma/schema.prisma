@@ -1,0 +1,1346 @@
+// 第一步迁移：添加新字段，保持现有字段不变
+// 这个版本确保数据安全，先添加新字段再处理旧字段
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 新增枚举类型
+enum ArticleStatus {
+  DRAFT      // 草稿
+  PUBLISHED  // 已发布
+  ARCHIVED   // 已归档
+  SCHEDULED  // 定时发布
+  TRASH      // 回收站
+}
+
+enum ArticleSourceType {
+  MANUAL
+  REPOSITORY_DOC
+  IMPORTED
+}
+
+enum ArticleContentFormat {
+  MARKDOWN
+  HTML
+  RICH_TEXT
+}
+
+enum ArticleVisibility {
+  PUBLIC
+  AUTHENTICATED
+}
+
+enum ConversationStatus {
+  ACTIVE     // 活跃中
+  COMPLETED  // 已完成
+  PAUSED     // 暂停
+  ARCHIVED   // 已归档
+  ERROR      // 错误状态
+}
+
+enum MessageRole {
+  USER      // 用户消息
+  ASSISTANT // AI助手消息
+  SYSTEM    // 系统消息
+  FUNCTION  // 函数调用消息
+}
+
+// 用户模型 (保持不变，但添加新关系)
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  fullName     String?
+  password     String
+  avatar       String?
+  bio          String?
+  roles        Json     @default("[\"user\"]")
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 原有关系
+  articles      Article[]
+  comments      Comment[]
+  lowcodePages  LowcodePage[]
+  conversations Conversation[]
+  messages      Message[]
+
+  // 新增关系
+  userStatistics UserStatistics[]
+  verificationCodes VerificationCode[]
+  createdRooms InterviewRoom[] @relation("CreatedRooms")
+  participations RoomParticipant[]
+  tokenComments TokenComment[]
+  authSessions   AuthSession[]
+  web3Wallets    Web3Wallet[]
+
+  @@map("users")
+}
+
+// 分类模型 (保持不变)
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  slug        String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles Article[]
+
+  @@map("categories")
+}
+
+// 标签模型 (保持不变)
+model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String?  @unique
+  description String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles Article[]
+
+  @@map("tags")
+}
+
+// 文章模型 (渐进式增强 - 保留published字段，添加新字段)
+model Article {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String?  @unique
+  content        String   @db.Text
+  summary        String?  @db.Text
+
+  // 保留原字段
+  published      Boolean  @default(false)
+
+  // 新增字段 (设为可选以确保兼容性)
+  status         ArticleStatus? @default(DRAFT)  // 新增：文章状态
+  lastSavedAt    DateTime?                       // 新增：最后保存时间
+  version        Int?          @default(1)       // 新增：版本号
+  draftContent   String?       @db.Text          // 新增：草稿内容
+  metaTitle      String?                         // 新增：SEO标题
+  metaDescription String?                        // 新增：SEO描述
+  keywords       String?                         // 新增：关键词
+  sourceType     ArticleSourceType? @default(MANUAL)
+  sourceCollection String?
+  sourcePath     String?
+  contentFormat  ArticleContentFormat? @default(MARKDOWN)
+  visibility     ArticleVisibility @default(PUBLIC)
+
+  featuredImage  String?
+  viewCount      Int      @default(0)
+  authorId       String
+  categoryId     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  publishedAt    DateTime?
+
+  // 关系
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category  Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags      Tag[]
+  comments  Comment[]
+
+  // 新增索引
+  @@index([status])
+  @@index([authorId, status])
+  @@index([publishedAt])
+  @@index([createdAt])
+  @@index([visibility, publishedAt])
+  @@index([sourceType, sourceCollection])
+  @@index([sourcePath])
+  @@map("articles")
+}
+
+// 评论模型 (保持不变)
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  authorId  String
+  articleId String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  article  Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+
+  @@index([authorId])
+  @@index([articleId])
+  @@index([parentId])
+  @@index([articleId, createdAt])
+  @@map("comments")
+}
+
+// 低代码页面模型 (保持不变)
+model LowcodePage {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  content     Json
+  description String?
+  isHomePage  Boolean  @default(false)
+  published   Boolean  @default(false)
+  config      Json?
+  meta        Json?
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  publishedAt DateTime?
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@map("lowcode_pages")
+}
+
+// AI对话模型 (渐进式增强 - 添加新字段)
+model Conversation {
+  id        String   @id @default(cuid())
+  title     String
+  userId    String
+  model     String   @default("gpt-3.5-turbo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 新增字段 (设为可选以确保兼容性)
+  modelProvider    String?                        // 模型提供商
+  modelVersion     String?                        // 模型版本
+  messageCount     Int?                @default(0) // 消息总数
+  totalTokens      Int?                @default(0) // 总token数
+  inputTokens      Int?                @default(0) // 输入token数
+  outputTokens     Int?                @default(0) // 输出token数
+  totalCost        Decimal?            @default(0) // 总成本
+  status           ConversationStatus? @default(ACTIVE) // 对话状态
+  temperature      Float?              @default(0.7)   // 温度参数
+  maxTokens        Int?                @default(1000)  // 最大token限制
+  lastMessageAt    DateTime?                           // 最后消息时间
+  duration         Int?                               // 对话持续时间(秒)
+  category         String?                            // 对话分类
+  tags             String[]            @default([])   // 对话标签
+  userRating       Int?                               // 用户评分(1-5)
+  feedback         String?                            // 用户反馈
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  // 保留原有索引
+  @@index([userId])
+  @@index([createdAt])
+
+  // 新增索引
+  @@index([model])
+  @@index([modelProvider])
+  @@index([status])
+  @@index([userId, createdAt])
+  @@index([model, createdAt])
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+// AI消息模型 (渐进式增强)
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String   // 暂时保持String，后续迁移到枚举
+  content        String   @db.Text
+  model          String?
+  tokenCount     Int?
+  userId         String?
+  createdAt      DateTime @default(now())
+  readAt         DateTime?
+
+  // 新增字段 (设为可选)
+  roleEnum         MessageRole?  // 新的枚举字段
+  modelProvider    String?       // 模型提供商
+  inputTokens      Int?          // 输入token数
+  outputTokens     Int?          // 输出token数
+  totalTokens      Int?          // 总token数
+  responseTime     Int?          // 响应时间(毫秒)
+  cost             Decimal?      // 消息成本
+  confidence       Float?        // AI回复置信度
+  userRating       Int?          // 用户评分
+  temperature      Float?        // 生成参数
+  maxTokens        Int?          // token限制
+  finishReason     String?       // 完成原因
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // 保留原有索引
+  @@index([conversationId])
+  @@index([createdAt])
+
+  // 新增索引
+  @@index([roleEnum])
+  @@index([model])
+  @@index([userId])
+  @@index([readAt])
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// 新增统计表
+
+// 用户使用统计
+model UserStatistics {
+  id               String   @id @default(cuid())
+  userId           String
+  date             DateTime // 统计日期(按天)
+
+  // 使用量统计
+  conversationCount Int     @default(0)
+  messageCount     Int      @default(0)
+  totalTokens      Int      @default(0)
+  totalCost        Decimal  @default(0)
+
+  // 时间和质量统计
+  totalDuration    Int      @default(0)  // 总时长(分钟)
+  avgResponseTime  Int?                   // 平均响应时间
+  modelUsage       Json     @default("{}")// 各模型使用次数
+  avgRating        Float?                 // 平均评分
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // 关系
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 唯一约束：每个用户每天只有一条记录
+  @@unique([userId, date])
+  @@index([date])
+  @@index([userId, date])
+  @@map("user_statistics")
+}
+
+// 模型使用统计
+model ModelStatistics {
+  id               String   @id @default(cuid())
+  model            String   // 模型名称
+  modelProvider    String   // 提供商
+  date             DateTime // 统计日期
+
+  // 使用统计
+  requestCount     Int      @default(0)
+  userCount        Int      @default(0)
+  totalTokens      Int      @default(0)
+  totalCost        Decimal  @default(0)
+
+  // 性能统计
+  avgResponseTime  Int?
+  maxResponseTime  Int?
+  minResponseTime  Int?
+  avgRating        Float?
+  errorRate        Float?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // 唯一约束
+  @@unique([model, modelProvider, date])
+  @@index([date])
+  @@index([model])
+  @@index([modelProvider])
+  @@map("model_statistics")
+}
+
+model AuthSession {
+  id               String   @id @default(cuid())
+  userId           String
+  refreshTokenHash String   @unique
+  expiresAt        DateTime
+  lastUsedAt       DateTime @default(now())
+  revokedAt        DateTime?
+  userAgent        String?
+  ipAddressHash    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+// ========== 新增：验证码管理 ==========
+
+// 验证码类型枚举
+enum VerificationCodeType {
+  PASSWORD_RESET    // 密码重置
+  EMAIL_LOGIN       // 邮箱登录
+  EMAIL_VERIFICATION // 邮箱验证
+  PHONE_VERIFICATION // 手机验证
+}
+
+// 验证码状态枚举
+enum VerificationCodeStatus {
+  PENDING    // 待验证
+  VERIFIED   // 已验证
+  EXPIRED    // 已过期
+  REVOKED    // 已撤销
+}
+
+// 验证码模型
+model VerificationCode {
+  id        String   @id @default(cuid())
+  code      String   // 验证码
+  email     String   // 目标邮箱
+  type      VerificationCodeType // 验证码类型
+  status    VerificationCodeStatus @default(PENDING) // 验证码状态
+  userId    String?  // 关联用户ID（可选）
+  expiresAt DateTime // 过期时间
+  verifiedAt DateTime? // 验证时间
+  revokedAt  DateTime? // 撤销时间
+  attempts   Int      @default(0) // 尝试次数
+  maxAttempts Int     @default(3) // 最大尝试次数
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关系
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 索引
+  @@index([email, type, status])
+  @@index([code, type])
+  @@index([expiresAt])
+  @@map("verification_codes")
+}
+
+// ========== WebRTC Interview Room Models ==========
+
+// 房间类型枚举
+enum RoomType {
+  ONE_ON_ONE  // 1对1面试
+  PANEL       // 小组面试
+  GROUP       // 群组会议
+}
+
+// 房间状态枚举
+enum RoomStatus {
+  ACTIVE      // 活跃中
+  ENDED       // 已结束
+  ARCHIVED    // 已归档
+}
+
+// 参与者角色枚举
+enum ParticipantRole {
+  INTERVIEWER  // 面试官
+  INTERVIEWEE  // 面试者
+  OBSERVER     // 观察者
+}
+
+// 连接质量枚举
+enum ConnectionQuality {
+  EXCELLENT    // 优秀
+  GOOD         // 良好
+  POOR         // 较差
+  UNKNOWN      // 未知
+}
+
+// 面试房间模型
+model InterviewRoom {
+  id              String      @id @default(cuid())
+  roomName        String      @unique // LiveKit房间名称
+  displayName     String      // 显示名称
+  roomType        RoomType    @default(PANEL)
+  status          RoomStatus  @default(ACTIVE)
+
+  // 房间配置
+  maxParticipants Int         @default(6)
+  isPublic        Boolean     @default(true)
+  password        String?     // 房间密码（可选）
+
+  // 描述信息
+  description     String?     @db.Text
+  tags            String[]    @default([])
+
+  // 创建者
+  creatorId       String?
+  creator         User?       @relation("CreatedRooms", fields: [creatorId], references: [id], onDelete: SetNull)
+
+  // 时间追踪
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  startedAt       DateTime?   // 首次有人加入的时间
+  endedAt         DateTime?   // 房间结束时间
+
+  // 统计数据
+  totalDuration   Int         @default(0) // 总持续时间（秒）
+  peakParticipants Int?       // 峰值参与人数
+  totalJoins      Int         @default(0) // 总加入次数
+
+  // 关系
+  participants    RoomParticipant[]
+  sessions        RoomSession[]
+
+  @@index([roomName])
+  @@index([status])
+  @@index([creatorId])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@map("interview_rooms")
+}
+
+// 房间参与者模型
+model RoomParticipant {
+  id          String      @id @default(cuid())
+  roomId      String
+  room        InterviewRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  // 用户信息
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  displayName String      // 显示名称
+  identity    String      // LiveKit identity
+
+  // 角色
+  role        ParticipantRole @default(OBSERVER)
+
+  // 时间追踪
+  joinedAt    DateTime    @default(now())
+  leftAt      DateTime?
+  duration    Int         @default(0) // 持续时间（秒）
+
+  // 状态
+  isActive    Boolean     @default(true)
+  connectionQuality ConnectionQuality @default(UNKNOWN)
+
+  @@index([roomId])
+  @@index([userId])
+  @@index([identity])
+  @@index([isActive])
+  @@index([roomId, isActive])
+  @@map("room_participants")
+}
+
+model RoomSession {
+  id          String      @id @default(cuid())
+  roomId      String
+  room        InterviewRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  // 会话时间
+  startedAt   DateTime    @default(now())
+  endedAt     DateTime?
+  duration    Int         @default(0) // 会话持续时间（秒）
+
+  // 会话统计
+  participantCount Int?    // 该会话的参与人数
+
+  @@index([roomId])
+  @@index([startedAt])
+  @@map("room_sessions")
+}
+
+// ========== Mobile Docs ==========
+
+// 文档分类枚举
+enum DocCategory {
+  LATEST    // 最新
+  FRONTEND  // 前端
+  BACKEND   // 后端
+  AI        // AI
+  MOBILE    // 移动端
+  DESIGN    // 设计
+}
+
+// 移动端文档模型
+model MobileDoc {
+  id          String      @id @default(uuid())
+  title       String
+  content     String      @db.Text
+  summary     String?     @db.Text
+  filePath    String?     @unique
+  category    DocCategory @default(FRONTEND)
+  tags        String[]    @default([])
+  isHot       Boolean     @default(false)
+  sortOrder   Int         @default(0)
+  published   Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([category])
+  @@index([isHot])
+  @@index([published])
+  @@index([sortOrder])
+  @@map("mobile_docs")
+}
+
+// ========== Web3 Models ==========
+
+// Web3 钱包关联（可选：将钱包地址关联到用户）
+model Web3Wallet {
+  id          String    @id @default(cuid())
+  address     String    @unique @db.VarChar(42) // 以太坊地址 0x...
+  chainId     Int       @default(11155111) // 默认 Sepolia
+  userId      String?   // 关联到现有用户（可选）
+  nonce       String?   @db.VarChar(100) // SIWE nonce
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  profiles    Web3WalletProfile[]
+
+  @@index([address])
+  @@index([userId])
+  @@map("web3_wallets")
+}
+
+// 钱包分组
+model Web3WalletGroup {
+  id           String              @id @default(cuid())
+  ownerAddress String              @db.VarChar(42)
+  name         String              @db.VarChar(80)
+  color        String?             @db.VarChar(24)
+  sortOrder    Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  profiles     Web3WalletProfile[]
+
+  @@unique([ownerAddress, name], name: "wallet_groups_owner_name")
+  @@index([ownerAddress, sortOrder])
+  @@map("wallet_groups")
+}
+
+// 钱包管理资料
+model Web3WalletProfile {
+  id           String           @id @default(cuid())
+  walletId      String
+  ownerAddress  String           @db.VarChar(42)
+  displayName   String?          @db.VarChar(120)
+  groupId       String?
+  isDefault     Boolean          @default(false)
+  isImported    Boolean          @default(false)
+  avatarSeed    String?          @db.VarChar(80)
+  notes         String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  wallet        Web3Wallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  group         Web3WalletGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@unique([ownerAddress, walletId], name: "wallet_profiles_owner_wallet")
+  @@index([ownerAddress])
+  @@index([walletId])
+  @@index([groupId])
+  @@index([ownerAddress, isDefault])
+  @@map("wallet_profiles")
+}
+
+// 用户偏好
+model Web3UserPreference {
+  id                   String   @id @default(cuid())
+  ownerAddress         String   @unique @db.VarChar(42)
+  theme                String   @default("system") @db.VarChar(20)
+  fiatCurrency         String   @default("USD") @db.VarChar(8)
+  testnetEnabled       Boolean  @default(true)
+  notificationsEnabled Boolean  @default(true)
+  spamFilterLevel      String   @default("standard") @db.VarChar(20)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+// 隐藏资产
+model Web3HiddenAsset {
+  id           String   @id @default(cuid())
+  ownerAddress String   @db.VarChar(42)
+  walletAddress String? @db.VarChar(42)
+  chainId      Int
+  assetKey     String   @db.VarChar(180)
+  assetAddress String?  @db.VarChar(42)
+  symbol       String   @db.VarChar(32)
+  reason       String   @default("manual") @db.VarChar(40)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([ownerAddress, assetKey], name: "hidden_assets_owner_asset_key")
+  @@index([ownerAddress, chainId])
+  @@index([walletAddress])
+  @@map("hidden_assets")
+}
+
+// 通知偏好
+model Web3NotificationPreference {
+  id             String   @id @default(cuid())
+  ownerAddress   String   @unique @db.VarChar(42)
+  securityAlerts Boolean  @default(true)
+  txUpdates      Boolean  @default(true)
+  marketAlerts   Boolean  @default(true)
+  productUpdates Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("notification_prefs")
+}
+
+// 已连接站点 / dapp profile
+model ConnectedSite {
+  id               String   @id @default(cuid())
+  ownerAddress     String   @db.VarChar(42)
+  chainId          Int?
+  origin           String   @db.VarChar(180)
+  domain           String   @db.VarChar(120)
+  siteName         String   @db.VarChar(120)
+  iconUrl          String?
+  category         String?  @db.VarChar(60)
+  riskLevel        String   @default("unknown") @db.VarChar(20)
+  permissions      Json     @default("[]")
+  firstConnectedAt DateTime @default(now())
+  lastConnectedAt  DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([ownerAddress, origin], name: "connected_sites_owner_origin")
+  @@index([ownerAddress, lastConnectedAt])
+  @@index([ownerAddress, riskLevel])
+  @@index([domain])
+  @@map("connected_sites")
+}
+
+// Web3 事件记录（链上事件持久化）
+model Web3Event {
+  id              Int       @id @default(autoincrement())
+  chainId         Int       @map("chain_id")
+  contractAddress String    @map("contract_address") @db.VarChar(42)
+  eventName       String    @map("event_name") @db.VarChar(100)
+  txHash          String    @map("tx_hash") @db.VarChar(66)
+  logIndex        Int       @map("log_index")
+  blockNumber     BigInt    @map("block_number")
+  actorAddress    String?   @map("actor_address") @db.VarChar(42)
+  args            Json      @default("{}")
+  occurredAt      DateTime? @map("occurred_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  // 唯一约束确保幂等性
+  @@unique([chainId, contractAddress, txHash, logIndex], name: "web3_events_unique")
+  @@index([blockNumber(sort: Desc)])
+  @@index([actorAddress])
+  @@index([eventName])
+  @@index([contractAddress])
+  @@index([chainId, contractAddress])
+  @@map("web3_events")
+}
+
+// Indexer 状态（用于断点续传）
+model Web3IndexerState {
+  id                  Int       @id @default(autoincrement())
+  chainId             Int       @map("chain_id")
+  contractAddress     String    @map("contract_address") @db.VarChar(42)
+  lastProcessedBlock  BigInt    @map("last_processed_block")
+  lastSafeBlock       BigInt    @default(0) @map("last_safe_block")
+  confirmationDepth   Int       @default(6) @map("confirmation_depth")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([chainId, contractAddress], name: "indexer_state_unique")
+  @@map("web3_indexer_state")
+}
+
+// Web3 交易记录（用户交易历史）
+model Web3Transaction {
+  id              Int       @id @default(autoincrement())
+  chainId         Int       @map("chain_id")
+  txHash          String    @map("tx_hash") @db.VarChar(66)
+  fromAddress     String    @map("from_address") @db.VarChar(42)
+  toAddress       String?   @map("to_address") @db.VarChar(42)
+  contractAddress String?   @map("contract_address") @db.VarChar(42)
+  value           String?   // Wei value as string
+  gasUsed         BigInt?   @map("gas_used")
+  gasPrice        BigInt?   @map("gas_price")
+  blockNumber     BigInt    @map("block_number")
+  status          String    @default("pending") // pending, confirmed, failed
+  txType          String?   @map("tx_type") // swap, addLiquidity, removeLiquidity, approve
+  metadata        Json?     // 额外信息
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@unique([chainId, txHash])
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@index([contractAddress])
+  @@index([blockNumber(sort: Desc)])
+  @@index([status])
+  @@map("web3_transactions")
+}
+
+// Token status enum for launchpad
+enum TokenStatus {
+  PENDING    // Waiting for deployment
+  UPCOMING   // Scheduled for launch
+  LAUNCHED   // Successfully launched
+  GRADUATED  // Bonding curve graduated to DEX liquidity (chain Graduated event)
+  BURNING    // Token is being burned
+  FAILED     // Deployment failed
+}
+
+// Token launch type
+enum LaunchType {
+  NEW_COIN   // Standard token launch
+  IDO        // Initial DEX Offering
+  BURNING    // Token with burning mechanism
+}
+
+// Launchpad Token model
+model Token {
+  id              String       @id @default(cuid())
+  address         String?      @unique @db.VarChar(42)
+  chainId         Int          @map("chain_id")
+  symbol          String       @db.VarChar(20)
+  name            String       @db.VarChar(100)
+  description     String?      @db.Text
+  image           String?      // Token icon URL
+  banner          String?      // Banner image URL
+  tags            Json         @default("[]") // Array of tag strings
+
+  // Social links
+  twitter         String?
+  discord         String?
+  telegram        String?
+  website         String?
+  whitepaper      String?
+
+  // Launch configuration
+  status          TokenStatus  @default(PENDING)
+  launchType      LaunchType   @default(NEW_COIN) @map("launch_type")
+  preBuyPercent   Float?       @map("pre_buy_percent")
+  hasMargin       Boolean      @default(false) @map("has_margin")
+  hasReservation  Boolean      @default(false) @map("has_reservation")
+  isOfficial      Boolean      @default(false) @map("is_official")
+  customAddress   String?      @map("custom_address") @db.VarChar(4)
+
+  // Bonding curve / market data. Financial amounts are precise decimals in
+  // normalized NATIVE units (wei is converted exactly once at the indexer
+  // boundary) — never floats. priceChange24h stays a display-only percent.
+  bondingCurve    String?      @map("bonding_curve") @db.VarChar(42)
+  marketCap       Decimal?     @map("market_cap") @db.Decimal(38, 18)
+  volume24h       Decimal?     @map("volume_24h") @db.Decimal(38, 18)
+  priceChange24h  Float?       @map("price_change_24h")
+
+  // Creator info
+  creatorAddress  String       @map("creator_address") @db.VarChar(42)
+
+  // Timestamps
+  launchedAt      DateTime?    @map("launched_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  comments        TokenComment[]
+  trades          TokenTrade[]
+  candles         TokenCandle[]
+  holders         TokenHolder[]
+
+  @@index([chainId])
+  @@index([createdAt(sort: Desc)])
+  @@index([marketCap(sort: Desc)])
+  @@map("tokens")
+}
+
+// Token Comment model
+model TokenComment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  tokenId   String
+  userId    String
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  token     Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("token_comments")
+}
+
+// Token Trade model (Bonding Curve trades)
+model TokenTrade {
+  id              String   @id @default(cuid())
+  tokenId         String
+  userAddress     String   @map("user_address") @db.VarChar(42)
+  type            String   // BUY, SELL
+  tokenAmount     String   // raw integer string, smallest unit (auditability)
+  ethAmount       String   // raw integer string, wei (auditability)
+  price           Decimal  @db.Decimal(38, 18) // normalized NATIVE per token
+  blockNumber     BigInt   @map("block_number")
+  transactionHash String   @map("transaction_hash") @unique
+  timestamp       DateTime
+
+  token           Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@index([tokenId])
+  @@index([userAddress])
+  @@index([timestamp(sort: Desc)])
+  @@map("token_trades")
+}
+
+// Token Candle model (OHLCV)
+model TokenCandle {
+  id        String   @id @default(cuid())
+  tokenId   String
+  time      DateTime
+  resolution String  // 1m, 5m, 15m, 1h, 4h, 1d
+  open      Decimal @db.Decimal(38, 18) // normalized NATIVE per token
+  high      Decimal @db.Decimal(38, 18)
+  low       Decimal @db.Decimal(38, 18)
+  close     Decimal @db.Decimal(38, 18)
+  volume    Decimal @db.Decimal(38, 18) // normalized NATIVE
+
+  token     Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenId, resolution, time])
+  @@index([tokenId, resolution, time(sort: Desc)])
+  @@map("token_candles")
+}
+
+// Token Holder model
+model TokenHolder {
+  id          String   @id @default(cuid())
+  tokenId     String
+  userAddress String   @map("user_address") @db.VarChar(42)
+  balance     String   // BigInt as String
+  updatedAt   DateTime @updatedAt
+
+  token       Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenId, userAddress])
+  @@index([tokenId, balance(sort: Desc)])
+  @@map("token_holders")
+}
+
+// Launchpad Campaign model
+model LaunchpadCampaign {
+  id              String    @id @default(cuid())
+  title           String    @db.VarChar(200)
+  description     String?   @db.Text
+  banner          String?
+  startDate       DateTime  @map("start_date")
+  endDate         DateTime  @map("end_date")
+  status          String    @default("upcoming") // upcoming, active, ended
+  reward          String?   // Reward pool description
+  participants    Int       @default(0)
+  metadata        Json?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("launchpad_campaigns")
+}
+
+// Staking/Farming Pool model
+model StakingPool {
+  id              String    @id @default(cuid())
+  name            String    @db.VarChar(100)
+  chainId         Int       @map("chain_id")
+  poolType        String    @map("pool_type") // staking, farming
+  tokenAddress    String    @map("token_address") @db.VarChar(42)
+  rewardToken     String?   @map("reward_token") @db.VarChar(42)
+  apy             Float?
+  tvl             Float?
+  status          String    @default("active") // active, ending, ended
+  startsAt        DateTime? @map("starts_at")
+  endsAt          DateTime? @map("ends_at")
+  metadata        Json?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  stakes          UserStake[]
+
+  @@index([chainId])
+  @@index([poolType])
+  @@index([status])
+  @@map("staking_pools")
+}
+
+// User staking position
+model UserStake {
+  id            String    @id @default(cuid())
+  userAddress   String    @map("user_address") @db.VarChar(42)
+  poolId        String    @map("pool_id")
+  amount        Decimal   @db.Decimal(36, 18)
+  rewardsClaimed Decimal  @default(0) @map("rewards_claimed") @db.Decimal(36, 18)
+  stakedAt      DateTime  @default(now()) @map("staked_at")
+  unstakedAt    DateTime? @map("unstaked_at")
+  pool          StakingPool @relation(fields: [poolId], references: [id])
+
+  @@index([userAddress])
+  @@index([poolId])
+  @@map("user_stakes")
+}
+// ========== Perpetual DEX Models ==========
+
+model PerpPosition {
+  id        String   @id @default(uuid())
+  chainId   Int      @default(11155111) @map("chain_id")
+  account   String
+  token     String
+  isLong    Boolean
+  size      String   // BigInt as String (USD 30 decimals)
+  collateral String  // BigInt as String (USD 30 decimals)
+  entryPrice String  // BigInt as String (USD 30 decimals)
+  markPrice String   // BigInt as String (USD 30 decimals)
+  pnl       String   // BigInt as String (USD 30 decimals)
+  status    String   // OPEN, CLOSED, LIQUIDATED
+  txHash    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chainId])
+  @@index([chainId, account])
+  @@index([chainId, token])
+  @@index([chainId, status])
+  @@index([account])
+  @@index([token])
+  @@index([status])
+  @@map("perp_positions")
+}
+
+model PerpOrder {
+  id        String   @id @default(uuid())
+  chainId   Int      @default(11155111) @map("chain_id")
+  account   String
+  token     String
+  isLong    Boolean
+  sizeDelta String
+  triggerPrice String? // For Limit/Stop orders
+  type      String   // MARKET, LIMIT, STOP
+  status    String   // PENDING, FILLED, CANCELLED
+  txHash    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chainId])
+  @@index([chainId, account])
+  @@index([chainId, token])
+  @@index([chainId, status])
+  @@index([account])
+  @@index([status])
+  @@map("perp_orders")
+}
+
+model PerpTrade {
+  id        String   @id @default(uuid())
+  chainId   Int      @default(11155111) @map("chain_id")
+  account   String
+  token     String
+  isLong    Boolean
+  sizeDelta String
+  price     String
+  fee       String
+  pnl       String?
+  type      String   // INCREASE, DECREASE, LIQUIDATION
+  txHash    String
+  logIndex  Int?     @map("log_index") // chain event identity; NULL for legacy/manual rows
+  blockNumber Int
+  createdAt DateTime @default(now())
+
+  // Idempotency key for the chain-event projection: one PerpMarket event =
+  // one trade row (NULL logIndex rows stay distinct per Postgres semantics).
+  @@unique([chainId, txHash, logIndex])
+  @@index([chainId])
+  @@index([chainId, account])
+  @@index([chainId, token])
+  @@index([chainId, type])
+  @@index([account])
+  @@index([token])
+  @@index([type])
+  @@map("perp_trades")
+}
+
+// Normalized StakingPool chain-event log (indexer projection). Append-only;
+// user_stakes rows are maintained from these actions.
+model StakingAction {
+  id          String   @id @default(uuid())
+  chainId     Int      @map("chain_id")
+  poolId      String?  @map("pool_id") // resolved staking_pools row when known
+  poolAddress String   @map("pool_address") @db.VarChar(42)
+  userAddress String   @map("user_address") @db.VarChar(42)
+  action      String   // STAKE, UNSTAKE, CLAIM, EMERGENCY
+  amountRaw   String   @map("amount_raw") // BigInt as string (token wei)
+  txHash      String   @map("tx_hash")
+  logIndex    Int      @map("log_index")
+  blockNumber BigInt   @map("block_number")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([chainId, txHash, logIndex])
+  @@index([userAddress])
+  @@index([chainId, poolAddress])
+  @@map("staking_actions")
+}
+
+// Durable campaign participation (wallet-auth join).
+model CampaignParticipant {
+  id            String   @id @default(cuid())
+  campaignId    String   @map("campaign_id")
+  walletAddress String   @map("wallet_address") @db.VarChar(42)
+  joinedAt      DateTime @default(now()) @map("joined_at")
+
+  @@unique([campaignId, walletAddress])
+  @@index([walletAddress])
+  @@map("campaign_participants")
+}
+
+// Durable campaign reminder intent. Storing the intent is the whole
+// contract for now — no email/push delivery pipeline exists yet, and the
+// product copy must not claim one.
+model CampaignReminder {
+  id            String   @id @default(cuid())
+  campaignId    String   @map("campaign_id")
+  walletAddress String   @map("wallet_address") @db.VarChar(42)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([campaignId, walletAddress])
+  @@index([walletAddress])
+  @@map("campaign_reminders")
+}
+
+// Profile follow graph (wallet → wallet).
+model ProfileFollow {
+  id               String   @id @default(cuid())
+  followerAddress  String   @map("follower_address") @db.VarChar(42)
+  followingAddress String   @map("following_address") @db.VarChar(42)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@unique([followerAddress, followingAddress])
+  @@index([followingAddress])
+  @@map("profile_follows")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Server-owned i18n (2026-07-10). PostgreSQL published revisions are the
+// runtime source of truth for translations; the Go service owns catalog
+// reads, draft writes, validation, publication, rollback and auditing.
+// ────────────────────────────────────────────────────────────────────────────
+
+// Locale metadata. Exactly one enabled locale is the default — the Go
+// service enforces that invariant on every mutation.
+model I18nLocale {
+  code        String   @id @db.VarChar(35) // normalized BCP-47-compatible code
+  englishName String   @map("english_name") @db.VarChar(80)
+  nativeName  String   @map("native_name") @db.VarChar(80)
+  enabled     Boolean  @default(true)
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdBy   String?  @map("created_by") @db.VarChar(42)
+  updatedBy   String?  @map("updated_by") @db.VarChar(42)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  drafts    I18nMessageDraft[]
+  revisions I18nCatalogRevision[]
+
+  @@map("i18n_locales")
+}
+
+// Editable draft value for one message key. Publication snapshots all
+// drafts of a locale into an immutable revision.
+model I18nMessageDraft {
+  id         String   @id @default(cuid())
+  localeCode String   @map("locale_code") @db.VarChar(35)
+  namespace  String   @db.VarChar(120)
+  messageKey String   @map("message_key") @db.VarChar(240)
+  value      String   @db.Text
+  version    Int      @default(1) // optimistic concurrency token
+  updatedBy  String?  @map("updated_by") @db.VarChar(42)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  locale I18nLocale @relation(fields: [localeCode], references: [code], onDelete: Cascade)
+
+  @@unique([localeCode, namespace, messageKey])
+  @@index([localeCode, namespace, messageKey])
+  @@map("i18n_message_drafts")
+}
+
+// Immutable published catalog snapshot. Rollback creates a NEW revision
+// from an old snapshot; history is never mutated or deleted.
+model I18nCatalogRevision {
+  id               String   @id @default(cuid())
+  localeCode       String   @map("locale_code") @db.VarChar(35)
+  version          Int      // monotonically increasing per locale
+  catalog          Json     // complete nested messages object
+  checksum         String   @db.VarChar(64) // SHA-256 of canonical JSON
+  publishedBy      String   @map("published_by") @db.VarChar(42)
+  publishedAt      DateTime @default(now()) @map("published_at")
+  sourceRevisionId String?  @map("source_revision_id") // set on rollback
+
+  locale I18nLocale @relation(fields: [localeCode], references: [code], onDelete: Cascade)
+
+  @@unique([localeCode, version])
+  @@index([localeCode, publishedAt(sort: Desc)])
+  @@map("i18n_catalog_revisions")
+}
+
+// Append-only audit trail for every i18n mutation. Metadata carries
+// structured before/after values and never secrets.
+model I18nAuditLog {
+  id         String   @id @default(cuid())
+  actor      String   @db.VarChar(42) // verified SIWE wallet
+  action     String   @db.VarChar(40) // draft.update / publish / rollback / locale.*
+  localeCode String?  @map("locale_code") @db.VarChar(35)
+  namespace  String?  @db.VarChar(120)
+  messageKey String?  @map("message_key") @db.VarChar(240)
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([localeCode, createdAt(sort: Desc)])
+  @@index([actor, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("i18n_audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reference price storage.
+//
+// The perp/token candle tables above are projections of OUR OWN on-chain
+// activity (perp_trades / token_trades). On a testnet that activity is sparse,
+// so the trading chart has nothing to draw. These two tables persist REAL
+// external price truth so the chart is dense and live, and every row records
+// which source it came from — the API and UI always label the source and never
+// blend it with on-chain trade candles.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Materialized OHLCV pulled from a public spot-market data provider (see
+// internal/pricefeed). `source` is the provider id (e.g. "gateio"); the same
+// symbol may be stored from several providers side by side without collision.
+model MarketCandle {
+  id          String   @id @default(cuid())
+  source      String   @db.VarChar(32) // provider id, e.g. "gateio"
+  symbol      String   @db.VarChar(32) // canonical market symbol, e.g. "ETH-USD"
+  resolution  String   @db.VarChar(8) // 1m, 5m, 15m, 1h, 4h, 1d
+  bucketStart DateTime @map("bucket_start") // UTC bucket start
+  open        Decimal  @db.Decimal(38, 18)
+  high        Decimal  @db.Decimal(38, 18)
+  low         Decimal  @db.Decimal(38, 18)
+  close       Decimal  @db.Decimal(38, 18)
+  volume      Decimal  @db.Decimal(38, 18) // base-asset volume
+  quoteVolume Decimal  @map("quote_volume") @db.Decimal(38, 18)
+  closed      Boolean  @default(true) // false = still-forming bucket
+  ingestedAt  DateTime @default(now()) @map("ingested_at")
+
+  // Idempotency key: re-ingesting the same window updates in place, so the
+  // still-forming candle converges instead of duplicating.
+  @@unique([source, symbol, resolution, bucketStart])
+  @@index([symbol, resolution, bucketStart(sort: Desc)])
+  @@map("market_candles")
+}
+
+// Append-only log of on-chain oracle price rounds (Chainlink aggregators read
+// over the same RPC the indexer already uses). One row per distinct oracle
+// round — polling the same round repeatedly is a no-op, so this table records
+// genuine oracle updates rather than sample noise.
+model OraclePriceObservation {
+  id          String   @id @default(cuid())
+  source      String   @db.VarChar(32) // "chainlink"
+  symbol      String   @db.VarChar(32) // "ETH-USD"
+  chainId     Int      @map("chain_id")
+  feedAddress String   @map("feed_address") @db.VarChar(42)
+  roundId     String   @map("round_id") @db.VarChar(80) // uint80 as decimal string
+  price       Decimal  @db.Decimal(38, 18) // normalized to whole USD units
+  decimals    Int // aggregator decimals, kept for auditability
+  observedAt  DateTime @map("observed_at") // aggregator updatedAt
+  recordedAt  DateTime @default(now()) @map("recorded_at")
+
+  @@unique([chainId, feedAddress, roundId])
+  @@index([symbol, observedAt(sort: Desc)])
+  @@index([chainId, feedAddress, observedAt(sort: Desc)])
+  @@map("oracle_price_observations")
+}
+
+// Durable cross-chain transfer log — the projection of real BridgeGateway
+// events, and the only thing GET /api/bridge/status reads.
+//
+// Before this table the bridge endpoint returned a constant fixture and had no
+// transfer state at all. A row is created ONLY from an observed on-chain
+// BridgeInitiated event, and it advances to FULFILLED/REFUNDED only from the
+// matching on-chain event — the relayer never writes an optimistic status.
+model BridgeTransfer {
+  id String @id @default(cuid())
+
+  // Deterministic id from the source gateway: keccak(srcChainId, gateway, nonce).
+  // Globally unique by construction, which is why it — not the tx hash — is the
+  // idempotency key: one deposit is one transfer, even across gateway redeploys.
+  transferId String @map("transfer_id") @db.VarChar(66)
+
+  srcChainId Int    @map("src_chain_id")
+  dstChainId Int    @map("dst_chain_id")
+  srcGateway String @map("src_gateway") @db.VarChar(42)
+
+  sender    String  @db.VarChar(42)
+  recipient String  @db.VarChar(42)
+  srcToken  String  @map("src_token") @db.VarChar(42)
+  dstToken  String? @map("dst_token") @db.VarChar(42) // known once the route resolves
+
+  // Base units as an exact integer — uint256 never goes through a float.
+  amount Decimal @db.Decimal(78, 0)
+
+  /// INITIATED | FULFILLED | REFUNDED | FAILED
+  status String @db.VarChar(24)
+
+  depositTxHash   String   @map("deposit_tx_hash") @db.VarChar(66)
+  depositLogIndex Int      @map("deposit_log_index")
+  depositBlock    BigInt   @map("deposit_block")
+  depositedAt     DateTime @map("deposited_at")
+
+  fulfillTxHash String?   @map("fulfill_tx_hash") @db.VarChar(66)
+  fulfillBlock  BigInt?   @map("fulfill_block")
+  fulfilledAt   DateTime? @map("fulfilled_at")
+
+  refundTxHash String?   @map("refund_tx_hash") @db.VarChar(66)
+  refundedAt   DateTime? @map("refunded_at")
+
+  // Why a transfer is stuck, surfaced verbatim by the status endpoint instead
+  // of a generic "pending" that hides an operational failure.
+  lastError String? @map("last_error")
+  attempts  Int     @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([srcChainId, transferId])
+  @@index([sender, createdAt(sort: Desc)])
+  @@index([recipient, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@index([srcChainId, depositBlock])
+  @@map("bridge_transfers")
+}
+
+/// Relayer liveness. Without it a stopped relayer and a healthy idle one look
+/// identical — both leave bridge_transfers unchanged — so a bridge can be
+/// silently deposit-only. The relayer upserts one row per cycle; the product
+/// status endpoint reads it and reports stale/absent honestly.
+model BridgeRelayerHeartbeat {
+  relayerAddress String @id @map("relayer_address") @db.VarChar(42)
+
+  lastSeenAt DateTime @map("last_seen_at")
+  chains     Int[]    @default([])
+
+  /// {"84532": "14998442370960000"} — wei as an exact string, never a float.
+  gasBalances Json? @map("gas_balances")
+
+  /// False when no signer is configured: the relayer observes but cannot deliver.
+  canDeliver Boolean @default(false) @map("can_deliver")
+
+  /// The last cycle error verbatim, so "up but failing every 15s" is visible.
+  lastCycleError String? @map("last_cycle_error")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([lastSeenAt(sort: Desc)])
+  @@map("bridge_relayer_heartbeat")
+}

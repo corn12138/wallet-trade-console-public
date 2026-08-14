@@ -1,0 +1,103 @@
+name: Public CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Public CI is deliberately read-only and has no production environment or
+# secret-backed job. A public contribution can validate code but cannot deploy.
+permissions:
+  contents: read
+
+concurrency:
+  group: public-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-release-policy:
+    name: Public release policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Enforce public-source boundary
+        run: python3 scripts/public_release_audit.py
+
+  public-node-quality:
+    name: Public Node quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: services/api-go/go.mod
+          cache-dependency-path: services/api-go/go.sum
+      - run: pnpm install --frozen-lockfile
+      - run: bash scripts/strict/realtime-e2e.sh
+      - run: pnpm --filter @wallet-trade/database db:generate
+      - run: pnpm type-check
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm --dir contracts compile
+      - run: pnpm --dir contracts test
+      - run: pnpm --dir contracts sync-contracts
+      - run: git diff --exit-code packages/shared/deployments packages/shared/src/web3/contract-addresses.generated.ts
+
+  public-go-quality:
+    name: Public Go quality
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: wallet
+          POSTGRES_PASSWORD: wallet
+          POSTGRES_DB: wallet_trade_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wallet"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      TOKEN_CANDLES_TEST_DATABASE_URL: postgresql://wallet:wallet@127.0.0.1:5432/wallet_trade_ci?schema=public
+    defaults:
+      run:
+        working-directory: services/api-go
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: services/api-go/go.mod
+          cache-dependency-path: services/api-go/go.sum
+      - run: go mod download
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+      - run: go build ./cmd/api ./cmd/bridgerelayer ./cmd/indexer ./cmd/market-stream ./cmd/pricefeed ./cmd/routes
+
+  public-foundry:
+    name: Public Foundry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
+        with:
+          version: v1.3.6
+      - run: forge build
+        working-directory: contracts-foundry
+      - run: forge test
+        working-directory: contracts-foundry

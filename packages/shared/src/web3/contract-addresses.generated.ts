@@ -1,0 +1,43 @@
+export type ContractAddressesByChain = Record<number, Record<string, string>>;
+
+export const GENERATED_CONTRACT_ADDRESSES: ContractAddressesByChain = {
+  31337: {
+    MockUSDC: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    MockWBTC: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
+    MockWETH: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+    OnchainArtworkNFT: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    PerpMarket: '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707',
+    PerpOracle: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+    PerpVault: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
+    PositionManager: '0x0165878A594ca255338adfa4d48449f69242Eb8F',
+  }, // perp-local.json, onchain-art-nft-31337.json
+  84532: {
+    BridgedUSDC: '0xf1166C966f8DD10A300804D326BEF8586d437A1E',
+    bridgeGateway: '0x9C1F86E09AE424734Cf7FBE34F005e6E1277feF5',
+  }, // base-sepolia.json
+  421614: {
+    BridgedUSDC: '0xf1166C966f8DD10A300804D326BEF8586d437A1E',
+    bridgeGateway: '0x9C1F86E09AE424734Cf7FBE34F005e6E1277feF5',
+  }, // arbitrum-sepolia.json
+  11155111: {
+    bridgeGateway: '0x2d68a51fb4c3f3ac26fa48b8a457d150132f185d',
+    factory: '0xbcDB627E54ABDf3D59bB30e9e49bdB2385A5A170',
+    IpfsArtworkNFT: '0xd69E97092Fc484D5A09c7A6aB3924F093D3753cF',
+    MockUSDC: '0x57E554D795A18f3cA0A0e9e03a17AC3C509C3bF8',
+    MockWBTC: '0x2E7559c5500470dB19c2d4fA000E03a61aFF4809',
+    MockWETH: '0xfFeA240Cd1EB135C8aA2597Ca203EFD629Ac5FCD',
+    OnchainArtworkNFT: '0x90F5409A737771C1D4A96e757e1DFA8ed2409d6c',
+    pair: '0x97fb35EE475D0a93aBeb06a92cDe7121Eee8c204',
+    PerpMarket: '0x04330Ddd8A4c51C0EABf990cD8f18764e7661843',
+    PerpOracle: '0x75865A26616F4949098e3D00308B2DCB73cb8F53',
+    PerpVault: '0xaB33b70d36E115BC94ebDcb2566504Da0D9Bdb26',
+    PositionManager: '0x020347BA9cfF1c7635327C7b8fB0e25C0FFd26c5',
+    router: '0xe0C55ff91EcE0ACC7ddAfA9069ba5B0cdBBC3b00',
+    StakingPool: '0x87EF5d972687f107A3F81C6e9b2463787C585C00',
+    StakingToken: '0xd0fA975a334324E7bCAfA55eD3BeDf329FA826a5',
+    tokenA: '0x57E554D795A18f3cA0A0e9e03a17AC3C509C3bF8',
+    tokenB: '0xfFeA240Cd1EB135C8aA2597Ca203EFD629Ac5FCD',
+    TokenFactory: '0x18576185F5cD4f2f97FFb8124F9374653C3f9E54',
+    weth: '0xfFeA240Cd1EB135C8aA2597Ca203EFD629Ac5FCD',
+  }, // all-sepolia.json, ipfs-art-nft-sepolia.json, launchpad-sepolia.json, onchain-art-nft-sepolia.json, sepolia.json
+};

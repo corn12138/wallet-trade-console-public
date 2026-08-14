@@ -1,0 +1,13 @@
+/bin/
+*.test
+*.prof
+coverage.out
+
+# Default `go build ./cmd/<name>` outputs land at the module root named after the
+# command dir (e.g. `go build ./cmd/api` → ./api). Root-anchored so these only
+# match the stray module-root binaries, never the cmd/<name>/ source packages.
+/api
+/dbprobe
+/indexer
+/market-stream
+/routes

@@ -1,0 +1,23 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployer": "0xe2cd26322a87d2b6D8312DBcB79c38b7a226aD81",
+  "timestamp": "2026-04-07T07:22:14.004Z",
+  "contracts": {
+    "TokenFactory": {
+      "address": "0x18576185F5cD4f2f97FFb8124F9374653C3f9E54",
+      "creationFee": "1000000000000000",
+      "feeRecipient": "0xe2cd26322a87d2b6D8312DBcB79c38b7a226aD81",
+      "dexRouter": "0xe0C55ff91EcE0ACC7ddAfA9069ba5B0cdBBC3b00"
+    },
+    "StakingToken": {
+      "address": "0xd0fA975a334324E7bCAfA55eD3BeDf329FA826a5",
+      "symbol": "STK",
+      "decimals": 18
+    },
+    "StakingPool": {
+      "address": "0x87EF5d972687f107A3F81C6e9b2463787C585C00",
+      "rewardsDuration": 2592000
+    }
+  }
+}

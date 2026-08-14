@@ -1,0 +1,25 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "deployer": "0xe2cd26322a87d2b6D8312DBcB79c38b7a226aD81",
+  "timestamp": "2026-08-10T00:00:00.000Z",
+  "contracts": {
+    "bridgeGateway": {
+      "address": "0x9C1F86E09AE424734Cf7FBE34F005e6E1277feF5",
+      "admin": "0xe2cd26322a87d2b6D8312DBcB79c38b7a226aD81",
+      "relayer": "0xe2cd26322a87d2b6D8312DBcB79c38b7a226aD81",
+      "routes": [
+        {
+          "srcToken": "0xf1166C966f8DD10A300804D326BEF8586d437A1E",
+          "dstChainId": 11155111,
+          "dstToken": "0x57E554D795A18f3cA0A0e9e03a17AC3C509C3bF8",
+          "minAmount": "1000000000000000000"
+        }
+      ]
+    },
+    "BridgedUSDC": {
+      "address": "0xf1166C966f8DD10A300804D326BEF8586d437A1E",
+      "decimals": 18
+    }
+  }
+}

@@ -1,0 +1,276 @@
+import { screen } from '@testing-library/react';
+import { renderWithIntl } from '@/test/renderWithIntl';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import TradePage from './page';
+
+/**
+ * Regression guards for the /trade real-data closure:
+ *  - the chart must be driven by the candle hook (no MiniChart / random SVG)
+ *  - timeframe buttons must actually change the candle resolution
+ *  - "limit" is an acceptable-price guard and MUST be passed to openPosition
+ *  - unsupported STOP orders and pending-order Cancel must not render
+ */
+
+const mockUseTrading = vi.fn();
+const mockUseTradingCandles = vi.fn();
+const mockUsePriceCandles = vi.fn();
+
+vi.mock('@/hooks/useTrading', () => ({
+    useTrading: () => mockUseTrading(),
+}));
+
+vi.mock('@/hooks/useTradingCandles', () => ({
+    useTradingCandles: (options: unknown) => mockUseTradingCandles(options),
+}));
+
+// The chart also consults the reference price feed to decide whether an empty
+// on-chain series can fall back. These specs are about the trade ticket, so the
+// reference source is stubbed empty — that keeps the chart on the on-chain
+// source and out of the way.
+vi.mock('@/hooks/usePriceCandles', () => ({
+    usePriceCandles: (options: unknown) => mockUsePriceCandles(options),
+}));
+
+vi.mock('lightweight-charts', () => {
+    const series = { setData: vi.fn() };
+    const chart = {
+        addSeries: vi.fn(() => series),
+        applyOptions: vi.fn(),
+        remove: vi.fn(),
+        subscribeCrosshairMove: vi.fn(),
+        unsubscribeCrosshairMove: vi.fn(),
+        timeScale: () => ({ fitContent: vi.fn() }),
+    };
+    return {
+        createChart: vi.fn(() => chart),
+        CandlestickSeries: 'CandlestickSeries',
+        ColorType: { Solid: 'solid' },
+    };
+});
+
+// Real next-intl provider + real en.json via renderWithIntl: assertions on
+// visible copy (MARKET / LIMIT GUARD / Collateral) pin the actual messages.
+
+const mockApp = {
+    walletState: 'connected' as const,
+    wallet: { address: '0x1111111111111111111111111111111111111111', chainId: 11155111, balance: 0 },
+    chainId: 11155111,
+    openConnect: vi.fn(),
+    openChain: vi.fn(),
+    closeModal: vi.fn(),
+    pickWallet: vi.fn(),
+    signSiwe: vi.fn(),
+    disconnect: vi.fn(),
+    switchChain: vi.fn(),
+    drawerOpen: false,
+    setDrawerOpen: vi.fn(),
+    railOpen: false,
+    setRailOpen: vi.fn(),
+    modal: null,
+    setModal: vi.fn(),
+    toast: vi.fn(),
+    toasts: [],
+};
+
+vi.mock('@/app/_atlas/AppContext', () => ({
+    useApp: () => mockApp,
+}));
+
+const USD_30 = 10n ** 30n;
+
+function market(overrides: Record<string, unknown> = {}) {
+    return {
+        symbol: 'ETH-USD',
+        indexToken: '0x3333333333333333333333333333333333333333',
+        collateralToken: '0x4444444444444444444444444444444444444444',
+        indexDecimals: 18,
+        collateralDecimals: 18,
+        pricePrecision: 30,
+        chainId: 11155111,
+        fundingRate: '12500000000000000000000000',
+        longOpenInterest: (150000n * USD_30).toString(),
+        shortOpenInterest: (120000n * USD_30).toString(),
+        volume24h: (780000n * USD_30).toString(),
+        ...overrides,
+    };
+}
+
+function tradingState(overrides: Record<string, unknown> = {}) {
+    const m = market();
+    return {
+        markets: [m],
+        selectedMarket: m,
+        selectedMarketSymbol: m.symbol,
+        setSelectedMarketSymbol: vi.fn(),
+        isMarketsLoading: false,
+        currentPrice: 2000n * USD_30,
+        formattedPrice: '2000',
+        priceLoading: false,
+        orderbook: {
+            bids: [[(1999n * USD_30).toString(), (4n * USD_30).toString()]],
+            asks: [[(2001n * USD_30).toString(), (3n * USD_30).toString()]],
+        },
+        isOrderbookLoading: false,
+        tradingStats: null,
+        recentTrades: [],
+        isRecentTradesLoading: false,
+        marketStreamStatus: 'connected',
+        marketStreamLastMessageAt: null,
+        isMarketStreamConnected: true,
+        usdcBalance: 1000n * 10n ** 18n,
+        formattedBalance: '1000',
+        balanceLoading: false,
+        positions: [],
+        positionsLoading: false,
+        orders: [{
+            id: 'order-1',
+            token: '0x3333333333333333333333333333333333333333',
+            isLong: true,
+            orderType: 'LIMIT',
+            sizeDelta: (1200n * USD_30).toString(),
+            triggerPrice: (1995n * USD_30).toString(),
+            status: 'PENDING',
+            createdAt: '2026-07-01T08:00:00.000Z',
+        }],
+        history: [],
+        isOrdersLoading: false,
+        isHistoryLoading: false,
+        openPosition: vi.fn(),
+        closePosition: vi.fn(),
+        isApproving: false,
+        isApproveSuccess: false,
+        isOpenPending: false,
+        isOpenConfirming: false,
+        isOpenSuccess: false,
+        openError: null,
+        resetOpen: vi.fn(),
+        isClosePending: false,
+        isCloseConfirming: false,
+        isCloseSuccess: false,
+        closeError: null,
+        resetClose: vi.fn(),
+        ...overrides,
+    };
+}
+
+function renderTradePage(overrides: Record<string, unknown> = {}) {
+    const state = tradingState(overrides);
+    mockUseTrading.mockReturnValue(state);
+    renderWithIntl(<TradePage />);
+    return state;
+}
+
+describe('/trade real-data closure', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        window.localStorage.clear();
+        mockUseTradingCandles.mockReturnValue({ candles: [], error: null, isLoading: false, isFetching: false, dataUpdatedAt: Date.now(), refetch: vi.fn() });
+        mockUsePriceCandles.mockReturnValue({ candles: [], seriesStatus: 'empty', provider: 'gateio', error: null, isLoading: false, isFetching: false, dataUpdatedAt: Date.now(), refetch: vi.fn() });
+    });
+
+    it('drives the chart from the trading candles hook (not a static chart)', () => {
+        renderTradePage();
+
+        expect(screen.getByTestId('trade-candle-chart')).toBeInTheDocument();
+        expect(mockUseTradingCandles).toHaveBeenCalledWith({
+            symbol: 'ETH-USD',
+            chainId: 11155111,
+            resolution: '15m',
+            limit: 200,
+        });
+    });
+
+    it('timeframe buttons change the candle resolution', async () => {
+        const user = userEvent.setup();
+        renderTradePage();
+
+        await user.click(screen.getByRole('button', { name: '1H' }));
+
+        expect(mockUseTradingCandles).toHaveBeenCalledWith(
+            expect.objectContaining({ resolution: '1h' }),
+        );
+    });
+
+    it('does not offer STOP orders (unsupported by the contract)', () => {
+        renderTradePage();
+
+        expect(screen.queryByRole('button', { name: /stop/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'MARKET' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'LIMIT GUARD' })).toBeInTheDocument();
+    });
+
+    it('renders pending orders read-only without a cancel control', async () => {
+        const user = userEvent.setup();
+        renderTradePage();
+
+        await user.click(screen.getByRole('button', { name: /Orders · 1/ }));
+
+        expect(screen.getByText('PENDING')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
+    });
+
+    it('market submit opens a position without an acceptable-price override', async () => {
+        const user = userEvent.setup();
+        const state = renderTradePage();
+
+        await user.type(screen.getByLabelText('Collateral (USDC)'), '100');
+        await user.click(screen.getByRole('button', { name: /Open Long · 10×/ }));
+
+        expect(state.openPosition).toHaveBeenCalledWith({
+            collateralAmount: '100',
+            leverage: 10,
+            isLong: true,
+            acceptablePrice: undefined,
+            slippagePercent: 0.5,
+            deadlineMinutes: 20,
+        });
+    });
+
+    it('limit guard submit passes the acceptable price to the write hook', async () => {
+        const user = userEvent.setup();
+        const state = renderTradePage();
+
+        await user.click(screen.getByRole('button', { name: 'LIMIT GUARD' }));
+        await user.type(screen.getByLabelText('Collateral (USDC)'), '100');
+        await user.type(screen.getByLabelText('Acceptable price'), '2050');
+        await user.click(screen.getByRole('button', { name: /Open Long · 10×/ }));
+
+        expect(state.openPosition).toHaveBeenCalledWith({
+            collateralAmount: '100',
+            leverage: 10,
+            isLong: true,
+            acceptablePrice: '2050',
+            slippagePercent: 0.5,
+            deadlineMinutes: 20,
+        });
+    });
+
+    it('blocks a long limit guard below mark price (would revert on-chain)', async () => {
+        const user = userEvent.setup();
+        const state = renderTradePage();
+
+        await user.click(screen.getByRole('button', { name: 'LIMIT GUARD' }));
+        await user.type(screen.getByLabelText('Collateral (USDC)'), '100');
+        await user.type(screen.getByLabelText('Acceptable price'), '1950');
+
+        const submit = screen.getByRole('button', { name: /Open Long · 10×/ });
+        expect(submit).toBeDisabled();
+        expect(screen.getByText(/Current price is above your long limit/)).toBeInTheDocument();
+
+        await user.click(submit);
+        expect(state.openPosition).not.toHaveBeenCalled();
+    });
+
+    it('blocks submit and close while execution settings are invalid', async () => {
+        const user = userEvent.setup();
+        renderTradePage();
+
+        await user.type(screen.getByLabelText('Collateral (USDC)'), '100');
+        await user.clear(screen.getByLabelText('Slippage'));
+        await user.type(screen.getByLabelText('Slippage'), '9');
+
+        expect(screen.getByText(/Slippage must stay between 0% and 5%/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Open Long · 10×/ })).toBeDisabled();
+    });
+});

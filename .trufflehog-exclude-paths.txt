@@ -1,0 +1,4 @@
+^contracts-foundry/lib/forge-std/src/StdChains\.sol$
+^packages/database/src/database-runtime-env\.test\.ts$
+^services/api-go/internal/runtimeenv/runtimeenv_test\.go$
+^services/api-go/internal/productstatus/productstatus_test\.go$

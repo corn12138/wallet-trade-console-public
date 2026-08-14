@@ -1,0 +1,13 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployer": "0xe2cd26322a87d2b6D8312DBcB79c38b7a226aD81",
+  "timestamp": "2026-04-07T07:22:14.004Z",
+  "contracts": {
+    "IpfsArtworkNFT": {
+      "address": "0xd69E97092Fc484D5A09c7A6aB3924F093D3753cF",
+      "name": "AI Mint Ticket IPFS",
+      "symbol": "AMTI"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="g1" cx="0.2" cy="0.2" r="0.7">
+      <stop offset="0" stop-color="#FFD23F" stop-opacity="0.6"></stop>
+      <stop offset="1" stop-color="#FFD23F" stop-opacity="0"></stop>
+    </radialGradient>
+    <radialGradient id="g2" cx="0.85" cy="0.85" r="0.5">
+      <stop offset="0" stop-color="#C44CE8" stop-opacity="0.4"></stop>
+      <stop offset="1" stop-color="#C44CE8" stop-opacity="0"></stop>
+    </radialGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="rgba(26,18,7,0.18)"></circle>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="#FFF8EC"></rect>
+  <rect width="1200" height="630" fill="url(#g1)"></rect>
+  <rect width="1200" height="630" fill="url(#g2)"></rect>
+  <rect width="1200" height="630" fill="url(#dots)"></rect>
+
+
+  <g transform="translate(72 82)">
+    <rect width="306" height="46" rx="23" fill="#FFFFFF" stroke="#1A1207" stroke-width="3"></rect>
+    <circle cx="22" cy="23" r="6" fill="#5BD66B"></circle>
+    <text x="38" y="30" font-family="Unbounded, system-ui, sans-serif" font-weight="800" font-size="14" fill="#1A1207" letter-spacing="2">CEX-GRADE FLOW · ONCHAIN SETTLEMENT</text>
+  </g>
+
+
+  <g transform="translate(720 90) scale(4.2)">
+    <polygon points="50,8 92,32 50,56 8,32" fill="#FFD23F" stroke="#1A1207" stroke-width="5" stroke-linejoin="round"></polygon>
+    <polygon points="8,32 8,72 50,96 50,56" fill="#FF7043" stroke="#1A1207" stroke-width="5" stroke-linejoin="round"></polygon>
+    <polygon points="92,32 92,72 50,96 50,56" fill="#C44CE8" stroke="#1A1207" stroke-width="5" stroke-linejoin="round"></polygon>
+  </g>
+
+  <text x="72" y="240" font-family="Unbounded, system-ui, sans-serif" font-weight="900" font-size="92" fill="#1A1207" letter-spacing="-4">Trade onchain</text>
+  <text x="72" y="332" font-family="Unbounded, system-ui, sans-serif" font-weight="900" font-size="92" fill="#1A1207" letter-spacing="-4">like it&#39;s </text>
+
+
+  <g transform="translate(384 260) rotate(-1.5)">
+    <rect width="298" height="98" rx="14" fill="#FFD23F" stroke="#1A1207" stroke-width="4"></rect>
+    <text x="22" y="74" font-family="Unbounded, system-ui, sans-serif" font-weight="900" font-size="84" fill="#1A1207" letter-spacing="-3">recess.</text>
+  </g>
+
+  <text x="72" y="430" font-family="Space Grotesk, system-ui, sans-serif" font-size="26" fill="#5B4A2B">A wallet-gated perpetual futures desk. Your wallet signs every position.</text>
+  <text x="72" y="466" font-family="Space Grotesk, system-ui, sans-serif" font-size="26" fill="#5B4A2B">Our terminal handles candles, order book, and latency.</text>
+
+  <g transform="translate(72 538)">
+    <rect width="184" height="40" rx="10" fill="#1A1207"></rect>
+    <text x="20" y="27" font-family="Unbounded, system-ui, sans-serif" font-weight="800" font-size="16" fill="#FFF8EC" letter-spacing="2">ATLAS·X</text>
+  </g>
+  <text x="278" y="566" font-family="JetBrains Mono, monospace" font-size="20" fill="#5B4A2B">atlas-x.app</text>
+</svg>

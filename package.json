@@ -1,0 +1,42 @@
+{
+  "name": "wallet-trade-console",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "cd services/api-go && PORT=${PORT:-8090} go run ./cmd/api",
+    "dev:indexer": "cd services/api-go && go run ./cmd/indexer",
+    "build": "pnpm --filter @wallet-trade/shared build && pnpm --filter @wallet-trade/database build && pnpm --filter web build",
+    "build:go": "cd services/api-go && go build ./cmd/api ./cmd/bridgerelayer ./cmd/indexer ./cmd/market-stream ./cmd/pricefeed ./cmd/routes",
+    "dev:pricefeed": "cd services/api-go && PRICEFEED_ENABLED=true go run ./cmd/pricefeed",
+    "lint": "pnpm --filter web lint",
+    "lint:go": "cd services/api-go && go vet ./...",
+    "type-check": "pnpm --filter @wallet-trade/shared type-check && pnpm --filter @wallet-trade/database type-check && pnpm --filter web type-check",
+    "test": "pnpm --filter web test:run",
+    "test:go": "cd services/api-go && go test ./..."
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=9.15.4"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "pnpm": {
+    "overrides": {
+      "hardhat>adm-zip": "0.6.0",
+      "brace-expansion@<1.1.18": "1.1.18",
+      "brace-expansion@>=2.0.0 <2.1.4": "2.1.4",
+      "brace-expansion@>=5.0.0 <5.0.9": "5.0.9",
+      "defu@>=6.0.0 <6.1.5": "6.1.5",
+      "effect@>=3.0.0 <3.20.0": "3.20.0",
+      "hono@>=4.0.0 <4.12.34": "4.12.34",
+      "js-yaml@>=4.0.0 <4.3.1": "4.3.1",
+      "lodash@>=4.0.0 <4.18.0": "4.18.0",
+      "nanoid@>=3.0.0 <3.3.18": "3.3.18",
+      "postcss@>=8.5.0 <8.5.18": "8.5.23",
+      "mocha>serialize-javascript": "7.0.5",
+      "socket.io-parser@>=4.0.0 <4.2.7": "4.2.7",
+      "undici@>=6 <6.28.0": "6.28.0",
+      "ws@>=8 <8.21.0": "8.21.0"
+    }
+  }
+}

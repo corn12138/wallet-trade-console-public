@@ -1,0 +1,15 @@
+# Hardhat
+artifacts/
+cache/
+typechain-types/
+coverage/
+coverage.json
+
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Tests
+test-results.xml

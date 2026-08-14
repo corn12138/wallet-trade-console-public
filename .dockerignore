@@ -1,0 +1,60 @@
+# Critical: never let host node_modules override the linux-built ones inside
+# the image. The platform binaries diverge (e.g. esbuild has per-platform
+# binaries) and copying macOS/host trees over linux installs causes runtime
+# version mismatches that look like dependency conflicts.
+**/node_modules
+.pnpm-store
+
+# Build outputs — image rebuilds these freshly inside the container.
+**/.next
+**/.turbo
+**/dist
+**/out
+**/build
+**/*.tsbuildinfo
+**/coverage
+**/test-results
+**/.vitest
+
+# Hardhat / Foundry compilation artifacts (regenerated as needed).
+contracts/artifacts
+contracts/cache
+contracts-foundry/cache
+contracts-foundry/out
+typechain-types
+
+# Local-only files / runtime data.
+**/logs
+**/*.log
+**/*.pid
+**/*.db
+**/*.db-journal
+
+# Env files — image reads env from compose / runtime, never from host.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+!**/.env.template
+
+# Secret material (defense in depth).
+**/*.key
+**/*.pem
+**/.secret
+**/mnemonic.txt
+**/keystore/
+
+# IDE / OS clutter.
+.git
+.github
+.idea
+.vscode
+.DS_Store
+
+# Docs are not needed in the runtime image.
+docs
+README.md
+LICENSE
+
+# Foundry's vendored dependencies — the API image doesn't need them.
+contracts-foundry/lib

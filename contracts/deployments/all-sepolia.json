@@ -1,0 +1,63 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployer": "0xe2cd26322a87d2b6D8312DBcB79c38b7a226aD81",
+  "timestamp": "2026-04-07T07:22:14.004Z",
+  "contracts": {
+    "factory": "0xbcDB627E54ABDf3D59bB30e9e49bdB2385A5A170",
+    "router": "0xe0C55ff91EcE0ACC7ddAfA9069ba5B0cdBBC3b00",
+    "weth": "0xfFeA240Cd1EB135C8aA2597Ca203EFD629Ac5FCD",
+    "tokenA": "0x57E554D795A18f3cA0A0e9e03a17AC3C509C3bF8",
+    "tokenB": "0xfFeA240Cd1EB135C8aA2597Ca203EFD629Ac5FCD",
+    "pair": "0x97fb35EE475D0a93aBeb06a92cDe7121Eee8c204",
+    "MockUSDC": {
+      "address": "0x57E554D795A18f3cA0A0e9e03a17AC3C509C3bF8",
+      "decimals": 18
+    },
+    "MockWETH": {
+      "address": "0xfFeA240Cd1EB135C8aA2597Ca203EFD629Ac5FCD",
+      "decimals": 18
+    },
+    "MockWBTC": {
+      "address": "0x2E7559c5500470dB19c2d4fA000E03a61aFF4809",
+      "decimals": 8
+    },
+    "TokenFactory": {
+      "address": "0x18576185F5cD4f2f97FFb8124F9374653C3f9E54",
+      "creationFee": "1000000000000000",
+      "feeRecipient": "0xe2cd26322a87d2b6D8312DBcB79c38b7a226aD81",
+      "dexRouter": "0xe0C55ff91EcE0ACC7ddAfA9069ba5B0cdBBC3b00"
+    },
+    "StakingToken": {
+      "address": "0xd0fA975a334324E7bCAfA55eD3BeDf329FA826a5",
+      "symbol": "STK",
+      "decimals": 18
+    },
+    "StakingPool": {
+      "address": "0x87EF5d972687f107A3F81C6e9b2463787C585C00",
+      "rewardsDuration": 2592000
+    },
+    "PerpOracle": {
+      "address": "0x75865A26616F4949098e3D00308B2DCB73cb8F53"
+    },
+    "PerpVault": {
+      "address": "0xaB33b70d36E115BC94ebDcb2566504Da0D9Bdb26"
+    },
+    "PerpMarket": {
+      "address": "0x04330Ddd8A4c51C0EABf990cD8f18764e7661843"
+    },
+    "PositionManager": {
+      "address": "0x020347BA9cfF1c7635327C7b8fB0e25C0FFd26c5"
+    },
+    "OnchainArtworkNFT": {
+      "address": "0x90F5409A737771C1D4A96e757e1DFA8ed2409d6c",
+      "name": "AI Mint Ticket",
+      "symbol": "AMT"
+    },
+    "IpfsArtworkNFT": {
+      "address": "0xd69E97092Fc484D5A09c7A6aB3924F093D3753cF",
+      "name": "AI Mint Ticket IPFS",
+      "symbol": "AMTI"
+    }
+  }
+}
