@@ -22,6 +22,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - name: Test public release boundary
+        run: python3 -m unittest scripts/test_public_release_tools.py
       - name: Enforce public-source boundary
         run: python3 scripts/public_release_audit.py
 

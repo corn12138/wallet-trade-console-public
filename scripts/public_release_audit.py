@@ -8,17 +8,21 @@ credential. External secret scanners remain required before each release.
 
 from __future__ import annotations
 
+import hashlib
 import ipaddress
+import os
 import re
+import stat
 import subprocess
 import sys
+import argparse
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
-SELF = Path(__file__).resolve()
+DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 
 FORBIDDEN_PREFIXES = (
+    ".git/",
     ".claude/",
     ".codex/",
     ".agents/",
@@ -29,7 +33,9 @@ FORBIDDEN_PREFIXES = (
 )
 
 FORBIDDEN_EXACT_PATHS = {
+    ".git",
     ".env.production.template",
+    ".gitmodules",
     ".github/workflows/ci.yml",
 }
 
@@ -51,6 +57,10 @@ SECRET_PATTERNS = {
     ),
     "personal-macos-path": re.compile(rb"/Users/[A-Za-z0-9._-]+/"),
     "production-home-path": re.compile(rb"/home/(?:deploy|ubuntu|root)/"),
+    "private-repository-reference": re.compile(
+        rb"github\.com/corn12138/wallet-trade-console(?:/|\.git)",
+        re.I,
+    ),
 }
 
 FORBIDDEN_BINARY_SUFFIXES = {
@@ -79,9 +89,9 @@ DOCUMENTATION_NETWORKS = tuple(
     for network in ("192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24")
 )
 
-TEXT_SKIP = {
-    SELF.relative_to(ROOT).as_posix(),
-}
+TEXT_SKIP: set[str] = set()
+
+FORBIDDEN_GENERATED_DIRECTORIES = {".next", "coverage", "dist", "node_modules", "out"}
 
 # forge-std publishes shared, rate-limited RPC identifiers in StdChains. They
 # are upstream test fixtures rather than maintainer credentials. The public env
@@ -93,24 +103,94 @@ CLOUD_RPC_FIXTURE_PATHS = {
     "contracts-foundry/lib/openzeppelin-contracts/lib/forge-std/test/StdChains.t.sol",
 }
 
+# The application bundles four reviewed font assets. Unknown binary content is
+# rejected, and replacing a font requires an explicit checksum review.
+ALLOWED_BINARY_SHA256 = {
+    "apps/web/src/app/fonts/geist-mono.woff2": "b7ac144b394cbd81052d6397ec0c33397977b1d7e9bc095e744e652a378c6fb3",
+    "apps/web/src/app/fonts/geist-sans.woff2": "1b5ebfb3a01a97343ac96873e6d59a8cb285c66012b6a1ac509cb2765e995ba8",
+    "apps/web/src/app/fonts/inter-400.woff2": "27ae72daf88c7431896929273087c99910d019ae82dc0af7d86505c0f5ef5dbf",
+    "apps/web/src/app/fonts/inter-600.woff2": "87d718a282da60f8ef79c2c85e2999bd0fe7a6ef3fc77ccb3ad8a5ff8474b1ef",
+}
 
-def repository_files() -> list[Path]:
-    """Use tracked files in Git and the filesystem before the first commit."""
 
-    result = subprocess.run(
-        ["git", "-C", str(ROOT), "ls-files", "-z"],
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=DEFAULT_ROOT, help="candidate or public checkout to scan")
+    return parser.parse_args()
+
+
+def filesystem_entries(root: Path) -> list[Path]:
+    """Walk a non-Git candidate without following directory symlinks."""
+
+    entries: list[Path] = []
+    for directory, directory_names, file_names in os.walk(root, followlinks=False):
+        current = Path(directory)
+        for name in list(directory_names):
+            path = current / name
+            if path.is_symlink() or name == ".git" or name in FORBIDDEN_GENERATED_DIRECTORIES:
+                entries.append(path)
+                directory_names.remove(name)
+        entries.extend(current / name for name in file_names)
+    return sorted(entries)
+
+
+def repository_files(root: Path) -> list[Path]:
+    """Return every publishable file, including untracked pre-commit files.
+
+    Git's exclude rules keep dependency/build output out of the scan, while
+    ``--others`` closes the gap where a newly added file was invisible until it
+    had already been committed. A generated candidate has no Git metadata, so
+    it falls back to the same filesystem exclusions.
+    """
+
+    top_level = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--show-toplevel"],
         check=False,
         capture_output=True,
+        text=True,
     )
-    if result.returncode == 0 and result.stdout:
-        return [ROOT / item.decode() for item in result.stdout.split(b"\0") if item]
+    is_repository_root = (
+        top_level.returncode == 0 and Path(top_level.stdout.strip()).resolve() == root
+    )
+    result = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        check=False,
+        capture_output=True,
+    ) if is_repository_root else None
+    if result is not None and result.returncode == 0 and result.stdout:
+        return sorted(
+            root / item.decode()
+            for item in result.stdout.split(b"\0")
+            if item and ((root / item.decode()).exists() or (root / item.decode()).is_symlink())
+        )
 
-    ignored = {".git", "node_modules", ".next", "out", "dist", "coverage"}
-    return [
-        path
-        for path in ROOT.rglob("*")
-        if path.is_file() and not any(part in ignored for part in path.relative_to(ROOT).parts)
-    ]
+    return filesystem_entries(root)
+
+
+def repository_gitlinks(root: Path) -> list[str]:
+    """Return committed submodule entries, whose content is not scanned here."""
+
+    top_level = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if top_level.returncode != 0 or Path(top_level.stdout.strip()).resolve() != root:
+        return []
+    result = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "--stage", "-z"],
+        check=True,
+        capture_output=True,
+    )
+    gitlinks: list[str] = []
+    for entry in result.stdout.split(b"\0"):
+        if not entry:
+            continue
+        metadata, path = entry.split(b"\t", 1)
+        if metadata.split(b" ", 1)[0] == b"160000":
+            gitlinks.append(path.decode())
+    return gitlinks
 
 
 def is_allowed_env(path: str) -> bool:
@@ -147,23 +227,56 @@ def check_workflow(relative: str, data: bytes, findings: set[tuple[str, str]]) -
         findings.add((relative, "workflow-permissions-not-read-only"))
 
 
-def main() -> int:
+def main(root: Path) -> int:
+    root = root.expanduser().resolve()
+    if not root.is_dir() or root == Path(root.anchor):
+        raise ValueError(f"audit root is not a safe directory: {root}")
     findings: set[tuple[str, str]] = set()
 
-    for file_path in repository_files():
-        relative = file_path.relative_to(ROOT).as_posix()
+    for relative in repository_gitlinks(root):
+        findings.add((relative, "git-submodule"))
+
+    files = repository_files(root)
+    for file_path in files:
+        relative = file_path.relative_to(root).as_posix()
+        if any(part in FORBIDDEN_GENERATED_DIRECTORIES for part in Path(relative).parts):
+            findings.add((relative, "generated-directory"))
         if relative in FORBIDDEN_EXACT_PATHS or relative.startswith(FORBIDDEN_PREFIXES):
             findings.add((relative, "forbidden-path"))
+
+        mode = file_path.lstat().st_mode
+        if stat.S_ISLNK(mode):
+            findings.add((relative, "symlink"))
+            continue
+        if stat.S_ISDIR(mode):
+            continue
+        if not stat.S_ISREG(mode):
+            findings.add((relative, "special-file"))
+            continue
         if not is_allowed_env(relative):
             findings.add((relative, "filled-env-file"))
         if file_path.suffix.lower() in FORBIDDEN_BINARY_SUFFIXES:
             findings.add((relative, "binary-or-secret-file"))
-        if relative in TEXT_SKIP or file_path.stat().st_size > 5_000_000:
+        if relative in TEXT_SKIP:
+            continue
+        if file_path.stat().st_size > 5_000_000:
+            findings.add((relative, "oversized-file"))
             continue
 
         data = file_path.read_bytes()
         if b"\0" in data:
+            expected_hash = ALLOWED_BINARY_SHA256.get(relative)
+            if expected_hash is None:
+                findings.add((relative, "binary-content"))
+            elif hashlib.sha256(data).hexdigest() != expected_hash:
+                findings.add((relative, "binary-hash-mismatch"))
             continue
+        if relative == "services/api-go/go.mod" and not re.search(
+            rb"^module github\.com/corn12138/wallet-trade-console-public/services/api-go$",
+            data,
+            flags=re.MULTILINE,
+        ):
+            findings.add((relative, "unexpected-public-go-module"))
         for rule, pattern in SECRET_PATTERNS.items():
             if rule == "cloud-rpc-token" and relative in CLOUD_RPC_FIXTURE_PATHS:
                 continue
@@ -184,9 +297,9 @@ def main() -> int:
             print(f"public-release audit: {rule}: {relative}", file=sys.stderr)
         return 1
 
-    print(f"public-release audit: PASS ({len(repository_files())} files checked)")
+    print(f"public-release audit: PASS ({len(files)} files checked)")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(parse_args().root))
