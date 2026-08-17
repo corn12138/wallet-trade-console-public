@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import type { AppCtx } from '../AppContext';
 import { Icon } from '../Icon';
@@ -24,6 +25,8 @@ type TradeTicketProps = {
   slippagePercent: string;
   deadlineMinutes: string;
   notice: TradeTicketNotice;
+  /** Pre-sign review strip for the collateral approval; null once approved. */
+  preflight?: ReactNode;
   canSubmit: boolean;
   isApproving: boolean;
   isOpenPending: boolean;
@@ -64,6 +67,7 @@ export function TradeTicket({
   slippagePercent,
   deadlineMinutes,
   notice,
+  preflight,
   canSubmit,
   isApproving,
   isOpenPending,
@@ -224,6 +228,10 @@ export function TradeTicket({
           <span>{notice.message}</span>
         </div>
       )}
+
+      {/* Pre-sign review of the collateral approval, rendered where the user
+          is about to sign. Advisory: it never gates the CTA below. */}
+      {preflight}
 
       {app.walletState !== 'connected' ? (
         <button className="btn btn-y" style={{ width: '100%' }} onClick={app.openConnect}>

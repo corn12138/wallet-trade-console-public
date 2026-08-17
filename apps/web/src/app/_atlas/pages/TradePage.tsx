@@ -16,6 +16,8 @@ import { TradeMarketRail } from './TradeMarketRail';
 import { TradeOrderbook } from './TradeOrderbook';
 import { TradeTables } from './TradeTables';
 import { TradeTicket } from './TradeTicket';
+import { TxPreflight } from '../TxPreflight';
+import { buildPerpApprovalPreflightInput } from './tradePreflight';
 import type { TabKey, TradePosition, TradeSide } from './tradeTypes';
 import { formatBalanceDisplay, priceFlash } from './tradeUtils';
 
@@ -56,6 +58,10 @@ export function TradePage() {
     isCloseSuccess,
     closeError,
     resetClose,
+    address,
+    chainId,
+    perpAddresses,
+    isCollateralApproved,
   } = trading;
 
   const [side, setSide] = useState<TradeSide>('long');
@@ -199,6 +205,23 @@ export function TradePage() {
 
   const canSubmit = tradeState.canSubmit && !executionState.validationCode;
 
+  // Only renders while the collateral allowance is short — that is when the
+  // submit below actually sends an approve. Once approved it returns null and
+  // the strip disappears, rather than describing a transaction that is no
+  // longer the next one.
+  const preflightInput = useMemo(
+    () =>
+      buildPerpApprovalPreflightInput({
+        userAddress: address,
+        usdc: perpAddresses.usdc,
+        positionManager: perpAddresses.positionManager,
+        chainId,
+        collateralAmount: size,
+        isCollateralApproved,
+      }),
+    [address, perpAddresses.usdc, perpAddresses.positionManager, chainId, size, isCollateralApproved],
+  );
+
   const collateral = Number(size) || 0;
   const positionSize = collateral * lev;
   const fee = positionSize * 0.0006;
@@ -316,6 +339,7 @@ export function TradePage() {
             slippagePercent={slippagePercent}
             deadlineMinutes={deadlineMinutes}
             notice={notice}
+            preflight={<TxPreflight input={preflightInput} />}
             canSubmit={canSubmit}
             isApproving={isApproving}
             isOpenPending={isOpenPending}

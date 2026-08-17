@@ -1289,6 +1289,8 @@
       "preflightTitle": "Pre-sign review"
     },
     "revoking": "Revoking…",
+    "revokeConfirm": "Confirm revoke",
+    "revokeReviewHint": "Reviewing approve({spender}, 0) before you sign.",
     "txRevokeSummary": "Revoke {spender} on token {token} · chain {chainId}. This submits approve(spender, 0) from your wallet.",
     "txRevokeConfirmed": "Approval revoked — allowance is now 0.",
     "txRevokeReverted": "The revoke transaction reverted on-chain. Allowance is unchanged.",

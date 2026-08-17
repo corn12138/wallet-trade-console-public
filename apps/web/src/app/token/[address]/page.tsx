@@ -7,12 +7,14 @@ import { useTokenEventsStream } from '@/hooks/useTokenEventsStream';
 import { usePersistTransactionLifecycle } from '@/hooks/web3/usePersistTransactionLifecycle';
 import { buildApiUrl } from '@/lib/api/base-url';
 import { CONTRACT_ABIS } from '@/lib/web3/contracts';
+import { TxPreflight } from '@/app/_atlas/TxPreflight';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatEther, maxUint256 } from 'viem';
 import { useAccount, useChainId, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { buildTokenPreflightInput } from './token-preflight';
 import { TokenBondingCurveCard } from './TokenBondingCurveCard';
 import { TokenDetailHeader } from './TokenDetailHeader';
 import { TokenDetailSidebar } from './TokenDetailSidebar';
@@ -164,6 +166,22 @@ export default function TokenDetailPage() {
     const parsedAmount = parseOptionalEtherAmount(amount);
     const needsApproval = isSelling && parsedAmount !== null && allowance !== undefined && allowance < parsedAmount;
 
+    // Pre-sign review of the exact transaction the CTA below will submit.
+    // Advisory only — it never gates the CTA; `canSubmit` stays the gate.
+    const preflightInput = useMemo(
+        () =>
+            buildTokenPreflightInput({
+                userAddress,
+                tokenAddress: address,
+                curveAddress: targetCurveAddress,
+                chainId: walletChainId,
+                parsedAmount,
+                activeTab,
+                needsApproval,
+            }),
+        [userAddress, address, targetCurveAddress, walletChainId, parsedAmount, activeTab, needsApproval],
+    );
+
     const handleTrade = async () => {
         if (!isConnected || !targetCurveAddress || !parsedAmount) {
             setTradeNotice({
@@ -210,7 +228,11 @@ export default function TokenDetailPage() {
                         metadata: {
                             tokenAddress: address,
                             spender: targetCurveAddress,
-                            requestedAllowance: parsedAmount.toString(),
+                            // The signed call below grants maxUint256, so that is
+                            // what the persisted record says. Recording the trade
+                            // size here made the activity history claim a bounded
+                            // allowance the chain never received.
+                            requestedAllowance: maxUint256.toString(),
                         },
                     });
                     writeContract({
@@ -365,6 +387,8 @@ export default function TokenDetailPage() {
                             onTabChange={setActiveTab}
                             onSubmit={handleTrade}
                         />
+
+                        <TxPreflight input={preflightInput} />
 
                         <TokenBondingCurveCard
                             progress={bondingCurveProgress}

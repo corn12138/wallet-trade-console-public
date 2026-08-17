@@ -214,6 +214,14 @@ export function useTrading() {
     isOrdersLoading,
     isHistoryLoading,
 
+    // Identity + contract targets, surfaced so the page can build a pre-sign
+    // review of the collateral approval against the same addresses the write
+    // path uses (rather than re-deriving them and risking a drift).
+    address,
+    chainId,
+    perpAddresses: addrs,
+    isCollateralApproved: tradingTransactions.isApproved,
+
     // Actions
     openPosition: tradingTransactions.openPosition,
     closePosition: tradingTransactions.closePosition,
