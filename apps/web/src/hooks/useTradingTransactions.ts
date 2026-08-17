@@ -225,6 +225,11 @@ export function useTradingTransactions({
   return {
     openPosition,
     closePosition,
+    // Exposed so the page can tell WHICH transaction the next submit sends.
+    // `openPosition` silently diverts to an approve when the allowance is
+    // short, and a pre-sign review that could not see that would describe the
+    // position open while the wallet was handed an ERC20 approval.
+    isApproved,
     isApproving,
     isApproveSuccess,
     isOpenPending,

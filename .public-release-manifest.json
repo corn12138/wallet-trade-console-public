@@ -268,12 +268,12 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/SecurityPage.spec.tsx",
-      "sha256": "5b0c9f22cefa3733da04e8f96bb6df2bcd56a1a80eb83ef1653218361e7578e3"
+      "sha256": "2f8d6ed1943dd20fcc757db33d9c0297b6421c80c285649cde317d2f0b209413"
     },
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/SecurityPage.tsx",
-      "sha256": "2c6591e2b563afdf63b4f1ebd5458c1d2860a1e205de5221bc3007ce2921058b"
+      "sha256": "b89ea509b41ea6c2e73ca9e18e9cb7b12a459056de6281666ee6bef0c329fd7e"
     },
     {
       "mode": "100644",
@@ -318,7 +318,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/TradePage.tsx",
-      "sha256": "2d18ceacfe1e05ad54411495f782e777abaf832b60fcdf96a87d8e7ecf1d6b3a"
+      "sha256": "34fa4b28c49f0e195044d9e1591c2514bc0d1dbc1214225994b53a5620e597bb"
     },
     {
       "mode": "100644",
@@ -328,7 +328,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/TradeTicket.tsx",
-      "sha256": "8aeacc3599fa9902f9cd4870ffee897a64aff12bde0d002e8606836b32c0da44"
+      "sha256": "c9d11143c8c937d442bfb946e3dee6cc94cf2748b91094880cbcdc470b6ab9ac"
     },
     {
       "mode": "100644",
@@ -349,6 +349,16 @@
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/assetUtils.ts",
       "sha256": "056e3c681f0d0feb18cec893dd20747abfd2c303e125ec54c5f288a7444d051d"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/tradePreflight.spec.ts",
+      "sha256": "3d49877822e404499091ef812be692db9ad55cdb5c2df111d132ad8cb5dfd45b"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/pages/tradePreflight.ts",
+      "sha256": "63c9bdf0f6c14b10f493a23d6d6d5d8facef5b3773bc43f71f70c9a159ec7cd1"
     },
     {
       "mode": "100644",
@@ -648,7 +658,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/token/[address]/page.tsx",
-      "sha256": "a67fdd16f8176a762e5ae0055389697b2c2138285be3029b164cb7269cd3cfd9"
+      "sha256": "062732c6fc5d63dd5bea0c8dcda7ade88df09eff6802550b6ece4fbc63939a48"
     },
     {
       "mode": "100644",
@@ -662,13 +672,23 @@
     },
     {
       "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/token-preflight.spec.ts",
+      "sha256": "70ade2c5651c07b24de8269d316a972f2e4d23071c787c4a065358af85e85496"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/token/[address]/token-preflight.ts",
+      "sha256": "817c522c7e78fca748a796ae65ef8c1fe2ebbf35582ee5ddbf3988b675f4c1e0"
+    },
+    {
+      "mode": "100644",
       "path": "apps/web/src/app/trade/layout.tsx",
       "sha256": "aedd8351ad6182ac3ca2e3c9547b82d74485f4028c5330cfc76d6dcd7ebbe86a"
     },
     {
       "mode": "100644",
       "path": "apps/web/src/app/trade/page.spec.tsx",
-      "sha256": "d597546fb39fdb7ace5d23f91b2f81db9609462485ac12eb815d589efa621d37"
+      "sha256": "645edac68d34be108745f5effdf47411b8b0fd379f72846239518b0b84a80863"
     },
     {
       "mode": "100644",
@@ -818,7 +838,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/hooks/useTrading.ts",
-      "sha256": "3403adcad5f203df279ac557826caf8caf3d6f0f94678ef90bec5b9759104b5b"
+      "sha256": "091b82c27c3573a109660b0846ec9b137f9f714abc142fe3cdda620bf93be06a"
     },
     {
       "mode": "100644",
@@ -838,7 +858,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/hooks/useTradingTransactions.ts",
-      "sha256": "0df339e2b656608d4e10ed6cb663499ce4ce21570fc56c42b2432f25d7cda7f3"
+      "sha256": "b916087e329e653b1f9c4faa1c3997b09bd7fc09b8a08af1703d8aa64e353da4"
     },
     {
       "mode": "100644",
@@ -3863,17 +3883,17 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/bridge/relayer.go",
-      "sha256": "7f49a08dd1770e5022eb049dc6423d557ac173135eb8ac63eb9be8ae5a959c27"
+      "sha256": "f3745109fe64ad6ef7cef097eee9594ca6cc683353ca3f11f7eee0d721793d80"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/bridge/relayer_test.go",
-      "sha256": "a70ffbc17e3ac7c82c65a20a8bcd0de72a872915dfca67b68b69dcc309af0acc"
+      "sha256": "c0ca9b4d0de7c9df57a79dc765326d3fce59f69bd0d8ad59c0e711037cd75d2e"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/bridge/store.go",
-      "sha256": "49bd8160d9e28b817633b0b9fda78e3ad1db3e1ddf0d2d04f002631e631a2ec3"
+      "sha256": "241749aba5f3ac822f699417c8daa0b0bc699fef0f013c15f6da67e51e19f1ed"
     },
     {
       "mode": "100644",
@@ -4008,12 +4028,12 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/i18n/baseline/en.json",
-      "sha256": "9886d4caa39140f53a4567ae36484522c795f4fc5a3370e8b8455daeb5fcef25"
+      "sha256": "4b8ded2528e7fb97a1c24655ae4ce16551305ffa32997b0e26d6f78e02a7a584"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/i18n/baseline/zh.json",
-      "sha256": "a72e0829cf4122a4feff67fb50e3612202fdc8717f5e08a3768e30ba6821c868"
+      "sha256": "67cfed63fd4640c0918e20d5501a2a58e2509723e3b8794c720a8c17d20cb5dc"
     },
     {
       "mode": "100644",
@@ -4897,5 +4917,5 @@
     }
   ],
   "format": 1,
-  "public_base_commit": "bb29b06225dcc1c0a847ccd9f4c2d943adbc96c2"
+  "public_base_commit": "d46bdf5a57e454cf222a22b54a308432c04ab8f4"
 }

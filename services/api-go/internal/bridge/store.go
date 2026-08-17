@@ -101,16 +101,21 @@ func (s *Store) RecordInitiated(ctx context.Context, t Transfer) (bool, error) {
 //
 // The WHERE clause pins status to INITIATED so a replayed log cannot resurrect
 // a refunded transfer or overwrite an existing fulfillment.
-func (s *Store) MarkFulfilled(ctx context.Context, srcChainID int, transferID, txHash string, block int64, at time.Time) (bool, error) {
+// dstToken is the token the delivery actually paid out. It overwrites whatever
+// the route table reported at deposit time; an empty value leaves the existing
+// column alone rather than blanking a known token.
+func (s *Store) MarkFulfilled(ctx context.Context, srcChainID int, transferID, txHash string, block int64, at time.Time, dstToken string) (bool, error) {
 	if !s.Available() {
 		return false, ErrStoreUnavailable
 	}
 	tag, err := s.pool.Exec(ctx, `
 		UPDATE bridge_transfers
 		   SET status = $1, fulfill_tx_hash = $2, fulfill_block = $3,
-		       fulfilled_at = $4, last_error = NULL, updated_at = NOW()
+		       fulfilled_at = $4, last_error = NULL, updated_at = NOW(),
+		       dst_token = COALESCE($8, dst_token)
 		 WHERE src_chain_id = $5 AND transfer_id = $6 AND status = $7
-	`, StatusFulfilled, strings.ToLower(txHash), block, at, srcChainID, strings.ToLower(transferID), StatusInitiated)
+	`, StatusFulfilled, strings.ToLower(txHash), block, at, srcChainID, strings.ToLower(transferID), StatusInitiated,
+		nullableLower(dstToken))
 	if err != nil {
 		return false, fmt.Errorf("bridge: mark fulfilled: %w", err)
 	}

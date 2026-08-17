@@ -1289,6 +1289,8 @@
       "preflightTitle": "签名前预检"
     },
     "revoking": "撤销中…",
+    "revokeConfirm": "确认撤销",
+    "revokeReviewHint": "签名前正在预检 approve({spender}, 0)。",
     "txRevokeSummary": "在代币 {token} 上撤销 {spender} · 链 {chainId}。将从你的钱包提交 approve(spender, 0)。",
     "txRevokeConfirmed": "授权已撤销 —— 额度现为 0。",
     "txRevokeReverted": "撤销交易在链上回滚，额度未改变。",
