@@ -49,6 +49,11 @@
   --radius-sm: 12px;
   --radius-lg: 22px;
   --radius-pill: 999px;
+
+  /* rail geometry — shared by the shell grid's spacer column and the rail
+     itself, so the two can never disagree about how wide the rail is. */
+  --rail-w: 72px;
+  --rail-w-open: 240px;
 }
 
 /* ---------- reset ---------- */
@@ -77,18 +82,46 @@ input, textarea { background: transparent; border: 0; outline: 0; }
 }
 
 /* ---------- shell layout ---------- */
-.app { position: relative; z-index: 1; display: grid; grid-template-columns: 72px 1fr; min-height: 100vh; transition: grid-template-columns .25s ease; }
-.app[data-rail="open"] { grid-template-columns: 240px 1fr; }
+/* The first column is a fixed-width SPACER. The rail itself is out of flow
+   (position: fixed) and overlays on expand, so this never changes width. */
+.app { position: relative; z-index: 1; display: grid; grid-template-columns: var(--rail-w) 1fr; min-height: 100vh; }
 
-/* sidebar */
-.rail { background: var(--ink); color: var(--bg); position: sticky; top: 0; height: 100vh; padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; z-index: 30; transition: width .25s ease; }
-.rail-mark { display: flex; align-items: center; gap: 10px; padding: 8px 8px 14px; }
+/* sidebar
+   ─────────────────────────────────────────────────────────────────────────
+   Expanding the rail used to widen the shell's grid column, which reflowed
+   the whole page on hover: at a 1024px viewport the content lost 168px of
+   width (944 → 776) and tables re-wrapped their cells every time the cursor
+   crossed the left edge. Overlaying costs the same pixels visually and zero
+   layout, so hovering can no longer disturb what the user is reading.
+
+   `overflow-y: auto` is not cosmetic either: 17 nav items overflow a 768px
+   viewport by 225px, and with the previous `visible` the last five entries
+   (NFT studio, discover, ranking, campaigns, settings) were unreachable —
+   there was no way to open Settings from the sidebar on a 13" laptop. */
+.rail {
+  background: var(--ink); color: var(--bg);
+  position: fixed; left: 0; top: 0;
+  width: var(--rail-w); height: 100vh;
+  padding: 14px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+  z-index: 30;
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: rgba(255, 248, 236, 0.28) transparent;
+  transition: width .18s ease, box-shadow .18s ease;
+}
+.rail::-webkit-scrollbar { width: 6px; }
+.rail::-webkit-scrollbar-thumb { background: rgba(255, 248, 236, 0.28); border-radius: 999px; }
+.rail::-webkit-scrollbar-track { background: transparent; }
+/* Shadow only while overlaying, so the rail reads as sitting ABOVE the page
+   rather than as a column the content was pushed out of. */
+.app[data-rail="open"] .rail { width: var(--rail-w-open); box-shadow: 6px 0 0 0 rgba(26, 18, 7, 0.18); }
+.rail-mark { display: flex; align-items: center; gap: 10px; padding: 8px 8px 14px; flex: none; }
 .rail-mark .cube { width: 36px; height: 36px; flex: none; }
 .rail-mark .word { font-family: var(--df); font-weight: 900; font-size: 18px; letter-spacing: -0.02em; opacity: 0; transition: opacity .2s ease; white-space: nowrap; }
 .app[data-rail="open"] .rail-mark .word { opacity: 1; transition-delay: .12s; }
-.rail-group { font-family: var(--df); font-weight: 700; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,248,236,0.4); padding: 14px 12px 6px; opacity: 0; transition: opacity .2s ease; }
+.rail-group { flex: none; font-family: var(--df); font-weight: 700; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,248,236,0.4); padding: 14px 12px 6px; opacity: 0; transition: opacity .2s ease; }
 .app[data-rail="open"] .rail-group { opacity: 1; }
-.rail-it { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; color: rgba(255,248,236,0.7); font-family: var(--df); font-weight: 700; font-size: 13px; cursor: pointer; border: 2px solid transparent; }
+.rail-it { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; flex: none; color: rgba(255,248,236,0.7); font-family: var(--df); font-weight: 700; font-size: 13px; cursor: pointer; border: 2px solid transparent; }
 .rail-it:hover { background: rgba(255,248,236,0.08); color: #fff; }
 .rail-it.on { background: var(--y); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 0 #000; }
 .rail-it svg { width: 18px; height: 18px; flex: none; stroke-width: 2.2; }
@@ -361,9 +394,12 @@ input, textarea { background: transparent; border: 0; outline: 0; }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 980px) {
+  /* No spacer column below the drawer breakpoint: the rail is a drawer that
+     slides over the content, so the shell starts at the viewport edge. */
   .app { grid-template-columns: 0 1fr; }
-  .app[data-rail="open"] { grid-template-columns: 0 1fr; }
-  .rail { position: fixed; left: 0; top: 0; width: 240px; transform: translateX(-100%); transition: transform .25s ease; }
+  /* Width is pinned here so a stray hover (which still flips data-rail on a
+     narrow desktop window) cannot leave a half-width drawer behind. */
+  .rail, .app[data-rail="open"] .rail { width: var(--rail-w-open); transform: translateX(-100%); box-shadow: none; transition: transform .25s ease; }
   .app[data-drawer="1"] .rail { transform: none; }
   #ax-burger { display: inline-flex; }
   .term-grid { grid-template-columns: 1fr; }

@@ -17,7 +17,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 
 export type DataPanelState =
   | 'loading'
@@ -189,7 +189,7 @@ export type DataStatePanelProps = {
   emptyTitle: string;
   emptyBody: React.ReactNode;
   errorDetail?: string | null;
-  icon?: string;
+  icon?: IconName;
   onRetry?: () => void;
   onConnect?: () => void;
   /** Extra action rendered in the empty state (e.g. "Launch a token"). */
@@ -218,7 +218,7 @@ export function DataStatePanel({
   let title: string;
   let body: React.ReactNode;
   let actions: React.ReactNode = null;
-  let iconName = icon;
+  let iconName: IconName = icon;
 
   switch (state) {
     case 'loading':

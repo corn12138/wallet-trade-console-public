@@ -200,3 +200,95 @@ func TestScanChainIgnoresUnknownChain(t *testing.T) {
 		t.Errorf("unknown chain should be a no-op, got %v", err)
 	}
 }
+
+// A deposit's destination token is not in the BridgeInitiated event, so the
+// projection stored nothing and /api/bridge/status served a blank `dstToken`
+// for the entire in-flight window — precisely when a user is watching the
+// transfer. It is resolved from the source gateway's route table instead, the
+// same table `deliver` consults to decide what to pay out.
+//
+// The cases that must NOT produce a value matter as much as the happy one: a
+// guessed destination token on a closed route or an unreadable RPC would be
+// this projection asserting a chain fact it never read.
+func TestResolveDstTokenReadsTheRouteAndNeverGuesses(t *testing.T) {
+	newRelayer := func(src *fakeCaller) *Relayer {
+		dst := &fakeCaller{liquidity: word(big.NewInt(1))}
+		return NewRelayer(twoChainRegistry(src, dst), NewStore(nil), nil, nil,
+			DefaultRelayerConfig(), slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil)))
+	}
+
+	for name, tc := range map[string]struct {
+		src  *fakeCaller
+		want string
+	}{
+		"supported route": {
+			&fakeCaller{route: routeResponse(true, dstToken, big.NewInt(1)), paused: boolWord(false)},
+			dstToken,
+		},
+		"route closed since deposit": {
+			&fakeCaller{route: routeResponse(false, dstToken, big.NewInt(1)), paused: boolWord(false)},
+			"",
+		},
+		"rpc unreadable": {
+			&fakeCaller{err: context.DeadlineExceeded},
+			"",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := newRelayer(tc.src).resolveDstToken(context.Background(), sepolia, srcToken, baseSep)
+			if got != tc.want {
+				t.Errorf("dstToken = %q, want %q", got, tc.want)
+			}
+		})
+	}
+
+	// A chain with no gateway at all is unresolvable, not an empty-address claim.
+	r := NewRelayer(NewRegistry(nil, nil), NewStore(nil), nil, nil,
+		DefaultRelayerConfig(), slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil)))
+	if got := r.resolveDstToken(context.Background(), sepolia, srcToken, baseSep); got != "" {
+		t.Errorf("unknown chain returned %q, want empty", got)
+	}
+}
+
+// The delivery log is authoritative over the route table: an operator can
+// re-point a route while a transfer is in flight, and what the recipient
+// actually received is what BridgeFulfilled paid out. Pins the word offsets —
+// dstToken is the FIRST data word, ahead of amount and srcChainId, and reading
+// the wrong one would record the amount as an address.
+func TestDecodeFulfilledReadsTheDeliveredToken(t *testing.T) {
+	data := append([]byte{}, addrWord(dstToken)...)     // dstToken
+	data = append(data, word(big.NewInt(5_000_000))...) // amount
+	data = append(data, word(big.NewInt(sepolia))...)   // srcChainId
+
+	gotToken, gotChain, err := decodeFulfilled(data)
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if gotToken != dstToken {
+		t.Errorf("delivered token = %q, want %q", gotToken, dstToken)
+	}
+	// Returned raw: narrowing belongs to bridgeChainID, which rejects a value
+	// that would wrap into some other chain's identifier.
+	if gotChain == nil || gotChain.Cmp(big.NewInt(sepolia)) != 0 {
+		t.Errorf("srcChainId = %v, want %d", gotChain, sepolia)
+	}
+
+	// A truncated log is rejected rather than decoded into zero values, which
+	// would blank a known destination token on the way through MarkFulfilled.
+	if _, _, err := decodeFulfilled(data[:63]); err == nil {
+		t.Error("short BridgeFulfilled data must be rejected")
+	}
+
+	// An out-of-range chain id must not survive the handler path: the decoder
+	// hands it over intact and the bound is what refuses it.
+	huge := append([]byte{}, addrWord(dstToken)...)
+	huge = append(huge, word(big.NewInt(1))...)
+	huge = append(huge, new(big.Int).Lsh(big.NewInt(1), 200).FillBytes(make([]byte, 32))...)
+	_, oversized, err := decodeFulfilled(huge)
+	if err != nil {
+		t.Fatalf("decode oversized: %v", err)
+	}
+	if _, err := bridgeChainID("source chain ID", oversized); err == nil {
+		t.Error("a chain id beyond the database integer range must be rejected")
+	}
+}

@@ -389,6 +389,8 @@ func (r *Relayer) handleInitiated(ctx context.Context, chainID int, lg rpc.Log) 
 		DepositedAt:     time.Now().UTC(),
 	}
 
+	transfer.DstToken = r.resolveDstToken(ctx, chainID, srcToken, transfer.DstChainID)
+
 	inserted, err := r.store.RecordInitiated(ctx, transfer)
 	if err != nil {
 		return err
@@ -399,6 +401,60 @@ func (r *Relayer) handleInitiated(ctx context.Context, chainID int, lg rpc.Log) 
 			"dstChain", transfer.DstChainID, "amount", transfer.Amount)
 	}
 	return nil
+}
+
+// resolveDstToken answers "which token is this deposit meant to deliver?".
+//
+// BridgeInitiated does not carry it, so the projection used to store nothing
+// and /api/bridge/status served a blank dstToken for the whole time a transfer
+// was in flight — exactly when someone is watching it. The answer comes from
+// the source gateway's own route table, which is an on-chain read, not an
+// assumption about what will arrive; `deliver` consults the same table to pick
+// what to pay out.
+//
+// Unresolvable means empty, never a guess: an unreadable RPC, a route the
+// operator has since closed, and a genuinely unset destination token are all
+// cases where the honest projection is "unknown". handleFulfilled later
+// overwrites this with the token the delivery actually paid out.
+func (r *Relayer) resolveDstToken(ctx context.Context, srcChainID int, srcToken string, dstChainID int) string {
+	route, err := r.registry.Route(ctx, srcChainID, srcToken, dstChainID)
+	if err != nil {
+		r.log.Debug("bridge relayer: destination token unresolved at deposit",
+			"srcChain", srcChainID, "dstChain", dstChainID, "err", err)
+		return ""
+	}
+	if !route.Supported {
+		return ""
+	}
+	return route.DstToken
+}
+
+// decodeFulfilled unpacks the non-indexed words of a BridgeFulfilled log:
+//
+//	(address dstToken, uint256 amount, uint256 srcChainId)
+//
+// dstToken is the token the delivery ACTUALLY paid out, which outranks the
+// route table read at deposit time — an operator can re-point a route while a
+// transfer is in flight. Kept separate from the handler so the word offsets are
+// pinned by a test rather than by a live relayer run.
+//
+// srcChainId is returned as the raw uint256. Narrowing it here would be the
+// unchecked conversion `bridgeChainID` exists to prevent: a malformed provider
+// or unexpected event could wrap into a different chain's identifier. The
+// caller applies that bound.
+func decodeFulfilled(data []byte) (dstToken string, srcChainID *big.Int, err error) {
+	if len(data) < 3*32 {
+		return "", nil, fmt.Errorf("bridge relayer: BridgeFulfilled data too short (%d bytes)", len(data))
+	}
+	dstToken, err = wordAddressAt(data, 0)
+	if err != nil {
+		return "", nil, err
+	}
+	srcChainID, err = rpc.DecodeUint256At(data, 64)
+	if err != nil {
+		return "", nil, err
+	}
+	return dstToken, srcChainID, nil
 }
 
 // handleFulfilled records a delivery.
@@ -413,10 +469,7 @@ func (r *Relayer) handleFulfilled(ctx context.Context, lg rpc.Log) error {
 	if err != nil {
 		return err
 	}
-	if len(data) < 3*32 {
-		return fmt.Errorf("bridge relayer: BridgeFulfilled data too short (%d bytes)", len(data))
-	}
-	srcChainID, err := rpc.DecodeUint256At(data, 64)
+	dstToken, srcChainID, err := decodeFulfilled(data)
 	if err != nil {
 		return err
 	}
@@ -430,7 +483,7 @@ func (r *Relayer) handleFulfilled(ctx context.Context, lg rpc.Log) error {
 	}
 
 	updated, err := r.store.MarkFulfilled(ctx,
-		srcChain, lg.Topics[1], lg.TxHash, blockNumber, time.Now().UTC())
+		srcChain, lg.Topics[1], lg.TxHash, blockNumber, time.Now().UTC(), dstToken)
 	if err != nil {
 		return err
 	}
@@ -505,7 +558,9 @@ func (r *Relayer) deliver(ctx context.Context, t Transfer) error {
 	// status; this just asks the chain directly instead of waiting for a log
 	// window that may never come back.
 	if done, err := r.alreadyFulfilled(ctx, client, dstGW.Address, t.TransferID); err == nil && done {
-		if _, mErr := r.store.MarkFulfilled(ctx, t.SrcChainID, t.TransferID, "", 0, time.Now().UTC()); mErr != nil {
+		// No delivery log to read a token from here — this reconciles off the
+		// gateway's `fulfilled` mapping — so pass "" and keep the stored value.
+		if _, mErr := r.store.MarkFulfilled(ctx, t.SrcChainID, t.TransferID, "", 0, time.Now().UTC(), ""); mErr != nil {
 			return fmt.Errorf("reconcile fulfilled: %w", mErr)
 		}
 		r.log.Info("bridge relayer: transfer already fulfilled on-chain, projection reconciled",

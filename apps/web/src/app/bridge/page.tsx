@@ -1,2 +1,14 @@
-'use client';
-export { BridgePage as default } from '../_atlas/pages/BridgePage';
+import type { Metadata } from 'next';
+import { buildRouteMetadata } from '@/lib/seo/metadata';
+import { BridgePage } from '../_atlas/pages/BridgePage';
+
+// Server component on purpose: `generateMetadata` only runs in one, and the
+// interactive page below stays a client component. Splitting here costs one
+// wrapper and buys a per-route <title>, description and canonical.
+export async function generateMetadata(): Promise<Metadata> {
+  return buildRouteMetadata('bridge');
+}
+
+export default function Page() {
+  return <BridgePage />;
+}

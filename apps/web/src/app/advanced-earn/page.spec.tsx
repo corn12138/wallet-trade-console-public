@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { IntlWrapper } from '@/test/renderWithIntl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import AdvancedEarnPage from './page';
+import AdvancedEarnPage from './AdvancedEarnPage';
 
 /**
  * Advanced Earn wallet projection: `Your staked` / `Pending rewards` must be

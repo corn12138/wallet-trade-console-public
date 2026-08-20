@@ -12,13 +12,25 @@
 // audit noise. It is an explicit operator command — normal API startup never
 // mutates catalog state.
 //
+// -republish additionally cuts a NEW revision for locales that already have
+// one. This is what makes newly added baseline keys reachable: the served
+// catalog is the published revision, NOT a merge of revision-plus-baseline
+// (see i18n.Service.Catalog), so a release that adds keys leaves them
+// rendering as raw key paths until someone publishes. Step 2 only seeds
+// drafts. The flag is opt-in rather than the default because a republish
+// snapshots whatever the drafts currently say — including an administrator's
+// in-progress edits — and that should be a decision, not a side effect of
+// running a seeding command.
+//
 // Usage:
 //
 //	DATABASE_URL='postgresql://…' go run ./cmd/i18n-bootstrap
+//	DATABASE_URL='postgresql://…' go run ./cmd/i18n-bootstrap -republish
 package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -33,6 +45,10 @@ import (
 const bootstrapActor = "0x0000000000000000000000000000000000000000"
 
 func main() {
+	republish := flag.Bool("republish", false,
+		"also cut a new revision for locales that already have one (picks up newly added baseline keys)")
+	flag.Parse()
+
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		log.Fatal("i18n-bootstrap: DATABASE_URL is required")
@@ -106,7 +122,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("i18n-bootstrap: latest revision %s: %v", b.Code, err)
 		}
-		if existing != nil {
+		if existing != nil && !*republish {
 			continue // idempotent: never create a duplicate initial revision
 		}
 		issues, err := svc.Validate(ctx, b.Code)
@@ -131,8 +147,12 @@ func main() {
 		if err != nil {
 			log.Fatalf("i18n-bootstrap: marshal %s: %v", b.Code, err)
 		}
+		action := "bootstrap.publish"
+		if existing != nil {
+			action = "bootstrap.republish"
+		}
 		rev, err := store.CreateRevision(ctx, b.Code, body, i18n.Checksum(body), bootstrapActor, nil, nil, i18n.AuditEntry{
-			Actor: bootstrapActor, Action: "bootstrap.publish", LocaleCode: b.Code,
+			Actor: bootstrapActor, Action: action, LocaleCode: b.Code,
 			Metadata: map[string]any{"keyCount": len(drafts), "tool": "i18n-bootstrap"},
 		})
 		if err != nil {

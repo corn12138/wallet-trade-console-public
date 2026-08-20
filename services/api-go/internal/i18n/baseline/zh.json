@@ -1289,6 +1289,8 @@
       "preflightTitle": "签名前预检"
     },
     "revoking": "撤销中…",
+    "revokeConfirm": "确认撤销",
+    "revokeReviewHint": "签名前正在预检 approve({spender}, 0)。",
     "txRevokeSummary": "在代币 {token} 上撤销 {spender} · 链 {chainId}。将从你的钱包提交 approve(spender, 0)。",
     "txRevokeConfirmed": "授权已撤销 —— 额度现为 0。",
     "txRevokeReverted": "撤销交易在链上回滚，额度未改变。",
@@ -1706,7 +1708,95 @@
     "ogDescription": "钱包签名驱动的永续合约交易台。CEX 级体验，链上结算。",
     "twitterTitle": "Atlas X 链上交易所",
     "twitterDescription": "像课间游戏一样进行链上交易。每一笔仓位都由钱包签名。",
-    "ogImageAlt": "Atlas X"
+    "ogImageAlt": "Atlas X",
+    "routes": {
+      "home": {
+        "title": "链上永续合约交易所",
+        "description": "Atlas X 是一个钱包自托管的永续合约交易终端——CEX 级别的下单体验，链上结算。每一笔仓位都由你自己的钱包签名。"
+      },
+      "trade": {
+        "title": "永续合约",
+        "description": "在一个终端里完成永续合约交易：实时 K 线、链上订单簿、钱包签名执行，以及杠杆、保证金与仓位管理。"
+      },
+      "markets": {
+        "title": "市场行情",
+        "description": "永续合约市场实时快照——Atlas X 上每个交易对的标记价格、24 小时涨跌、资金费率与成交量。"
+      },
+      "swap": {
+        "title": "兑换",
+        "description": "通过链上路由引擎兑换代币。签名之前先看清报价、授权额度和这笔交易的真实内容。"
+      },
+      "bridge": {
+        "title": "跨链桥",
+        "description": "通过 Atlas X 网关在 Sepolia、Base 与 Arbitrum 之间转移代币。存款前先展示路由状态、目标链流动性与信任模型。"
+      },
+      "earn": {
+        "title": "理财",
+        "description": "覆盖质押池与流动性仓位的收益路由，每一条都附带实时 APR 和背后的合约。"
+      },
+      "advancedEarn": {
+        "title": "质押与农场",
+        "description": "单币质押与 LP 农场，展示实时质押余额、待领奖励与每个池子的合约详情。"
+      },
+      "discover": {
+        "title": "发现",
+        "description": "精选链上应用与协议，每一项都带有实时合约状态，而不是一份静态清单。"
+      },
+      "ranking": {
+        "title": "代币榜单",
+        "description": "Atlas X 启动板上的涨幅榜、跌幅榜、成交量榜与即将上线代币，实时读取代币索引。"
+      },
+      "campaign": {
+        "title": "活动",
+        "description": "Atlas X 上的实时活动、任务与奖励计划。连接钱包即可参与，进度可在链上追踪。"
+      },
+      "nft": {
+        "title": "NFT 收藏",
+        "description": "浏览并铸造链上艺术品。元数据与图像完全存储在链上，或固定在 IPFS。"
+      },
+      "createToken": {
+        "title": "发行代币",
+        "description": "在浏览器里部署带联合曲线的 ERC-20。配置总量、曲线与元数据，然后用钱包签名完成部署。"
+      },
+      "nftStudio": {
+        "title": "NFT 工作室",
+        "description": "铸造链上或基于 IPFS 的艺术品 NFT。在签名铸造交易之前预览确切的元数据与图像。"
+      },
+      "token": {
+        "title": "代币详情",
+        "description": "Atlas X 已上线代币的实时价格、市值、24 小时成交量与链上动态。",
+        "titleNamed": "{name}（{symbol}）",
+        "descriptionNamed": "{name}（{symbol}）——Atlas X 上的实时价格、市值、24 小时成交量与链上交易动态。"
+      },
+      "portfolio": {
+        "title": "资产组合",
+        "description": "已连接钱包的余额、持仓与资产总值。"
+      },
+      "activity": {
+        "title": "链上动态",
+        "description": "已连接钱包的统一链上动态——交易、转账、授权与铸造。"
+      },
+      "security": {
+        "title": "安全中心",
+        "description": "审计并撤销钱包已授出的代币额度，查看已连接的站点。"
+      },
+      "wallets": {
+        "title": "钱包管理",
+        "description": "在 Atlas X 控制台中跟踪的关联钱包与观察钱包。"
+      },
+      "settings": {
+        "title": "设置",
+        "description": "Atlas X 控制台的显示、语言与网络偏好。"
+      },
+      "profile": {
+        "title": "钱包主页",
+        "description": "某个钱包地址的公开动态与已发行代币。"
+      },
+      "adminI18n": {
+        "title": "文案控制台",
+        "description": "服务端主导的文案目录内部管理。"
+      }
+    }
   },
   "adminI18n": {
     "kicker": "运营",
