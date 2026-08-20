@@ -1,8 +1,9 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { screen } from '@testing-library/react';
 import { renderWithIntl } from '@/test/renderWithIntl';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import TradePage from './page';
+import { TradePage } from '../_atlas/pages/TradePage';
 
 /**
  * Regression guards for the /trade real-data closure:
@@ -22,6 +23,15 @@ vi.mock('@/hooks/useTrading', () => ({
 
 vi.mock('@/hooks/useTradingCandles', () => ({
     useTradingCandles: (options: unknown) => mockUseTradingCandles(options),
+}));
+
+// The ticket's pre-sign review strip asks the Go service whether the AI
+// explanation layer is live. Stubbed to "off" — its default and a supported
+// production state — so these specs stay hermetic instead of reaching for
+// localhost:8090.
+vi.mock('@/lib/api/atlas', async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    getProductStatus: vi.fn(async () => ({ aiExplain: { status: 'disabled' }, warnings: [] })),
 }));
 
 // The chart also consults the reference price feed to decide whether an empty
@@ -136,6 +146,15 @@ function tradingState(overrides: Record<string, unknown> = {}) {
         history: [],
         isOrdersLoading: false,
         isHistoryLoading: false,
+        address: '0x1111111111111111111111111111111111111111',
+        chainId: 11155111,
+        perpAddresses: {
+            usdc: '0x00000000000000000000000000000000000000aa',
+            positionManager: '0x00000000000000000000000000000000000000bb',
+        },
+        // Allowance already covers the collateral, so these specs exercise the
+        // position-open branch and the approval preflight stays out of the way.
+        isCollateralApproved: () => true,
         openPosition: vi.fn(),
         closePosition: vi.fn(),
         isApproving: false,
@@ -157,7 +176,15 @@ function tradingState(overrides: Record<string, unknown> = {}) {
 function renderTradePage(overrides: Record<string, unknown> = {}) {
     const state = tradingState(overrides);
     mockUseTrading.mockReturnValue(state);
-    renderWithIntl(<TradePage />);
+    // The ticket now carries a pre-sign review strip, which polls the Go
+    // product-status endpoint through react-query — so the page needs a client
+    // even though useTrading itself is mocked here.
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    renderWithIntl(
+        <QueryClientProvider client={client}>
+            <TradePage />
+        </QueryClientProvider>,
+    );
     return state;
 }
 

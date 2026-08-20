@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { IntlWrapper } from '@/test/renderWithIntl';
-import AdminI18nPage from './page';
+import AdminI18nPage from './AdminI18nPage';
 
 const mockFetchApi = vi.fn();
 vi.mock('@/lib/api/auth-fetch', () => ({

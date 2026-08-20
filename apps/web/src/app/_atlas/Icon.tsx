@@ -1,7 +1,12 @@
 'use client';
 import React from 'react';
 
-const ICON_PATHS: Record<string, string> = {
+/* Every entry must be VISUALLY distinct. Two nav items sharing a glyph is a
+   silent bug: the sidebar shipped with home/trade, portfolio/wallets and
+   earn/staking rendering identical paths, which no test could catch because
+   both sides were "an icon". `nft` was also byte-identical to `cube`, the
+   fallback — so a mistyped name was indistinguishable from the NFT studio. */
+export const ICON_PATHS = {
   trade: 'm6.75 7.5 3 2.25-3 2.25m4.5 0h3M2.25 12c0-4.97 4.03-9 9-9s9 4.03 9 9-4.03 9-9 9-9-4.03-9-9Z',
   markets: 'M7.5 14.25v2.25m3.75-4.5v4.5m3.75-6.75v6.75m3.75-9V19.5M3.75 21h16.5M3.75 3v18',
   swap: 'M7.5 21 3 16.5 7.5 12M3 16.5h13.5M16.5 3 21 7.5 16.5 12M21 7.5H7.5',
@@ -19,7 +24,8 @@ const ICON_PATHS: Record<string, string> = {
     'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.041.147.084.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
   rocket:
     'M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z',
-  nft: 'M21 7.5 12 12m0 0L3 7.5M12 12v9m9-12-9-4.5L3 7.5M21 16.5l-9 4.5-9-4.5m0-9L12 3l9 4.5M21 7.5v9L12 21l-9-4.5v-9',
+  // A swatch (artwork), not the cube — `nft` used to equal `cube` exactly.
+  nft: 'M4.098 19.902a3.75 3.75 0 0 0 5.304 0l6.401-6.402M6.75 21A3.75 3.75 0 0 1 3 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 0 0 3.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008Z',
   menu: 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5',
   close: 'M6 18 18 6M6 6l12 12',
   chevDown: 'm19.5 8.25-7.5 7.5-7.5-7.5',
@@ -46,10 +52,26 @@ const ICON_PATHS: Record<string, string> = {
     'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5',
   image:
     'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-};
+  // Home was drawing the `trade` glyph, so the first two nav rows matched.
+  home:
+    'm2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25',
+  // Stacked cards: "several wallets", against the single card of `wallet`.
+  wallets:
+    'M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-.98.626-1.813 1.5-2.122',
+  // A lock, because staking IS locking tokens — `earn`'s sparkle said nothing.
+  staking:
+    'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
+  // Rendered when a name is not in this table. Deliberately a glyph nobody
+  // would design into a UI, so a bad name looks broken instead of plausible.
+  missing:
+    'M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z',
+} satisfies Record<string, string>;
+
+/** Every drawable icon. A name outside this union is a compile error. */
+export type IconName = keyof typeof ICON_PATHS;
 
 export type IconProps = {
-  name: string;
+  name: IconName;
   size?: number;
   sw?: number;
   className?: string;
@@ -57,6 +79,14 @@ export type IconProps = {
 };
 
 export function Icon({ name, size = 18, sw = 2, className = '', style }: IconProps) {
+  // `name` is typed, so this only fires behind a cast or non-TS caller. It
+  // draws the `missing` glyph rather than a cube: the old fallback was a real
+  // icon in the set, so a wrong name rendered as a plausible picture and the
+  // mistake survived review.
+  const path = ICON_PATHS[name];
+  if (!path && process.env.NODE_ENV !== 'production') {
+    console.warn(`Icon: unknown name "${name}" — rendering the missing glyph.`);
+  }
   return (
     <svg
       width={size}
@@ -70,7 +100,7 @@ export function Icon({ name, size = 18, sw = 2, className = '', style }: IconPro
       className={className}
       style={style}
     >
-      <path d={ICON_PATHS[name] || ICON_PATHS.cube} />
+      <path d={path || ICON_PATHS.missing} />
     </svg>
   );
 }

@@ -7,11 +7,11 @@ import { getUserEvents } from '@/lib/api/events';
 import { useAuth } from '@/lib/web3';
 import { buildTransactionExplorerUrl } from '@/lib/web3/explorer';
 import { useApp } from '../AppContext';
-import { Icon, LogoCube } from '../Icon';
+import { Icon, LogoCube, type IconName } from '../Icon';
 import { BlockBtn, PageHeader, TabBar } from '../Common';
 import { DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
 
-const EVENT_BUCKETS: Record<string, { type: string; tone: string; icon: string; labelKey: string }> = {
+const EVENT_BUCKETS: Record<string, { type: string; tone: string; icon: IconName; labelKey: string }> = {
   IncreasePosition: { type: 'open', tone: 'pos', icon: 'trade', labelKey: 'eventOpened' },
   DecreasePosition: { type: 'close', tone: 'neg', icon: 'trade', labelKey: 'eventClosed' },
   Liquidation: { type: 'close', tone: 'neg', icon: 'warn', labelKey: 'eventLiquidation' },

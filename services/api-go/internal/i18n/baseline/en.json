@@ -1289,6 +1289,8 @@
       "preflightTitle": "Pre-sign review"
     },
     "revoking": "Revoking…",
+    "revokeConfirm": "Confirm revoke",
+    "revokeReviewHint": "Reviewing approve({spender}, 0) before you sign.",
     "txRevokeSummary": "Revoke {spender} on token {token} · chain {chainId}. This submits approve(spender, 0) from your wallet.",
     "txRevokeConfirmed": "Approval revoked — allowance is now 0.",
     "txRevokeReverted": "The revoke transaction reverted on-chain. Allowance is unchanged.",
@@ -1706,7 +1708,95 @@
     "ogDescription": "A wallet-gated perpetual futures desk. CEX-grade flow, onchain settlement.",
     "twitterTitle": "Atlas X Onchain Exchange",
     "twitterDescription": "Trade onchain like it's recess. Wallet signs every position.",
-    "ogImageAlt": "Atlas X"
+    "ogImageAlt": "Atlas X",
+    "routes": {
+      "home": {
+        "title": "Onchain Perpetual Exchange",
+        "description": "Atlas X is a wallet-gated perpetual futures desk — CEX-grade order flow with onchain settlement. Every position is signed by your own wallet."
+      },
+      "trade": {
+        "title": "Perpetual Futures",
+        "description": "Trade perpetual futures with live candles, an onchain orderbook and wallet-signed execution. Leverage, margin and position management in one terminal."
+      },
+      "markets": {
+        "title": "Markets",
+        "description": "Live perpetual market snapshot — mark price, 24h change, funding and volume across every pair listed on Atlas X."
+      },
+      "swap": {
+        "title": "Swap",
+        "description": "Swap tokens through the onchain route engine. See the quote, the approval and the exact transaction before you sign it."
+      },
+      "bridge": {
+        "title": "Bridge",
+        "description": "Move tokens across Sepolia, Base and Arbitrum through the Atlas X gateway. Route status, destination liquidity and trust model are shown before you deposit."
+      },
+      "earn": {
+        "title": "Earn",
+        "description": "Yield routes across staking pools and liquidity positions, each with live APR and the contract standing behind it."
+      },
+      "advancedEarn": {
+        "title": "Staking & Farms",
+        "description": "Single-asset staking and LP farms with live staked balances, pending rewards and per-pool contract detail."
+      },
+      "discover": {
+        "title": "Discover",
+        "description": "Curated onchain apps and protocols, each carrying its live contract status rather than a static listing."
+      },
+      "ranking": {
+        "title": "Token Leaderboards",
+        "description": "Top gainers, losers, volume leaders and upcoming launches on the Atlas X launchpad, read live from the token index."
+      },
+      "campaign": {
+        "title": "Campaigns",
+        "description": "Live events, quests and reward campaigns on Atlas X. Join from a connected wallet and track progress onchain."
+      },
+      "nft": {
+        "title": "NFT Collection",
+        "description": "Browse and mint onchain artwork. Metadata and imagery are stored fully onchain or pinned to IPFS."
+      },
+      "createToken": {
+        "title": "Launch a Token",
+        "description": "Deploy an ERC-20 with a bonding curve from the browser. Configure supply, curve and metadata, then sign the deployment with your wallet."
+      },
+      "nftStudio": {
+        "title": "NFT Studio",
+        "description": "Mint onchain or IPFS-backed artwork NFTs. Preview the exact metadata and imagery before the mint transaction is signed."
+      },
+      "token": {
+        "title": "Token Detail",
+        "description": "Live price, market cap, 24h volume and onchain activity for tokens listed on Atlas X.",
+        "titleNamed": "{name} ({symbol})",
+        "descriptionNamed": "{name} ({symbol}) — live price, market cap, 24h volume and onchain trade activity on Atlas X."
+      },
+      "portfolio": {
+        "title": "Portfolio",
+        "description": "Balances, open positions and portfolio value for your connected wallet."
+      },
+      "activity": {
+        "title": "Activity",
+        "description": "Unified onchain activity feed for your connected wallet — trades, transfers, approvals and mints."
+      },
+      "security": {
+        "title": "Security",
+        "description": "Audit and revoke the token approvals your wallet has granted, and review connected sites."
+      },
+      "wallets": {
+        "title": "Wallets",
+        "description": "Linked and watch-only wallets tracked in your Atlas X console."
+      },
+      "settings": {
+        "title": "Settings",
+        "description": "Display, locale and network preferences for your Atlas X console."
+      },
+      "profile": {
+        "title": "Wallet Profile",
+        "description": "Public activity and launched tokens for a wallet address."
+      },
+      "adminI18n": {
+        "title": "Translation Console",
+        "description": "Internal administration for the server-owned translation catalog."
+      }
+    }
   },
   "adminI18n": {
     "kicker": "Operations",

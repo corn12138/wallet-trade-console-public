@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useConnect } from 'wagmi';
 import { useTranslations } from 'next-intl';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { useApp } from './AppContext';
 import { useTokenBalance } from '@/hooks/web3/useTokenBalance';
 import { getPerpAddresses } from '@/lib/web3/contracts';
@@ -591,7 +591,7 @@ export function MetricCard({
   value: React.ReactNode;
   sub?: React.ReactNode;
   tone?: Tone;
-  icon?: string;
+  icon?: IconName;
 }) {
   const bg = ({ paper: '', y: 'bg-y', o: 'bg-o', p: 'bg-p', c: 'bg-c', g: 'bg-g', d: 'bg-d' } as Record<Tone, string>)[tone];
   return (
@@ -615,7 +615,7 @@ export function Empty({
   title,
   body,
 }: {
-  icon?: string;
+  icon?: IconName;
   title?: string;
   body?: React.ReactNode;
 }) {
@@ -704,7 +704,7 @@ export function BlockBtn({
   tip,
   type = 'button',
 }: {
-  icon?: string;
+  icon?: IconName;
   children: React.ReactNode;
   tone?: 'y' | 'o' | 'p' | 'c' | 'g' | 'd';
   sm?: boolean;

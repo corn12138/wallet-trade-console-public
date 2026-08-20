@@ -3,7 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useApp } from './AppContext';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { HeroIsoArt } from './MiniChart';
 import { HomeLivePreview } from './HomeLivePreview';
 
@@ -204,7 +204,7 @@ export default function HomePage() {
 }
 
 /* feature icon helper */
-function FeatureIcon({ name, bg = 'y' }: { name: string; bg?: string }) {
+function FeatureIcon({ name, bg = 'y' }: { name: IconName; bg?: string }) {
   const inverseInk = bg === 'c' || bg === 'o' || bg === 'p';
   return (
     <div
