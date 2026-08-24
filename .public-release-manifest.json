@@ -338,12 +338,12 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/TradePage.tsx",
-      "sha256": "633ee659094a8759f52f1d2379ebac950e46babdc7995019761ff8b250babae4"
+      "sha256": "44175ceddbf6a6d78337604217360937a3769a9c23968d15555fcd940f0b825c"
     },
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/TradeTables.tsx",
-      "sha256": "a8d79adead61250bd0676ef8af2511b6d0f0b859a86ac7d66822e4049cbdfb44"
+      "sha256": "83bce5b5d1f5e781342141be9199bd5c87fa862d39d8a5bee4bbc0416c3d608a"
     },
     {
       "mode": "100644",
@@ -443,7 +443,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/atlas-design.css",
-      "sha256": "db13cc90db0f62d74a7bb0bb3c41cf8516713122d5ebbf5d8507cae6079702ca"
+      "sha256": "f088c8645ed6a6440b7958f1b8670901476795dfdc416325cdffe01d1b1c5e81"
     },
     {
       "mode": "100644",
@@ -748,7 +748,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/trade/page.spec.tsx",
-      "sha256": "67bf5d4cd3e8a1dbc8b1aa332050ed46f0e0bbe4e88450272c3c8cbff476ded7"
+      "sha256": "10fe9882bf84d97625c2b9f06cd510a059a33139b4c30dc3a70e922e1edfdb9c"
     },
     {
       "mode": "100644",
@@ -863,7 +863,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/hooks/trading.types.ts",
-      "sha256": "ffb742970302ea315b87174c958c9ef1d7b6990c320765c380523e7effc3f31f"
+      "sha256": "a808c33c642be7bc5588ce5446dcc88d314c9dda84052566a44a48c9eff66efd"
     },
     {
       "mode": "100644",
@@ -898,12 +898,12 @@
     {
       "mode": "100644",
       "path": "apps/web/src/hooks/useTrading.ts",
-      "sha256": "12e945e4627329f39ea8d172bfa8e690b23c1c2d6152fa5e2496cbf8179c053a"
+      "sha256": "749d147114fc2bf32e8e86468cca8ffc17605520ca2e26986631d723990ccf72"
     },
     {
       "mode": "100644",
       "path": "apps/web/src/hooks/useTradingActivity.ts",
-      "sha256": "8934182c0118c053e6570c154e077c6103ccebb717f11bba0b8f0e00b0265da5"
+      "sha256": "41fbd03f0504cd91fdbbb61930f72f7f9d3fe001e7aab393b322fbd2bfaad18c"
     },
     {
       "mode": "100644",
@@ -1078,7 +1078,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/lib/api/trading.ts",
-      "sha256": "f19056e2288676ad83a5ae34ca7f2ac24ded8901739f5fa96fd9960ffce48b75"
+      "sha256": "4923ec98b607329199c10347b7311c128e5dcc1e301d0fed1ec4de78a6cf4a24"
     },
     {
       "mode": "100644",
@@ -4113,12 +4113,12 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/i18n/baseline/en.json",
-      "sha256": "0a182ecf028949cd739fbd5b4bf94abc2cf394e98f7ccf9d33a324e2b90a15de"
+      "sha256": "c2d83c01c7aed8ac380353a0b2c6f7254bdb2c65a0907ff2c1305ece74305ca7"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/i18n/baseline/zh.json",
-      "sha256": "2adcdd0b1ce4c0d6ef16a8059f6e95ee41a33e77b4a07a93ca634e8ad6703f73"
+      "sha256": "822bff5c892c6570fa71072dccd3ff4040d7e9758b4b7a69300a1e74f637b5a8"
     },
     {
       "mode": "100644",
@@ -5002,5 +5002,5 @@
     }
   ],
   "format": 1,
-  "public_base_commit": "d46bdf5a57e454cf222a22b54a308432c04ab8f4"
+  "public_base_commit": "8e9afeb5df38c5fd5cb8d9c63a2280432cd8db77"
 }

@@ -1095,7 +1095,12 @@
       "viewTx": "在区块浏览器查看交易 {hash}",
       "loading": "正在从索引器加载…",
       "signInPrompt": "连接钱包并登录后可查看你的交易记录。",
-      "connectCta": "连接钱包"
+      "connectCta": "连接钱包",
+      "sourceChain": "链上",
+      "sourceIndexed": "索引",
+      "switchTo": "去交易",
+      "switchToAria": "切换到 {symbol} 以管理该仓位",
+      "unknownMarket": "未知市场"
     },
     "ticket": {
       "openLong": "开多",

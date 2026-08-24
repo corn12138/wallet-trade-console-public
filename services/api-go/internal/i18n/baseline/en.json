@@ -1095,7 +1095,12 @@
       "viewTx": "View transaction {hash} on the block explorer",
       "loading": "Loading from the indexer…",
       "signInPrompt": "Connect your wallet and sign in to view your trading activity.",
-      "connectCta": "Connect wallet"
+      "connectCta": "Connect wallet",
+      "sourceChain": "chain",
+      "sourceIndexed": "indexed",
+      "switchTo": "Trade",
+      "switchToAria": "Switch the terminal to {symbol} to manage this position",
+      "unknownMarket": "Unknown market"
     },
     "ticket": {
       "openLong": "Open Long",

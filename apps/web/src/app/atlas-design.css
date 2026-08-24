@@ -286,14 +286,18 @@ input, textarea { background: transparent; border: 0; outline: 0; }
 .term-bar .ttl { font-family: var(--df); font-weight: 800; font-size: 13px; letter-spacing: 0.04em; }
 .term-bar .right { display: flex; gap: 10px; align-items: center; font-family: var(--mf); font-size: 12px; opacity: 0.75; }
 
-.term-grid { display: grid; grid-template-columns: 220px 1fr 300px; min-height: 600px; }
-.term-rail { background: var(--bg-2); padding: 14px; border-right: 3px solid var(--ink); display: flex; flex-direction: column; gap: 6px; }
+/* Named areas so the tables live in their own cell: the rail and the
+   ticket stack span both rows, the center (chart) row is the 1fr so the
+   chart keeps stretching, and the tables row sizes to content. */
+.term-grid { display: grid; grid-template-columns: 220px 1fr 300px; grid-template-rows: 1fr auto; grid-template-areas: 'rail center stack' 'rail tables stack'; min-height: 600px; }
+.term-rail { grid-area: rail; background: var(--bg-2); padding: 14px; border-right: 3px solid var(--ink); display: flex; flex-direction: column; gap: 6px; }
+.term-tables { grid-area: tables; padding: 0 16px 16px; min-width: 0; }
 .term-rail .it { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; font-family: var(--df); font-weight: 700; font-size: 13px; color: var(--ink-2); cursor: pointer; border: 2px solid transparent; }
 .term-rail .it:hover { background: rgba(255,255,255,0.5); color: var(--ink); }
 .term-rail .it.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .term-rail .it svg { width: 17px; height: 17px; }
 
-.term-center { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.term-center { grid-area: center; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .sym-bar { background: var(--ink); color: var(--bg); border-radius: 18px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 0 0 #000; flex-wrap: wrap; }
 .sym-name { display: flex; align-items: center; gap: 12px; }
 .sym-name .b { width: 40px; height: 40px; border-radius: 999px; background: var(--y); color: var(--ink); border: 3px solid var(--ink); display: grid; place-items: center; font-family: var(--df); font-weight: 900; font-size: 18px; }
@@ -337,7 +341,7 @@ input, textarea { background: transparent; border: 0; outline: 0; }
 .book-tabs button:hover:not(.on) { background: var(--bg-3); }
 
 /* right stack */
-.right-stack { display: flex; flex-direction: column; border-left: 3px solid var(--ink); }
+.right-stack { grid-area: stack; display: flex; flex-direction: column; border-left: 3px solid var(--ink); }
 .ticket { padding: 16px; background: var(--paper); border-top: 3px solid var(--ink); display: flex; flex-direction: column; gap: 12px; }
 
 /* leverage chips */
@@ -437,8 +441,20 @@ input, textarea { background: transparent; border: 0; outline: 0; }
   .rail, .app[data-rail="open"] .rail, .rail:focus-within { width: var(--rail-w-open); transform: translateX(-100%); box-shadow: none; transition: transform .25s ease; }
   .app[data-drawer="1"] .rail { transform: none; }
   #ax-burger { display: inline-flex; }
-  .term-grid { grid-template-columns: 1fr; }
-  .right-stack { border-left: 0; border-top: 3px solid var(--ink); }
+  /* Terminal collapses to one column, ordered by what a phone trader needs:
+     chart, then the ticket (primary action) with the book under it, then the
+     tables, then the market rail (a browse affordance, not a trade one).
+     Inside the stack, column-reverse lifts the ticket above the order book. */
+  .term-grid { display: flex; flex-direction: column; min-height: 0; }
+  .term-center { order: 1; }
+  .right-stack { order: 2; flex-direction: column-reverse; border-left: 0; border-top: 3px solid var(--ink); }
+  .right-stack .ticket { border-top: 0; border-bottom: 3px solid var(--ink); }
+  .right-stack .book { border-left: 0; }
+  .term-tables { order: 3; padding: 12px; border-top: 3px solid var(--ink); }
+  .term-rail { order: 4; border-right: 0; border-top: 3px solid var(--ink); max-height: 340px; }
+  /* Many-column trade tables scroll sideways instead of crushing cells. */
+  .tbl-scroll { overflow-x: auto; }
+  .tbl-scroll .tbl-head, .tbl-scroll .tbl-row { min-width: 640px; }
   .hero-shell { grid-template-columns: 1fr; gap: 24px; }
   .grid-3 { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }

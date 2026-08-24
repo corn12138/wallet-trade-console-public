@@ -44,8 +44,8 @@ export function TradePage() {
     isMarketStreamConnected,
     marketStreamStatus,
     formattedBalance,
-    positions,
-    positionsLoading,
+    portfolioPositions,
+    isPortfolioLoading,
     orders,
     history,
     isOrdersLoading,
@@ -355,16 +355,21 @@ export function TradePage() {
 
         <div className="term-center">
           <TradeMarketPanel market={selectedMarket} displayLast={displayLast} flash={flash} />
+        </div>
+
+        {/* Own grid area (not inside term-center) so the mobile stack can put
+            the ticket directly under the chart and the tables after it. */}
+        <div className="term-tables">
           <TradeTables
             tab={tab}
-            positions={positions}
+            positions={portfolioPositions}
             orders={orders}
             history={history}
             currentPrice={currentPrice}
             chainId={chainId}
             isWalletConnected={app.walletState === 'connected'}
             isActivityAuthorized={trading.isActivityAuthorized}
-            isPositionsLoading={positionsLoading}
+            isPositionsLoading={isPortfolioLoading}
             isOrdersLoading={isOrdersLoading}
             isHistoryLoading={isHistoryLoading}
             isClosePending={isClosePending}
@@ -373,11 +378,12 @@ export function TradePage() {
             marketStreamStatus={marketStreamStatus}
             setTab={setTab}
             onClosePosition={handleClosePosition}
+            onSelectMarket={setSelectedMarketSymbol}
             onConnect={app.openConnect}
           />
         </div>
 
-        <div className="right-stack">
+        <div className="right-stack" data-testid="trade-right-stack">
           <TradeOrderbook
             orderbook={orderbook}
             displayLast={displayLast}
