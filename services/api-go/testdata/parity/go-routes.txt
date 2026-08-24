@@ -189,7 +189,6 @@ POST /api/web3-auth/nonce
 POST /api/web3-auth/verify
 POST /api/web3-events/transactions
 POST /api/web3-events/transactions/:txHash/receipt
-PUT /api/campaign/:id
 PUT /api/mobile/v1/docs/:id
 PUT /api/settings/notifications
 PUT /api/settings/preferences

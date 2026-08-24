@@ -76,6 +76,13 @@ dump.rdb
 !contracts/deployments
 !packages/shared/deployments
 
+# --- Local agent/editor tooling ---
+# settings.local.json is per-machine by name; launch.json carries a local
+# Postgres DSN with a developer's own username. Neither is source, and both
+# would be published verbatim if this repo ever goes public.
+.claude/settings.local.json
+.claude/launch.json
+
 # Python bytecode cache (smoke scripts)
 __pycache__/
 *.pyc

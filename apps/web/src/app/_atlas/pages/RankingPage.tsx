@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Icon } from '../Icon';
 import { PageHeader, TabBar } from '../Common';
-import { DataStatePanel } from '../DataState';
+import { DataSkeleton, DataStatePanel } from '../DataState';
 import { ProductStatusHint } from '../ProductStatus';
 import { fmtCompact, fmtCompactDec, fmtPct } from '../data';
 import {
@@ -111,7 +111,7 @@ export function RankingPage() {
         onChange={setTab}
       />
 
-      {loading && <div className="block">{t('loading')}</div>}
+      {loading && <DataSkeleton shape="rows" count={5} />}
       {error && !loading && (
         <DataStatePanel
           state="error"

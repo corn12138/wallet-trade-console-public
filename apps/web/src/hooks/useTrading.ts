@@ -154,6 +154,12 @@ export function useTrading() {
     refetchAll,
   } = usePerpPositions({ market: liveSelectedMarket });
 
+  const isActivityAuthorized = Boolean(
+    isAuthenticated &&
+    address &&
+    authenticatedAddress?.toLowerCase() === address.toLowerCase()
+  );
+
   const {
     orders,
     history,
@@ -164,11 +170,7 @@ export function useTrading() {
     account: address,
     symbol: liveSelectedMarket?.symbol,
     chainId: liveSelectedMarket?.chainId,
-    enabled: Boolean(
-      isAuthenticated &&
-      address &&
-      authenticatedAddress?.toLowerCase() === address.toLowerCase()
-    ),
+    enabled: isActivityAuthorized,
   });
   const tradingTransactions = useTradingTransactions({
     address,
@@ -213,6 +215,18 @@ export function useTrading() {
     history,
     isOrdersLoading,
     isHistoryLoading,
+    // Whether the SIWE session covers the connected wallet — the condition the
+    // orders/history queries are gated on, so the tables can distinguish
+    // "not signed in" from a genuinely empty result.
+    isActivityAuthorized,
+
+    // Identity + contract targets, surfaced so the page can build a pre-sign
+    // review of the collateral approval against the same addresses the write
+    // path uses (rather than re-deriving them and risking a drift).
+    address,
+    chainId,
+    perpAddresses: addrs,
+    isCollateralApproved: tradingTransactions.isApproved,
 
     // Actions
     openPosition: tradingTransactions.openPosition,

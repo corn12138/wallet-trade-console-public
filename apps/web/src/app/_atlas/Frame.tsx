@@ -1,55 +1,21 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Icon, LogoCube } from './Icon';
+import { GROUPS } from './nav';
 import { useApp } from './AppContext';
 import { ConnectPill, StreamStatus, GlobalModals, ToastHost } from './Common';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const BASE = '';
 
-/* Nav structure: [path, icon, navKey]. Labels/subtitles resolve through the
-   atlasShell.nav namespace so locale switching covers the whole sidebar.
-   Bridge is no longer hidden: BridgeGateway is deployed, the relayer runs, and
-   the page reads real chain state. Where a route cannot execute it says so
-   with the specific reason (e.g. NO_DESTINATION_GATEWAY) rather than offering
-   a control that would fail — which is why it is safe to show. */
-const GROUPS: { key: 'trade' | 'account' | 'build'; items: [string, string, string][] }[] = [
-  {
-    key: 'trade',
-    items: [
-      ['', 'trade', 'home'],
-      ['/trade', 'trade', 'trade'],
-      ['/markets', 'markets', 'markets'],
-      ['/swap', 'swap', 'swap'],
-      ['/bridge', 'bridge', 'bridge'],
-    ],
-  },
-  {
-    key: 'account',
-    items: [
-      ['/portfolio', 'wallet', 'portfolio'],
-      ['/earn', 'earn', 'earn'],
-      ['/advanced-earn', 'earn', 'staking'],
-      ['/activity', 'activity', 'activity'],
-      ['/security', 'security', 'security'],
-      ['/wallets', 'wallet', 'wallets'],
-    ],
-  },
-  {
-    key: 'build',
-    items: [
-      ['/create-token', 'rocket', 'createToken'],
-      ['/nft-studio', 'nft', 'nftStudio'],
-      ['/discover', 'discover', 'discover'],
-      ['/ranking', 'trendUp', 'ranking'],
-      ['/campaign', 'star', 'campaign'],
-      ['/settings', 'settings', 'settings'],
-    ],
-  },
-];
+
+/* Dwell time before a hover expands the rail. Long enough that crossing the
+   rail on the way to the page does not trigger it, short enough that a
+   deliberate move still feels immediate. */
+const RAIL_OPEN_DELAY_MS = 140;
 
 /* Route heads that have a crumb entry in atlasShell.crumbs. */
 const CRUMB_KEYS = new Set([
@@ -89,9 +55,45 @@ function Sidebar() {
   const rel = relativePath(pathname);
   const segs = rel.split('/').filter(Boolean);
   const head = segs[0] || '';
+  // When the labels are on screen, a `title` would just re-state the word
+  // sitting next to the cursor — the native tooltip that used to pop up over
+  // the expanded rail. Collapsed, it is the only thing naming the icon.
+  const labelsVisible = app.railOpen || app.drawerOpen;
+
+  // Hover intent: open only after the cursor has DWELLED on the rail. The rail
+  // overlays the page, so opening on the first mouseenter meant a cursor
+  // travelling from the left edge toward the content covered what the user was
+  // reading, every time. Closing stays instant — a delay on the way out is
+  // what makes a menu feel sticky.
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setRailOpen = app.setRailOpen;
+
+  const cancelOpen = useCallback(() => {
+    if (openTimer.current !== null) {
+      clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+  }, []);
+
+  const handleEnter = useCallback(() => {
+    cancelOpen();
+    openTimer.current = setTimeout(() => {
+      openTimer.current = null;
+      setRailOpen(true);
+    }, RAIL_OPEN_DELAY_MS);
+  }, [cancelOpen, setRailOpen]);
+
+  const handleLeave = useCallback(() => {
+    cancelOpen();
+    setRailOpen(false);
+  }, [cancelOpen, setRailOpen]);
+
+  // A pending timer must not fire after unmount, or it calls setState on a
+  // component that is gone.
+  useEffect(() => cancelOpen, [cancelOpen]);
 
   return (
-    <aside className="rail" onMouseEnter={() => app.setRailOpen(true)} onMouseLeave={() => app.setRailOpen(false)}>
+    <aside className="rail" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
       <div className="rail-mark">
         <LogoCube size={32} />
         <span className="word">ATLAS·X</span>
@@ -106,7 +108,7 @@ function Sidebar() {
             const href = BASE + (path || '/');
             const label = t(`nav.${navKey}.label`);
             return (
-              <Link key={path || 'home'} href={href} className={'rail-it ' + (active ? 'on' : '')} title={label}>
+              <Link key={path || 'home'} href={href} className={'rail-it ' + (active ? 'on' : '')} title={labelsVisible ? undefined : label}>
                 <Icon name={icon} size={18} />
                 <span className="lbl">{label}</span>
               </Link>

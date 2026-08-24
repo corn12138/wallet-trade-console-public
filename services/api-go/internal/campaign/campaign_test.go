@@ -8,7 +8,30 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
+	"github.com/go-chi/chi/v5"
 )
+
+// A wallet on the allowlist, so the validation tests below exercise validation
+// rather than stopping at the guard.
+const testAdminWallet = "0x00000000000000000000000000000000000000ad"
+
+func injectWallet(addr string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r.WithContext(auth.WithAddress(r.Context(), addr)))
+		})
+	}
+}
+
+// authorizedRouter satisfies both layers: a SIWE middleware that resolves a
+// wallet, and an allowlist containing it.
+func authorizedRouter(t *testing.T, svc *Service) chi.Router {
+	t.Helper()
+	t.Setenv(AdminWalletsEnv, testAdminWallet)
+	return Router(svc, nil, injectWallet(testAdminWallet))
+}
 
 func TestRepository_NilPoolReturnsErr(t *testing.T) {
 	r := NewRepository(nil)
@@ -22,12 +45,9 @@ func TestRepository_NilPoolReturnsErr(t *testing.T) {
 	if _, err := r.FindByID(ctx, "x"); err != ErrPoolUnavailable {
 		t.Errorf("FindByID err = %v, want ErrPoolUnavailable", err)
 	}
-	// Writes must surface the error too (never silently "succeed").
+	// The write must surface the error too (never silently "succeed").
 	if _, err := r.Create(ctx, CreateInput{Title: "x"}); err != ErrPoolUnavailable {
 		t.Errorf("Create err = %v, want ErrPoolUnavailable", err)
-	}
-	if _, err := r.Update(ctx, "x", map[string]any{"title": "y"}); err != ErrPoolUnavailable {
-		t.Errorf("Update err = %v, want ErrPoolUnavailable", err)
 	}
 }
 
@@ -36,7 +56,7 @@ func TestHandler_CreateRequiresTitle(t *testing.T) {
 	body := `{"startDate":"2026-06-01T00:00:00Z","endDate":"2026-06-30T00:00:00Z"}`
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	rr := httptest.NewRecorder()
-	Router(svc, nil, nil).ServeHTTP(rr, req)
+	authorizedRouter(t, svc).ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400; body = %s", rr.Code, rr.Body.String())
 	}
@@ -47,7 +67,7 @@ func TestHandler_CreateRejectsBadDate(t *testing.T) {
 	body := `{"title":"Launch","startDate":"not-a-date","endDate":"2026-06-30T00:00:00Z"}`
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	rr := httptest.NewRecorder()
-	Router(svc, nil, nil).ServeHTTP(rr, req)
+	authorizedRouter(t, svc).ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400; body = %s", rr.Code, rr.Body.String())
 	}
@@ -59,80 +79,10 @@ func TestHandler_Create503WhenDegraded(t *testing.T) {
 	body := `{"title":"Launch","startDate":"2026-06-01T00:00:00Z","endDate":"2026-06-30T00:00:00Z"}`
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	rr := httptest.NewRecorder()
-	Router(svc, nil, nil).ServeHTTP(rr, req)
+	authorizedRouter(t, svc).ServeHTTP(rr, req)
 	if rr.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d, want 503; body = %s", rr.Code, rr.Body.String())
 	}
-}
-
-func TestHandler_UpdateRejectsMalformedBody(t *testing.T) {
-	svc := NewService(NewRepository(nil))
-	req := httptest.NewRequest(http.MethodPut, "/some-id", strings.NewReader("{not json"))
-	rr := httptest.NewRecorder()
-	Router(svc, nil, nil).ServeHTTP(rr, req)
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400; body = %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestHandler_Update503WhenDegraded(t *testing.T) {
-	svc := NewService(NewRepository(nil))
-	req := httptest.NewRequest(http.MethodPut, "/some-id", strings.NewReader(`{"status":"active"}`))
-	rr := httptest.NewRecorder()
-	Router(svc, nil, nil).ServeHTTP(rr, req)
-	if rr.Code != http.StatusServiceUnavailable {
-		t.Fatalf("status = %d, want 503; body = %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestParseUpdateFields(t *testing.T) {
-	t.Run("known keys + unknown ignored", func(t *testing.T) {
-		f, err := parseUpdateFields([]byte(`{"title":"x","participants":5,"bogus":1}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if f["title"] != "x" || f["participants"] != 5 {
-			t.Errorf("got %#v", f)
-		}
-		if _, ok := f["bogus"]; ok {
-			t.Error("unknown key should be ignored")
-		}
-	})
-	t.Run("present-null preserved as nil", func(t *testing.T) {
-		f, err := parseUpdateFields([]byte(`{"description":null}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-		v, ok := f["description"]
-		if !ok || v != nil {
-			t.Errorf("description: ok=%v v=%#v, want present nil", ok, v)
-		}
-	})
-	t.Run("metadata kept as raw JSON string", func(t *testing.T) {
-		f, err := parseUpdateFields([]byte(`{"metadata":{"a":1}}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if f["metadata"] != `{"a":1}` {
-			t.Errorf("metadata = %#v, want raw json string", f["metadata"])
-		}
-	})
-	t.Run("type mismatch on known key errors", func(t *testing.T) {
-		if _, err := parseUpdateFields([]byte(`{"participants":"nope"}`)); err == nil {
-			t.Error("expected error on non-int participants")
-		}
-	})
-	t.Run("malformed json errors", func(t *testing.T) {
-		if _, err := parseUpdateFields([]byte(`{`)); err == nil {
-			t.Error("expected error on malformed json")
-		}
-	})
-	t.Run("empty object yields empty map", func(t *testing.T) {
-		f, err := parseUpdateFields([]byte(`{}`))
-		if err != nil || len(f) != 0 {
-			t.Errorf("f=%#v err=%v", f, err)
-		}
-	})
 }
 
 func TestParseDate(t *testing.T) {
@@ -179,7 +129,7 @@ func TestHandler_ListReturnsEmptyArrayWhenDegraded(t *testing.T) {
 	svc := NewService(NewRepository(nil))
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
-	Router(svc, nil, nil).ServeHTTP(rr, req)
+	authorizedRouter(t, svc).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rr.Code, rr.Body.String())
@@ -197,7 +147,7 @@ func TestHandler_ActiveReturnsEmptyArrayWhenDegraded(t *testing.T) {
 	svc := NewService(NewRepository(nil))
 	req := httptest.NewRequest(http.MethodGet, "/active", nil)
 	rr := httptest.NewRecorder()
-	Router(svc, nil, nil).ServeHTTP(rr, req)
+	authorizedRouter(t, svc).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rr.Code, rr.Body.String())
@@ -215,7 +165,7 @@ func TestHandler_ByID404OnDegradedMode(t *testing.T) {
 	svc := NewService(NewRepository(nil))
 	req := httptest.NewRequest(http.MethodGet, "/somecuid", nil)
 	rr := httptest.NewRecorder()
-	Router(svc, nil, nil).ServeHTTP(rr, req)
+	authorizedRouter(t, svc).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected 404 on degraded mode; got %d", rr.Code)
@@ -249,6 +199,87 @@ func TestDecodeMetadata(t *testing.T) {
 			if gotMap["k"] != want["k"] {
 				t.Errorf("%s: got %v, want %v", tc.name, gotMap, want)
 			}
+		}
+	}
+}
+
+// ── write guard ─────────────────────────────────────────────────────────────
+// These are the tests that would have caught the hole. Before the guard, an
+// anonymous POST reached the database and answered 503 — an outage-shaped
+// reply to a missing-credential problem — while against a live database it
+// answered 201 and published the row to every visitor of /api/campaign/active.
+
+func TestWrites_RejectAnonymous(t *testing.T) {
+	t.Setenv(AdminWalletsEnv, testAdminWallet)
+	svc := NewService(NewRepository(nil))
+	valid := `{"title":"Launch","startDate":"2026-06-01T00:00:00Z","endDate":"2026-06-30T00:00:00Z"}`
+
+	for _, tc := range []struct {
+		name, method, target, body string
+	}{
+		{"create", http.MethodPost, "/", valid},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.target, strings.NewReader(tc.body))
+			rr := httptest.NewRecorder()
+			// No SIWE middleware at all: the deny-all stand-in must answer.
+			Router(svc, nil, nil).ServeHTTP(rr, req)
+			if rr.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d, want 401; body = %s", rr.Code, rr.Body.String())
+			}
+		})
+	}
+}
+
+func TestWrites_RejectWalletOutsideAllowlist(t *testing.T) {
+	t.Setenv(AdminWalletsEnv, testAdminWallet)
+	svc := NewService(NewRepository(nil))
+	body := `{"title":"Launch","startDate":"2026-06-01T00:00:00Z","endDate":"2026-06-30T00:00:00Z"}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	rr := httptest.NewRecorder()
+	Router(svc, nil, injectWallet("0x000000000000000000000000000000000000dead")).ServeHTTP(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403; body = %s", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), "campaign administrator") {
+		t.Errorf("403 body should name the reason, got %s", rr.Body.String())
+	}
+}
+
+// The contract that matters most: an unconfigured deployment denies everyone.
+// Absence of configuration must never grant access.
+func TestWrites_EmptyAllowlistDeniesEveryone(t *testing.T) {
+	t.Setenv(AdminWalletsEnv, "")
+	svc := NewService(NewRepository(nil))
+	body := `{"title":"Launch","startDate":"2026-06-01T00:00:00Z","endDate":"2026-06-30T00:00:00Z"}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	rr := httptest.NewRecorder()
+	Router(svc, nil, injectWallet(testAdminWallet)).ServeHTTP(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403 with an empty allowlist; body = %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestParseAdminWallets(t *testing.T) {
+	got := ParseAdminWallets(" 0x00000000000000000000000000000000000000AD ,,not-an-address,0xBEEF")
+	if len(got) != 1 || !got[testAdminWallet] {
+		t.Fatalf("ParseAdminWallets = %v, want only the normalized valid address", got)
+	}
+	if len(ParseAdminWallets("")) != 0 {
+		t.Error("empty config must yield an empty allowlist, not a permissive one")
+	}
+}
+
+// Reads must stay public — the guard must not over-block.
+func TestReads_StayPublic(t *testing.T) {
+	t.Setenv(AdminWalletsEnv, testAdminWallet)
+	svc := NewService(NewRepository(nil))
+	for _, target := range []string{"/", "/active"} {
+		req := httptest.NewRequest(http.MethodGet, target, nil)
+		rr := httptest.NewRecorder()
+		Router(svc, nil, nil).ServeHTTP(rr, req)
+		if rr.Code == http.StatusUnauthorized || rr.Code == http.StatusForbidden {
+			t.Errorf("GET %s = %d; public reads must not require auth", target, rr.Code)
 		}
 	}
 }

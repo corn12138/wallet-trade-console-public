@@ -3,10 +3,21 @@
 // Phase 3b; the POST/PUT mutations are ported here to close the route-parity
 // gap the harness flagged (campaign was read-only in Go).
 //
-// Every /api/campaign endpoint is public in NestJS (no @UseGuards), so the
-// writes mount unguarded for parity. Reads degrade to empty/404 on a nil
-// pool; writes surface 503 (a write with no database must not silently
-// succeed).
+// The reads are public. The WRITES are not, and the comment that used to sit
+// here was wrong by the time anyone read it: it justified unguarded mutations
+// as parity with NestJS, where /api/campaign carried no @UseGuards. That
+// service was deleted in the zero-Nest retirement, so the thing being matched
+// no longer exists — and meanwhile POST rode the gateway's exact-path
+// `= /api/campaign` block (nginx `location =` matches path, never method)
+// while PUT fell through the `/api/` catch-all, which now proxies to Go. The
+// net effect was that anyone on the internet could create a campaign and
+// promote it into /api/campaign/active, where it renders for every visitor —
+// attacker-controlled copy and links on a wallet product.
+//
+// Writes now require SIWE plus membership of CAMPAIGN_ADMIN_WALLETS, and an
+// unset allowlist denies everyone: absence of configuration must never grant
+// access. Reads degrade to empty/404 on a nil pool; writes surface 503 (a
+// write with no database must not silently succeed).
 package campaign
 
 import (
@@ -14,13 +25,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -209,51 +221,6 @@ var updatableColumns = map[string]string{
 	"metadata":     "metadata",
 }
 
-// Update applies only the fields present in the body (present-null sets the
-// column to NULL) and always bumps updated_at, then returns the stored row.
-// ErrNotFound if no row has the id. An empty field set still touches
-// updated_at — parity with Prisma's update({ data: {} }).
-func (r *Repository) Update(ctx context.Context, id string, fields map[string]any) (Campaign, error) {
-	if r.pool == nil {
-		return Campaign{}, ErrPoolUnavailable
-	}
-	set := make([]string, 0, len(fields)+1)
-	args := make([]any, 0, len(fields)+1)
-	i := 1
-	for _, key := range sortedKeys(fields) { // deterministic SQL
-		col := updatableColumns[key]
-		if col == "metadata" {
-			set = append(set, fmt.Sprintf("%s = $%d::jsonb", col, i))
-		} else {
-			set = append(set, fmt.Sprintf("%s = $%d", col, i))
-		}
-		args = append(args, fields[key])
-		i++
-	}
-	set = append(set, "updated_at = NOW()")
-	args = append(args, id)
-
-	query := fmt.Sprintf(`
-		UPDATE launchpad_campaigns
-		SET %s
-		WHERE id = $%d
-		RETURNING %s
-	`, strings.Join(set, ", "), i, allColumns)
-
-	var c Campaign
-	var metadata []byte
-	err := r.pool.QueryRow(ctx, query, args...).Scan(&c.ID, &c.Title, &c.Description, &c.Banner, &c.StartDate, &c.EndDate, &c.Status, &c.Reward,
-		&c.Participants, &metadata, &c.CreatedAt, &c.UpdatedAt)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Campaign{}, ErrNotFound
-	}
-	if err != nil {
-		return Campaign{}, fmt.Errorf("update launchpad_campaigns: %w", err)
-	}
-	c.Metadata = decodeMetadata(metadata)
-	return c, nil
-}
-
 func sortedKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -261,44 +228,6 @@ func sortedKeys(m map[string]any) []string {
 	}
 	sort.Strings(keys)
 	return keys
-}
-
-// parseUpdateFields extracts the updatable fields present in the PUT body,
-// preserving present-null as a nil value and ignoring unknown keys. Returns
-// an error only on malformed JSON or a type mismatch on a known key.
-func parseUpdateFields(body []byte) (map[string]any, error) {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil, err
-	}
-	out := make(map[string]any, len(raw))
-	for key := range updatableColumns {
-		rawVal, ok := raw[key]
-		if !ok {
-			continue
-		}
-		if string(rawVal) == "null" {
-			out[key] = nil
-			continue
-		}
-		switch key {
-		case "participants":
-			var n int
-			if err := json.Unmarshal(rawVal, &n); err != nil {
-				return nil, fmt.Errorf("field %q: %w", key, err)
-			}
-			out[key] = n
-		case "metadata":
-			out[key] = string(rawVal) // raw JSON, cast ::jsonb in the SQL
-		default:
-			var s string
-			if err := json.Unmarshal(rawVal, &s); err != nil {
-				return nil, fmt.Errorf("field %q: %w", key, err)
-			}
-			out[key] = s
-		}
-	}
-	return out, nil
 }
 
 func scanCampaigns(rows pgx.Rows) ([]Campaign, error) {
@@ -381,11 +310,6 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Campaign, error) 
 	return s.repo.Create(ctx, in)
 }
 
-// Update proxies to repo.Update; ErrPoolUnavailable and ErrNotFound propagate.
-func (s *Service) Update(ctx context.Context, id string, fields map[string]any) (Campaign, error) {
-	return s.repo.Update(ctx, id, fields)
-}
-
 // Router exposes the /campaign endpoints on a chi sub-router. Reads stay
 // public (NestJS parity) but are enriched with real participant counts and,
 // when the request carries a verifiable web3 token (resolveWallet), the
@@ -396,8 +320,24 @@ func Router(svc *Service, resolveWallet WalletResolver, guard func(http.Handler)
 	r.Get("/", makeListHandler(svc, resolveWallet))
 	r.Get("/active", makeActiveHandler(svc, resolveWallet))
 	r.Get("/{id}", makeByIDHandler(svc, resolveWallet))
-	r.Post("/", makeCreateHandler(svc))
-	r.Put("/{id}", makeUpdateHandler(svc))
+	// Writes: SIWE, then the allowlist. Mounted as a group so a second write
+	// verb cannot be added later outside the guard by accident.
+	//
+	// There is deliberately no PUT. The update route had zero callers anywhere
+	// in the repository, and guarding a route nobody uses only hides its
+	// surface behind a credential — it kept alive an unvalidated free-text
+	// `status` write that promoted a row into /campaign/active, and a raw
+	// jsonb metadata sink. Deleting it retires the surface instead.
+	admins := ParseAdminWallets(os.Getenv(AdminWalletsEnv))
+	r.Group(func(g chi.Router) {
+		if guard != nil {
+			g.Use(guard)
+		} else {
+			g.Use(denyAll)
+		}
+		g.Use(adminOnly(admins))
+		g.Post("/", makeCreateHandler(svc))
+	})
 	RegisterInteractionRoutes(r, svc, guard)
 	return r
 }
@@ -454,8 +394,68 @@ func makeByIDHandler(svc *Service, resolveWallet WalletResolver) http.HandlerFun
 	}
 }
 
+// AdminWalletsEnv is the campaign-write allowlist: comma-separated wallets.
+const AdminWalletsEnv = "CAMPAIGN_ADMIN_WALLETS"
+
+// ParseAdminWallets normalizes the configured allowlist. An empty result means
+// every write answers 403 — the same deny-all-when-unset contract the i18n
+// console uses, and for the same reason: a deployment that forgets to set this
+// must fail closed, not open.
+func ParseAdminWallets(raw string) map[string]bool {
+	out := map[string]bool{}
+	for _, part := range strings.Split(raw, ",") {
+		addr := strings.ToLower(strings.TrimSpace(part))
+		if len(addr) == 42 && strings.HasPrefix(addr, "0x") {
+			out[addr] = true
+		}
+	}
+	return out
+}
+
+func writeErr(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, map[string]any{"statusCode": status, "message": message})
+}
+
+// adminOnly runs AFTER the SIWE middleware and checks the resolved wallet.
+func adminOnly(admins map[string]bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			addr := strings.ToLower(auth.AddressFromContext(req.Context()))
+			if addr == "" {
+				writeErr(w, http.StatusUnauthorized, "Missing or invalid web3 authorization")
+				return
+			}
+			if !admins[addr] {
+				writeErr(w, http.StatusForbidden, "wallet is not a campaign administrator")
+				return
+			}
+			next.ServeHTTP(w, req)
+		})
+	}
+}
+
+// denyAll stands in when no SIWE middleware was supplied. Without it a
+// deployment with no JWT secret would leave the writes reachable.
+func denyAll(http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeErr(w, http.StatusUnauthorized, "Missing or invalid web3 authorization")
+	})
+}
+
 func makeCreateHandler(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Defense in depth: the route is already guarded, but a handler that
+		// trusts its mounting is one refactor away from being reachable. This
+		// is also the layer that makes the failure legible — before the guard
+		// existed an anonymous POST reached the database and answered 503,
+		// which reads like an outage rather than a missing credential.
+		if auth.AddressFromContext(r.Context()) == "" {
+			writeErr(w, http.StatusUnauthorized, "Missing or invalid web3 authorization")
+			return
+		}
+		// A JSON body for a campaign is small; an unbounded one is a free
+		// memory-pressure primitive on an endpoint that takes free text.
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		var body struct {
 			Title       string  `json:"title"`
 			Description *string `json:"description"`
@@ -500,37 +500,6 @@ func makeCreateHandler(svc *Service) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusCreated, out) // NestJS @Post → 201
-	}
-}
-
-func makeUpdateHandler(svc *Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-		raw, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "invalid request body", http.StatusBadRequest)
-			return
-		}
-		fields, err := parseUpdateFields(raw)
-		if err != nil {
-			http.Error(w, "invalid request body", http.StatusBadRequest)
-			return
-		}
-		out, err := svc.Update(r.Context(), id, fields)
-		if errors.Is(err, ErrPoolUnavailable) {
-			http.Error(w, "campaign store unavailable", http.StatusServiceUnavailable)
-			return
-		}
-		if errors.Is(err, ErrNotFound) {
-			http.Error(w, "campaign not found", http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			slog.ErrorContext(r.Context(), "campaign update failed", "err", err, "id", id)
-			http.Error(w, "failed to update campaign", http.StatusInternalServerError)
-			return
-		}
-		writeJSON(w, http.StatusOK, out)
 	}
 }
 

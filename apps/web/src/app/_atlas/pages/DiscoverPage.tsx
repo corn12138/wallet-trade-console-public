@@ -6,7 +6,7 @@ import { getDiscoverHome } from '@/lib/api/atlas';
 import { useDisplayChainId } from '@/hooks/useDisplayChainId';
 import { Icon } from '../Icon';
 import { PageHeader } from '../Common';
-import { DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
+import { DataSkeleton, DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
 import { ProductStatusHint } from '../ProductStatus';
 import { fmtCompact, fmtPct } from '../data';
 
@@ -59,11 +59,7 @@ export function DiscoverPage() {
           <span className="pill flat">{t('curatedPill')}</span>
         </div>
         <div className="grid-3">
-        {isLoading && (
-          <div className="block">
-            <div className="skel lg" />
-          </div>
-        )}
+        {isLoading && <DataSkeleton shape="cards" count={6} />}
         {!isLoading &&
           (data?.curatedDapps ?? []).map((d, i) => {
             const c = paletteFor(i, DAPP_PALETTE);

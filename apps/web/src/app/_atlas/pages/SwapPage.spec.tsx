@@ -82,6 +82,25 @@ vi.mock('@/hooks/web3/useTokenApproval', () => ({
         approve: vi.fn(),
         isPending: false,
         isConfirming: false,
+        isSuccess: false,
+    }),
+}));
+
+// Balance for the pay side. Mutable so individual specs can drain the wallet;
+// mocked because the real hook reads wagmi's useBalance/useReadContract, which
+// the wagmi stub above does not provide.
+const mockBalanceState = { balance: 1000n * 10n ** 18n as bigint | undefined };
+vi.mock('@/hooks/web3/useTokenBalance', () => ({
+    useTokenBalance: () => ({
+        balance: mockBalanceState.balance,
+        formatted:
+            mockBalanceState.balance !== undefined
+                ? (Number(mockBalanceState.balance) / 1e18).toString()
+                : '0',
+        symbol: 'USDC',
+        decimals: 18,
+        isLoading: false,
+        error: null,
     }),
 }));
 
@@ -109,13 +128,17 @@ const baseQuote = {
     path: ['0x57e554d795a18f3ca0a0e9e03a17ac3c509c3bf8', '0xffea240cd1eb135c8aa2597ca203efd629ac5fcd'],
 };
 
-function renderSwap() {
+function renderSwap({ amountIn = '100' }: { amountIn?: string } = {}) {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    return renderWithIntl(
+    const view = renderWithIntl(
         <QueryClientProvider client={client}>
             <SwapPage />
         </QueryClientProvider>,
     );
+    // The amount field starts empty now (no arbitrary pre-seeded trade); these
+    // specs type the amount the old default used to hardcode.
+    fireEvent.change(screen.getByTestId('swap-amount-in'), { target: { value: amountIn } });
+    return view;
 }
 
 describe('SwapPage quote gating', () => {
@@ -125,6 +148,7 @@ describe('SwapPage quote gating', () => {
         // these specs observe the CTA gating without the strip's own rendering.
         mockReview.mockReturnValue(new Promise(() => {}));
         mockGetOptionalContractAddress.mockReturnValue('0xe0c55ff91ece0acc7ddafa9069ba5b0cdbbc3b00');
+        mockBalanceState.balance = 1000n * 10n ** 18n;
         vi.stubEnv('NEXT_PUBLIC_ALLOW_FALLBACK_SWAP_EXECUTION', '');
     });
     afterEach(() => {
@@ -310,6 +334,66 @@ describe('SwapPage quote gating', () => {
         expect(
             screen.getAllByText(/Custom upstream note not in the known map/).length,
         ).toBeGreaterThan(0);
+    });
+
+    it('blocks the swap with an insufficient-balance CTA when the wallet cannot cover it', async () => {
+        mockBalanceState.balance = 1n; // effectively drained
+        mockGetSwapQuote.mockResolvedValue({
+            ...baseQuote,
+            routeSource: 'router',
+            quoteStatus: 'live',
+            executable: true,
+            routerAddress: '0xe0c55ff91ece0acc7ddafa9069ba5b0cdbbc3b00',
+            warnings: [],
+        });
+
+        renderSwap();
+
+        const cta = await screen.findByTestId('swap-cta-insufficient');
+        expect(cta).toBeDisabled();
+        expect(cta.textContent).toContain('Insufficient USDC balance');
+        expect(screen.queryByTestId('swap-cta-submit')).not.toBeInTheDocument();
+        expect(mockExecute).not.toHaveBeenCalled();
+    });
+
+    it('fills the amount from the balance Max button', async () => {
+        mockGetSwapQuote.mockResolvedValue({
+            ...baseQuote,
+            routeSource: 'router',
+            quoteStatus: 'live',
+            executable: true,
+            routerAddress: '0xe0c55ff91ece0acc7ddafa9069ba5b0cdbbc3b00',
+            warnings: [],
+        });
+
+        renderSwap();
+
+        fireEvent.click(screen.getByTestId('swap-balance-max'));
+        expect((screen.getByTestId('swap-amount-in') as HTMLInputElement).value).toBe('1000');
+    });
+
+    it('requires an explicit acknowledgement before a high-impact swap arms', async () => {
+        mockGetSwapQuote.mockResolvedValue({
+            ...baseQuote,
+            priceImpactPct: 8.4,
+            routeSource: 'router',
+            quoteStatus: 'live',
+            executable: true,
+            routerAddress: '0xe0c55ff91ece0acc7ddafa9069ba5b0cdbbc3b00',
+            warnings: [],
+        });
+
+        renderSwap();
+
+        const blocked = await screen.findByTestId('swap-cta-impact-blocked');
+        expect(blocked).toBeDisabled();
+        expect(screen.getByTestId('swap-impact-panel')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByTestId('swap-impact-ack'));
+
+        const cta = await screen.findByTestId('swap-cta-submit');
+        fireEvent.click(cta);
+        await waitFor(() => expect(mockExecute).toHaveBeenCalledTimes(1));
     });
 
     it('classifies a failed quote request and offers retry', async () => {

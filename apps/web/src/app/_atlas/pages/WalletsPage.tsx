@@ -13,7 +13,7 @@ import { useApp } from '../AppContext';
 import { Icon, LogoCube } from '../Icon';
 import { BlockBtn, MetricCard, PageHeader } from '../Common';
 import { formatDiagnosticValue } from '../diagnostics';
-import { DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
+import { DataSkeleton, DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
 import { paletteFor, shortAddr } from './assetUtils';
 
 function AddWalletModal({
@@ -161,12 +161,7 @@ export function WalletsPage() {
       />
 
       <section className="grid-3">
-        {isLoading && (
-          <div className="block">
-            <div className="skel lg" style={{ marginBottom: 14 }} />
-            <div className="skel" />
-          </div>
-        )}
+        {isLoading && <DataSkeleton shape="rows" count={3} />}
         {!isLoading &&
           wallets.map((w, i) => {
             const color = paletteFor(i);
