@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { IntlWrapper } from '@/test/renderWithIntl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import TokenDetailPage from './page';
+import TokenDetailPage from './TokenDetailPage';
 
 /**
  * Regression guard for /token/[address] chain policy: with no wallet

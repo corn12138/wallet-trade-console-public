@@ -7,11 +7,11 @@ import { getUserEvents } from '@/lib/api/events';
 import { useAuth } from '@/lib/web3';
 import { buildTransactionExplorerUrl } from '@/lib/web3/explorer';
 import { useApp } from '../AppContext';
-import { Icon, LogoCube } from '../Icon';
+import { Icon, LogoCube, type IconName } from '../Icon';
 import { BlockBtn, PageHeader, TabBar } from '../Common';
-import { DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
+import { DataSkeleton, DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
 
-const EVENT_BUCKETS: Record<string, { type: string; tone: string; icon: string; labelKey: string }> = {
+const EVENT_BUCKETS: Record<string, { type: string; tone: string; icon: IconName; labelKey: string }> = {
   IncreasePosition: { type: 'open', tone: 'pos', icon: 'trade', labelKey: 'eventOpened' },
   DecreasePosition: { type: 'close', tone: 'neg', icon: 'trade', labelKey: 'eventClosed' },
   Liquidation: { type: 'close', tone: 'neg', icon: 'warn', labelKey: 'eventLiquidation' },
@@ -167,15 +167,7 @@ export function ActivityPage() {
 
       <section className="block tight">
         <div className="col gap-6">
-          {isLoading && (
-            <div className="row gap-14" style={{ padding: 14 }}>
-              <div className="skel" style={{ width: 42, height: 42 }} />
-              <div style={{ flex: 1 }}>
-                <div className="skel lg" style={{ marginBottom: 6 }} />
-                <div className="skel" />
-              </div>
-            </div>
-          )}
+          {isLoading && <DataSkeleton shape="rows" count={5} />}
           {!isLoading &&
             items.map((a) => {
               const swatch = a.tone === 'pos' ? 'g' : a.tone === 'neg' ? 'o' : a.tone === 'warn' ? 'y' : 'c';

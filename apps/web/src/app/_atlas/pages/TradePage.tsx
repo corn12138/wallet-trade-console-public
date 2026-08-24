@@ -16,6 +16,8 @@ import { TradeMarketRail } from './TradeMarketRail';
 import { TradeOrderbook } from './TradeOrderbook';
 import { TradeTables } from './TradeTables';
 import { TradeTicket } from './TradeTicket';
+import { TxPreflight } from '../TxPreflight';
+import { buildPerpApprovalPreflightInput } from './tradePreflight';
 import type { TabKey, TradePosition, TradeSide } from './tradeTypes';
 import { formatBalanceDisplay, priceFlash } from './tradeUtils';
 
@@ -37,15 +39,21 @@ export function TradePage() {
     isOrderbookError,
     hasLiveOrderbook,
     refetchOrderbook,
+    recentTrades,
+    isRecentTradesLoading,
     isMarketStreamConnected,
     marketStreamStatus,
     formattedBalance,
     positions,
+    positionsLoading,
     orders,
     history,
+    isOrdersLoading,
+    isHistoryLoading,
     openPosition,
     closePosition,
     isApproving,
+    isApproveSuccess,
     isOpenPending,
     isOpenConfirming,
     isOpenSuccess,
@@ -56,6 +64,10 @@ export function TradePage() {
     isCloseSuccess,
     closeError,
     resetClose,
+    address,
+    chainId,
+    perpAddresses,
+    isCollateralApproved,
   } = trading;
 
   const [side, setSide] = useState<TradeSide>('long');
@@ -65,6 +77,29 @@ export function TradePage() {
   const [lev, setLev] = useState(10);
   const [tab, setTab] = useState<TabKey>('positions');
   const [marketSearch, setMarketSearch] = useState('');
+
+  // Deep link: /trade?symbol=ETH-USD selects that market once the list has it,
+  // and the current selection is written back so the terminal URL is shareable.
+  // Read via window.location (not useSearchParams) to keep this client-only —
+  // the markets list arrives async, so the wish is held until it can be honored.
+  const pendingSymbolRef = useRef<string | null>(null);
+  useEffect(() => {
+    pendingSymbolRef.current = new URLSearchParams(window.location.search).get('symbol');
+  }, []);
+  useEffect(() => {
+    const wanted = pendingSymbolRef.current;
+    if (wanted && markets.some((m) => m.symbol === wanted)) {
+      pendingSymbolRef.current = null;
+      setSelectedMarketSymbol(wanted);
+    }
+  }, [markets, setSelectedMarketSymbol]);
+  useEffect(() => {
+    if (!selectedMarketSymbol || pendingSymbolRef.current) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('symbol') === selectedMarketSymbol) return;
+    url.searchParams.set('symbol', selectedMarketSymbol);
+    window.history.replaceState(null, '', url);
+  }, [selectedMarketSymbol]);
 
   // Slippage/deadline are shared with Settings → "Trading defaults" via a
   // browser-local store, and genuinely applied to every open/close below.
@@ -138,6 +173,16 @@ export function TradePage() {
     }
   }, [openError, app, resetOpen, tTx]);
 
+  // The approve is a separate transaction: openPosition sends it and returns.
+  // Tell the user the next submit will actually open the position, instead of
+  // leaving the confirmed approval as a silent dead end.
+  useEffect(() => {
+    if (isApproveSuccess) {
+      app.closeModal();
+      app.toast(tTx('approvedToast'), 'ok');
+    }
+  }, [isApproveSuccess, app, tTx]);
+
   useEffect(() => {
     if (isClosePending || isCloseConfirming) {
       app.setModal({
@@ -199,9 +244,27 @@ export function TradePage() {
 
   const canSubmit = tradeState.canSubmit && !executionState.validationCode;
 
+  // Only renders while the collateral allowance is short — that is when the
+  // submit below actually sends an approve. Once approved it returns null and
+  // the strip disappears, rather than describing a transaction that is no
+  // longer the next one.
+  const preflightInput = useMemo(
+    () =>
+      buildPerpApprovalPreflightInput({
+        userAddress: address,
+        usdc: perpAddresses.usdc,
+        positionManager: perpAddresses.positionManager,
+        chainId,
+        collateralAmount: size,
+        isCollateralApproved,
+      }),
+    [address, perpAddresses.usdc, perpAddresses.positionManager, chainId, size, isCollateralApproved],
+  );
+
+  // Fee/position figures come from evaluateTradeOrder — the same module the
+  // validation reads — so the ticket can't show a different rate than the
+  // notice copy reasons about (this page used to hardcode a second constant).
   const collateral = Number(size) || 0;
-  const positionSize = collateral * lev;
-  const fee = positionSize * 0.0006;
   const margin = collateral;
 
   const filteredMarkets = useMemo(() => {
@@ -245,6 +308,25 @@ export function TradePage() {
     setSize(balanceNumeric.toString());
   };
 
+  // Percent presets floor to cents so the result can never exceed the balance
+  // it was derived from (a rounded-up value would fail validation).
+  const handlePercent = (percent: number) => {
+    if (!hasBalance) return;
+    if (percent >= 100) {
+      handleMax();
+      return;
+    }
+    const amount = Math.floor(balanceNumeric * percent) / 100;
+    setSize(amount > 0 ? String(amount) : '');
+  };
+
+  // A tapped book level becomes the acceptable-price guard — the standard
+  // terminal interaction — so the ticket flips to limit mode to show it.
+  const handleBookPriceSelect = (price: string) => {
+    setOrderType('limit');
+    setLimitPrice(price);
+  };
+
   return (
     <div className="terminal" style={{ minHeight: 'calc(100vh - 130px)' }}>
       <div className="term-bar">
@@ -279,12 +361,19 @@ export function TradePage() {
             orders={orders}
             history={history}
             currentPrice={currentPrice}
+            chainId={chainId}
+            isWalletConnected={app.walletState === 'connected'}
+            isActivityAuthorized={trading.isActivityAuthorized}
+            isPositionsLoading={positionsLoading}
+            isOrdersLoading={isOrdersLoading}
+            isHistoryLoading={isHistoryLoading}
             isClosePending={isClosePending}
             isCloseConfirming={isCloseConfirming}
             isMarketStreamConnected={isMarketStreamConnected}
             marketStreamStatus={marketStreamStatus}
             setTab={setTab}
             onClosePosition={handleClosePosition}
+            onConnect={app.openConnect}
           />
         </div>
 
@@ -299,6 +388,9 @@ export function TradePage() {
             isError={isOrderbookError}
             hasLiveOrderbook={hasLiveOrderbook}
             onRetry={() => refetchOrderbook()}
+            recentTrades={recentTrades}
+            isRecentTradesLoading={isRecentTradesLoading}
+            onPriceSelect={handleBookPriceSelect}
           />
           <TradeTicket
             app={app}
@@ -310,12 +402,13 @@ export function TradePage() {
             balanceDisplay={balanceDisplay}
             displayLast={displayLast}
             liquidationPrice={tradeState.liquidationPrice}
-            fee={fee}
+            fee={tradeState.feeEstimate}
             margin={margin}
-            positionSize={positionSize}
+            positionSize={tradeState.positionSize}
             slippagePercent={slippagePercent}
             deadlineMinutes={deadlineMinutes}
             notice={notice}
+            preflight={<TxPreflight input={preflightInput} />}
             canSubmit={canSubmit}
             isApproving={isApproving}
             isOpenPending={isOpenPending}
@@ -327,7 +420,7 @@ export function TradePage() {
             setLev={setLev}
             setSlippagePercent={setSlippagePercent}
             setDeadlineMinutes={setDeadlineMinutes}
-            handleMax={handleMax}
+            handlePercent={handlePercent}
             handleSubmit={handleSubmit}
           />
         </div>

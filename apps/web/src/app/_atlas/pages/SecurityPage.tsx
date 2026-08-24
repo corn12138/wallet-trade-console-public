@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -8,11 +8,13 @@ import {
   getSecurityAlerts,
   getSecurityApprovals,
   removeConnectedSite,
+  type AtlasTxReviewInput,
 } from '@/lib/api/atlas';
 import { useApp } from '../AppContext';
 import { Icon, LogoCube } from '../Icon';
 import { MetricCard, PageHeader, TabBar } from '../Common';
-import { DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
+import { DataSkeleton, DataStatePanel, SourceMeta, deriveDataPanelState } from '../DataState';
+import { TxPreflight } from '../TxPreflight';
 import { formatAllowance, riskColor, shortAddr } from './assetUtils';
 import { TxReviewPanel } from './TxReviewPanel';
 import { revokeKeyFor, useRevokeApproval, type RevokeTarget } from './useRevokeApproval';
@@ -35,6 +37,8 @@ export function SecurityPage() {
   const chainId = useChainId();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<SecurityTab>('approvals');
+  // The approval a user has selected to revoke, awaiting its pre-sign review.
+  const [armed, setArmed] = useState<RevokeTarget | null>(null);
 
   const enabled = Boolean(address);
 
@@ -73,6 +77,7 @@ export function SecurityPage() {
   const { revoke, pendingKey, isRevoking } = useRevokeApproval({
     fromAddress: address,
     onConfirmed: () => {
+      setArmed(null);
       approvalsQ.refetch();
       alertsQ.refetch();
       sitesQ.refetch();
@@ -90,6 +95,47 @@ export function SecurityPage() {
     spender: input.spender as `0x${string}`,
     chainId: input.chainId,
   });
+
+  // A revoke is reviewed before it is signed, so the first click arms the row
+  // and the second one signs. The intermediate state is the whole point: an
+  // approval list has no form to type into, so without it the review would only
+  // ever appear after the wallet had already been asked to sign.
+  const armedKey = armed ? revokeKeyFor(armed) : null;
+
+  // Matches `useRevokeApproval` exactly: same token, same spender, and the
+  // server encodes the same approve(spender, 0) the wallet will be handed.
+  const revokePreflightInput: AtlasTxReviewInput | null = useMemo(() => {
+    if (!armed || !address) return null;
+    return {
+      operationType: 'revoke-approval',
+      fromAddress: address,
+      chainId: armed.chainId,
+      tokenAddress: armed.tokenAddress,
+      spender: armed.spender,
+    };
+  }, [armed, address]);
+
+  const revokeReview = armed && (
+    <div className="col gap-8" data-testid="revoke-preflight">
+      <div style={{ fontSize: 11, color: 'var(--ink-2)' }}>
+        {t('revokeReviewHint', { spender: shortAddr(armed.spender) })}
+      </div>
+      <TxPreflight input={revokePreflightInput} />
+      <div className="row gap-6">
+        <button
+          className="btn btn-xs btn-o"
+          onClick={() => revoke(armed)}
+          disabled={isRevoking}
+          data-testid="revoke-confirm"
+        >
+          {pendingKey === armedKey && isRevoking ? t('revoking') : t('revokeConfirm')}
+        </button>
+        <button className="btn btn-xs" onClick={() => setArmed(null)} data-testid="revoke-cancel">
+          {tc('cancel')}
+        </button>
+      </div>
+    </div>
+  );
 
   if (!address) {
     return (
@@ -164,18 +210,15 @@ export function SecurityPage() {
               <span>{t('colLastSeen')}</span>
               <span />
             </div>
-            {approvalsQ.isLoading && (
-              <div className="tbl-row" style={{ gridTemplateColumns: '1fr' }}>
-                <div className="skel lg" />
-              </div>
-            )}
+            {approvalsQ.isLoading && <DataSkeleton shape="rows" count={4} />}
             {!approvalsQ.isLoading &&
               approvals.map((a) => {
                 const allowanceLabel = formatAllowance(a.allowance);
                 const isUnlimited = allowanceLabel === 'Unlimited';
+                const rowKey = revokeKeyFor({ tokenAddress: a.tokenAddress, spender: a.spender });
                 return (
+                  <Fragment key={`${a.tokenAddress}-${a.spender}`}>
                   <div
-                    key={`${a.tokenAddress}-${a.spender}`}
                     className="tbl-row"
                     style={{ gridTemplateColumns: '1fr 1.4fr 1fr 0.9fr auto' }}
                   >
@@ -192,15 +235,19 @@ export function SecurityPage() {
                     </div>
                     <button
                       className="btn btn-xs btn-o"
-                      onClick={() => revoke(toRevokeTarget(a))}
+                      onClick={() => setArmed(toRevokeTarget(a))}
                       disabled={isRevoking}
                       data-testid={`revoke-${a.tokenAddress}-${a.spender}`.toLowerCase()}
                     >
-                      {pendingKey === revokeKeyFor({ tokenAddress: a.tokenAddress, spender: a.spender })
-                        ? t('revoking')
-                        : t('revoke')}
+                      {pendingKey === rowKey && isRevoking ? t('revoking') : t('revoke')}
                     </button>
                   </div>
+                  {armedKey === rowKey && (
+                    <div className="tbl-row" style={{ gridTemplateColumns: '1fr' }}>
+                      {revokeReview}
+                    </div>
+                  )}
+                  </Fragment>
                 );
               })}
             {!approvalsQ.isLoading && !approvals.length && (
@@ -220,7 +267,7 @@ export function SecurityPage() {
 
       {tab === 'sites' && (
         <section className="grid-3">
-          {sitesQ.isLoading && <div className="block"><div className="skel lg" /></div>}
+          {sitesQ.isLoading && <DataSkeleton shape="rows" count={3} />}
           {!sitesQ.isLoading &&
             sites.map((s) => {
               const swatch = riskColor(s.riskLevel);
@@ -329,7 +376,7 @@ export function SecurityPage() {
                         className="btn btn-sm btn-d"
                         disabled={isRevoking}
                         onClick={() =>
-                          revoke(
+                          setArmed(
                             toRevokeTarget({
                               tokenAddress: a.tokenAddress!,
                               spender: a.spender!,
@@ -342,6 +389,11 @@ export function SecurityPage() {
                       </button>
                     )}
                   </div>
+                  {a.tokenAddress &&
+                    a.spender &&
+                    armedKey === revokeKeyFor({ tokenAddress: a.tokenAddress, spender: a.spender }) && (
+                      <div className="mt-14">{revokeReview}</div>
+                    )}
                 </div>
               );
             })}

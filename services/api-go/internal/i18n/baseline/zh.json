@@ -469,13 +469,28 @@
       "approvingBusy": "{symbol} 授权中…",
       "approve": "授权 {symbol}",
       "swapSubmit": "兑换 {amountIn} {tokenIn} → {amountOut} {tokenOut}",
-      "review": "确认兑换"
+      "review": "确认兑换",
+      "connect": "连接钱包以兑换",
+      "insufficient": "{symbol} 余额不足"
     },
     "headsUpTitle": "注意",
     "headsUpBody": "上链时成交价最多可能偏移 {slip}%。授权与兑换由你的钱包签名并直接提交到 Router；API 只负责提供报价。",
     "toastApproving": "{symbol} 授权中…",
     "toastSwapConfirmed": "兑换已确认",
-    "txTitle": "兑换"
+    "txTitle": "兑换",
+    "balanceLabel": "余额:{amount}",
+    "balanceMax": "全部",
+    "balanceHalf": "一半",
+    "slippageCustomAria": "自定义滑点百分比",
+    "slippageHighHint": "滑点较高——成交价可能明显低于报价。",
+    "rateInvert": "反转汇率",
+    "impactPanel": {
+      "title": "价格影响过大",
+      "body": "此笔兑换会使池内价格变动约 {impact}%,实际到手数量将明显少于当前汇率。",
+      "ack": "我了解实际到手数量可能明显减少"
+    },
+    "toastApproved": "{symbol} 已授权,可以兑换了。",
+    "slippageRangeHint": "滑点须在 0% 到 5% 之间——当前生效 {slip}%。"
   },
   "faucet": {
     "title": "代币水龙头",
@@ -847,7 +862,8 @@
     "stateError": "请求 {endpoint} 失败。服务可能未启动或不可达。",
     "stateWalletRequired": "连接钱包后才能加载此数据 — 查询以你的地址为范围。",
     "stateSiweRequired": "此数据受 SIWE 登录保护。请在钱包中签名登录后加载。",
-    "errorDetail": "错误详情"
+    "errorDetail": "错误详情",
+    "activeDiagnostics": "后端同时报告了以下状况——它们未必是本次失败的原因："
   },
   "diagnostics": {
     "unknownMessage": "API 返回了未识别的诊断信息 — 英文原文见下方详情。",
@@ -1033,7 +1049,16 @@
       "error": "订单簿请求失败 — 交易服务不可达。",
       "live": "实时",
       "sourceStream": "socket 流",
-      "sourceRest": "REST 轮询"
+      "sourceRest": "REST 轮询",
+      "tabBook": "盘口",
+      "tabTrades": "成交",
+      "spreadLabel": "价差",
+      "useAsLimit": "将 {price} 用作限价保护价格",
+      "noTradesTitle": "暂无成交",
+      "noTradesBody": "该市场的成交记录将在索引后显示在这里。",
+      "tradesLoading": "正在加载最新成交…",
+      "tradesSource": "GET /api/trading/market-trades",
+      "time": "时间"
     },
     "rail": {
       "searchPlaceholder": "搜索市场",
@@ -1065,7 +1090,12 @@
       "short": "做空",
       "noPositions": "该市场没有未平仓位。",
       "noOrders": "还没有已索引的链上挂单。",
-      "noHistory": "还没有已索引的成交历史。"
+      "noHistory": "还没有已索引的成交历史。",
+      "leverage": "杠杆",
+      "viewTx": "在区块浏览器查看交易 {hash}",
+      "loading": "正在从索引器加载…",
+      "signInPrompt": "连接钱包并登录后可查看你的交易记录。",
+      "connectCta": "连接钱包"
     },
     "ticket": {
       "openLong": "开多",
@@ -1090,7 +1120,9 @@
       "submitting": "提交中…",
       "openLongCta": "开多 · {lev}×",
       "openShortCta": "开空 · {lev}×",
-      "highLeverage": "高杠杆 — 强平价接近标记价"
+      "highLeverage": "高杠杆 — 强平价接近标记价",
+      "max": "全部",
+      "pctOfBalance": "使用余额的 {percent}%"
     },
     "tx": {
       "approvingTitle": "授权 USDC",
@@ -1108,7 +1140,8 @@
       "closeFailed": "平仓失败",
       "fixSlippage": "请先修正滑点/有效期再平仓",
       "long": "做多",
-      "short": "做空"
+      "short": "做空",
+      "approvedToast": "USDC 已授权——再次提交即可开仓。"
     }
   },
   "bridge": {
@@ -1289,6 +1322,8 @@
       "preflightTitle": "签名前预检"
     },
     "revoking": "撤销中…",
+    "revokeConfirm": "确认撤销",
+    "revokeReviewHint": "签名前正在预检 approve({spender}, 0)。",
     "txRevokeSummary": "在代币 {token} 上撤销 {spender} · 链 {chainId}。将从你的钱包提交 approve(spender, 0)。",
     "txRevokeConfirmed": "授权已撤销 —— 额度现为 0。",
     "txRevokeReverted": "撤销交易在链上回滚，额度未改变。",
@@ -1706,7 +1741,95 @@
     "ogDescription": "钱包签名驱动的永续合约交易台。CEX 级体验，链上结算。",
     "twitterTitle": "Atlas X 链上交易所",
     "twitterDescription": "像课间游戏一样进行链上交易。每一笔仓位都由钱包签名。",
-    "ogImageAlt": "Atlas X"
+    "ogImageAlt": "Atlas X",
+    "routes": {
+      "home": {
+        "title": "链上永续合约交易所",
+        "description": "Atlas X 是一个钱包自托管的永续合约交易终端——CEX 级别的下单体验，链上结算。每一笔仓位都由你自己的钱包签名。"
+      },
+      "trade": {
+        "title": "永续合约",
+        "description": "在一个终端里完成永续合约交易：实时 K 线、链上订单簿、钱包签名执行，以及杠杆、保证金与仓位管理。"
+      },
+      "markets": {
+        "title": "市场行情",
+        "description": "永续合约市场实时快照——Atlas X 上每个交易对的标记价格、24 小时涨跌、资金费率与成交量。"
+      },
+      "swap": {
+        "title": "兑换",
+        "description": "通过链上路由引擎兑换代币。签名之前先看清报价、授权额度和这笔交易的真实内容。"
+      },
+      "bridge": {
+        "title": "跨链桥",
+        "description": "通过 Atlas X 网关在 Sepolia、Base 与 Arbitrum 之间转移代币。存款前先展示路由状态、目标链流动性与信任模型。"
+      },
+      "earn": {
+        "title": "理财",
+        "description": "覆盖质押池与流动性仓位的收益路由，每一条都附带实时 APR 和背后的合约。"
+      },
+      "advancedEarn": {
+        "title": "质押与农场",
+        "description": "单币质押与 LP 农场，展示实时质押余额、待领奖励与每个池子的合约详情。"
+      },
+      "discover": {
+        "title": "发现",
+        "description": "精选链上应用与协议，每一项都带有实时合约状态，而不是一份静态清单。"
+      },
+      "ranking": {
+        "title": "代币榜单",
+        "description": "Atlas X 启动板上的涨幅榜、跌幅榜、成交量榜与即将上线代币，实时读取代币索引。"
+      },
+      "campaign": {
+        "title": "活动",
+        "description": "Atlas X 上的实时活动、任务与奖励计划。连接钱包即可参与，进度可在链上追踪。"
+      },
+      "nft": {
+        "title": "NFT 收藏",
+        "description": "浏览并铸造链上艺术品。元数据与图像完全存储在链上，或固定在 IPFS。"
+      },
+      "createToken": {
+        "title": "发行代币",
+        "description": "在浏览器里部署带联合曲线的 ERC-20。配置总量、曲线与元数据，然后用钱包签名完成部署。"
+      },
+      "nftStudio": {
+        "title": "NFT 工作室",
+        "description": "铸造链上或基于 IPFS 的艺术品 NFT。在签名铸造交易之前预览确切的元数据与图像。"
+      },
+      "token": {
+        "title": "代币详情",
+        "description": "Atlas X 已上线代币的实时价格、市值、24 小时成交量与链上动态。",
+        "titleNamed": "{name}（{symbol}）",
+        "descriptionNamed": "{name}（{symbol}）——Atlas X 上的实时价格、市值、24 小时成交量与链上交易动态。"
+      },
+      "portfolio": {
+        "title": "资产组合",
+        "description": "已连接钱包的余额、持仓与资产总值。"
+      },
+      "activity": {
+        "title": "链上动态",
+        "description": "已连接钱包的统一链上动态——交易、转账、授权与铸造。"
+      },
+      "security": {
+        "title": "安全中心",
+        "description": "审计并撤销钱包已授出的代币额度，查看已连接的站点。"
+      },
+      "wallets": {
+        "title": "钱包管理",
+        "description": "在 Atlas X 控制台中跟踪的关联钱包与观察钱包。"
+      },
+      "settings": {
+        "title": "设置",
+        "description": "Atlas X 控制台的显示、语言与网络偏好。"
+      },
+      "profile": {
+        "title": "钱包主页",
+        "description": "某个钱包地址的公开动态与已发行代币。"
+      },
+      "adminI18n": {
+        "title": "文案控制台",
+        "description": "服务端主导的文案目录内部管理。"
+      }
+    }
   },
   "adminI18n": {
     "kicker": "运营",

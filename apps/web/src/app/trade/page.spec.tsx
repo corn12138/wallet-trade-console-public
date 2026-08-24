@@ -1,8 +1,9 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { screen } from '@testing-library/react';
 import { renderWithIntl } from '@/test/renderWithIntl';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import TradePage from './page';
+import { TradePage } from '../_atlas/pages/TradePage';
 
 /**
  * Regression guards for the /trade real-data closure:
@@ -22,6 +23,15 @@ vi.mock('@/hooks/useTrading', () => ({
 
 vi.mock('@/hooks/useTradingCandles', () => ({
     useTradingCandles: (options: unknown) => mockUseTradingCandles(options),
+}));
+
+// The ticket's pre-sign review strip asks the Go service whether the AI
+// explanation layer is live. Stubbed to "off" — its default and a supported
+// production state — so these specs stay hermetic instead of reaching for
+// localhost:8090.
+vi.mock('@/lib/api/atlas', async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    getProductStatus: vi.fn(async () => ({ aiExplain: { status: 'disabled' }, warnings: [] })),
 }));
 
 // The chart also consults the reference price feed to decide whether an empty
@@ -123,6 +133,7 @@ function tradingState(overrides: Record<string, unknown> = {}) {
         balanceLoading: false,
         positions: [],
         positionsLoading: false,
+        isActivityAuthorized: true,
         orders: [{
             id: 'order-1',
             token: '0x3333333333333333333333333333333333333333',
@@ -136,6 +147,15 @@ function tradingState(overrides: Record<string, unknown> = {}) {
         history: [],
         isOrdersLoading: false,
         isHistoryLoading: false,
+        address: '0x1111111111111111111111111111111111111111',
+        chainId: 11155111,
+        perpAddresses: {
+            usdc: '0x00000000000000000000000000000000000000aa',
+            positionManager: '0x00000000000000000000000000000000000000bb',
+        },
+        // Allowance already covers the collateral, so these specs exercise the
+        // position-open branch and the approval preflight stays out of the way.
+        isCollateralApproved: () => true,
         openPosition: vi.fn(),
         closePosition: vi.fn(),
         isApproving: false,
@@ -157,7 +177,15 @@ function tradingState(overrides: Record<string, unknown> = {}) {
 function renderTradePage(overrides: Record<string, unknown> = {}) {
     const state = tradingState(overrides);
     mockUseTrading.mockReturnValue(state);
-    renderWithIntl(<TradePage />);
+    // The ticket now carries a pre-sign review strip, which polls the Go
+    // product-status endpoint through react-query — so the page needs a client
+    // even though useTrading itself is mocked here.
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    renderWithIntl(
+        <QueryClientProvider client={client}>
+            <TradePage />
+        </QueryClientProvider>,
+    );
     return state;
 }
 
@@ -272,5 +300,59 @@ describe('/trade real-data closure', () => {
 
         expect(screen.getByText(/Slippage must stay between 0% and 5%/)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Open Long · 10×/ })).toBeDisabled();
+    });
+
+    it('clicking a book level flips the ticket to limit mode with that price', async () => {
+        const user = userEvent.setup();
+        renderTradePage();
+
+        // The 1999 bid row is a button labelled with the standard terminal action.
+        await user.click(screen.getByRole('button', { name: 'Use 1,999.00 as the limit guard price' }));
+
+        const limitInput = screen.getByLabelText('Acceptable price') as HTMLInputElement;
+        expect(limitInput.value).toBe('1999.00');
+    });
+
+    it('percentage presets fill the collateral from the wallet balance', async () => {
+        const user = userEvent.setup();
+        renderTradePage();
+
+        await user.click(screen.getByRole('button', { name: 'Use 25% of balance' }));
+
+        const collateral = screen.getByLabelText('Collateral (USDC)') as HTMLInputElement;
+        expect(collateral.value).toBe('250');
+    });
+
+    it('renders the recent-trades tape behind the Trades tab', async () => {
+        const user = userEvent.setup();
+        renderTradePage({
+            recentTrades: [{
+                id: 'fill-1',
+                token: '0x3333333333333333333333333333333333333333',
+                isLong: true,
+                tradeType: 'OPEN',
+                sizeDelta: (1200n * USD_30).toString(),
+                price: (2000n * USD_30).toString(),
+                fee: '0',
+                pnl: null,
+                txHash: '0xabc',
+                createdAt: '2026-07-01T08:00:00.000Z',
+            }],
+        });
+
+        await user.click(screen.getByTestId('book-tab-trades'));
+
+        expect(screen.getByTestId('trades-tape')).toBeInTheDocument();
+        expect(screen.getByText('2,000.00')).toBeInTheDocument();
+    });
+
+    it('shows a sign-in gate instead of a false "no orders" claim', async () => {
+        const user = userEvent.setup();
+        renderTradePage({ isActivityAuthorized: false, orders: [] });
+
+        await user.click(screen.getByRole('button', { name: /Orders · 0/ }));
+
+        expect(screen.getByTestId('tables-signin-gate')).toBeInTheDocument();
+        expect(screen.queryByText(/No chain-backed pending orders/)).not.toBeInTheDocument();
     });
 });

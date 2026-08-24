@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
-import { parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 import { useTranslations, useLocale } from 'next-intl';
 import { TOKENS, type ChainTokenConfig } from '@wallet-trade/shared';
 import { getSwapQuote } from '@/lib/api/atlas';
@@ -16,6 +16,7 @@ import { paletteFor } from './assetUtils';
 import { getOptionalContractAddress, routerAbi } from '@/lib/web3/contracts';
 import { useDisplayChainId } from '@/hooks/useDisplayChainId';
 import { useTokenApproval } from '@/hooks/web3/useTokenApproval';
+import { useTokenBalance } from '@/hooks/web3/useTokenBalance';
 import type { AtlasTxReviewInput } from '@/lib/api/atlas';
 import { TxPreflight } from '../TxPreflight';
 import { useTxFlow } from '@/hooks/web3/useTxFlow';
@@ -78,8 +79,19 @@ function SwapTokenChip({
 }
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
-const DEADLINE_SECONDS = 20 * 60;
 const QUOTE_REFRESH_MS = 12_000;
+const HIGH_IMPACT_PCT = 5;
+
+// Deadline comes from the shared trading defaults (Settings → "Trading
+// defaults"), same store the slippage seed uses; out-of-range values fall
+// back to the old hardcoded 20 minutes.
+function resolveDeadlineSeconds(deadlineMinutes: string): number {
+  const minutes = Number(deadlineMinutes);
+  if (Number.isFinite(minutes) && minutes >= 1 && minutes <= 120) {
+    return Math.round(minutes * 60);
+  }
+  return 20 * 60;
+}
 
 /**
  * Machine-readable quote panel state. Every branch is derived from real
@@ -118,11 +130,19 @@ export function SwapPage() {
   const tokens: ChainTokenConfig[] = useMemo(() => TOKENS[chainId] || [], [chainId]);
   const [inTok, setInTok] = useState<ChainTokenConfig | null>(null);
   const [outTok, setOutTok] = useState<ChainTokenConfig | null>(null);
-  const [amtIn, setAmtIn] = useState('100');
-  const { slippagePercent: defaultSlippage } = useTradingDefaults();
+  const [amtIn, setAmtIn] = useState('');
+  const { slippagePercent: defaultSlippage, deadlineMinutes } = useTradingDefaults();
   const [slip, setSlip] = useState(0.5);
   const [slipTouched, setSlipTouched] = useState(false);
+  const [slipCustom, setSlipCustom] = useState('');
   const [flipped, setFlipped] = useState(false);
+  const [rateInverted, setRateInverted] = useState(false);
+  // High price impact needs an explicit acknowledgement before the CTA arms;
+  // it resets whenever the trade being acknowledged changes.
+  const [impactAck, setImpactAck] = useState(false);
+  useEffect(() => {
+    setImpactAck(false);
+  }, [inTok?.address, outTok?.address, amtIn]);
 
   // Seed the page's slippage from the persisted trading defaults until the
   // user picks a value here (settings changes then flow through for real).
@@ -205,6 +225,16 @@ export function SwapPage() {
             : 'fallback'
           : 'quoting';
 
+  const highImpact = Boolean(quote && Math.abs(quote.priceImpactPct) > HIGH_IMPACT_PCT);
+
+  // Route hops shown as symbols where the token list knows the address —
+  // 0x1234…abcd is provenance, USDC → WETH is information.
+  const symbolByAddress = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const token of tokens) map.set(token.address.toLowerCase(), token.symbol);
+    return map;
+  }, [tokens]);
+
   const now = useNow(1000);
   const nextRefreshSec = quoteUpdatedAt
     ? Math.max(0, Math.ceil((quoteUpdatedAt + QUOTE_REFRESH_MS - now) / 1000))
@@ -228,6 +258,31 @@ export function SwapPage() {
     routerAddress ?? ZERO_ADDRESS,
   );
   const needsApproval = amountInParsed > 0n && !approval.isApproved(amountInParsed);
+
+  // Balance awareness for the pay side: display, Max/Half fills, and an
+  // insufficient gate so the wallet is never asked to sign an amount the
+  // account can't cover. Only gate on a *loaded* balance — while it is still
+  // fetching, the CTA chain proceeds as before instead of flashing a claim.
+  const inBalance = useTokenBalance((inTok?.address as `0x${string}` | undefined) ?? undefined);
+  const hasLoadedBalance = isConnected && inBalance.balance !== undefined;
+  const insufficientBalance =
+    hasLoadedBalance && amountInParsed > 0n && amountInParsed > inBalance.balance!;
+  const balanceDisplay = hasLoadedBalance ? fmt(Number(inBalance.formatted), 4) : '—';
+
+  const fillFromBalance = (fraction: number) => {
+    if (!hasLoadedBalance || !inTok) return;
+    const value = fraction >= 1 ? inBalance.balance! : inBalance.balance! / 2n;
+    setAmtIn(formatUnits(value, inBalance.decimals));
+  };
+
+  // The confirmed approval unlocks the swap CTA; say so — silence here reads
+  // as a stalled flow.
+  useEffect(() => {
+    if (approval.isSuccess && inTok) {
+      app.toast(t('toastApproved', { symbol: inTok.symbol }), 'ok');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approval.isSuccess]);
 
   // The review must describe the transaction the CTA will actually send, so it
   // follows the CTA: approve while an allowance is missing, swap once it isn't.
@@ -310,10 +365,11 @@ export function SwapPage() {
 
   const handleSwap = () => {
     if (!quote || !quoteExecutable || !inTok || !outTok || !routerAddress || !userAddress) return;
-    if (amountInParsed === 0n) return;
+    if (amountInParsed === 0n || insufficientBalance) return;
+    if (highImpact && !impactAck) return;
 
     const amountOutMin = parseUnits(quote.minimumReceived, outTok.decimals);
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SECONDS);
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + resolveDeadlineSeconds(deadlineMinutes));
 
     swap.execute({
       address: routerAddress,
@@ -334,7 +390,7 @@ export function SwapPage() {
       app.openConnect();
       return;
     }
-    if (!quote || !quoteExecutable || !routerAddress) return;
+    if (!quote || !quoteExecutable || !routerAddress || insufficientBalance) return;
     if (needsApproval) handleApprove();
     else handleSwap();
   };
@@ -407,7 +463,37 @@ export function SwapPage() {
         <div className="block" style={{ padding: 22 }}>
           <div className="row between">
             <span className="eyebrow">{t('fromLabel')}</span>
-            <span className="mono" style={{ color: 'var(--ink-2)', fontSize: 12 }}>{inTok?.name}</span>
+            <span className="row" style={{ alignItems: 'center', gap: 8 }}>
+              <span className="mono" style={{ color: 'var(--ink-2)', fontSize: 12 }}>{inTok?.name}</span>
+              {isConnected && (
+                <>
+                  <span
+                    className="mono"
+                    data-testid="swap-balance"
+                    style={{ color: insufficientBalance ? 'var(--neg)' : 'var(--ink-2)', fontSize: 12 }}
+                  >
+                    {t('balanceLabel', { amount: balanceDisplay })}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-xs"
+                    onClick={() => fillFromBalance(0.5)}
+                    disabled={!hasLoadedBalance}
+                  >
+                    {t('balanceHalf')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-xs"
+                    onClick={() => fillFromBalance(1)}
+                    disabled={!hasLoadedBalance}
+                    data-testid="swap-balance-max"
+                  >
+                    {t('balanceMax')}
+                  </button>
+                </>
+              )}
+            </span>
           </div>
           <div className="field mt-6" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <input
@@ -418,6 +504,7 @@ export function SwapPage() {
               style={{ flex: 1, fontSize: 32 }}
               min="0"
               step="0.0001"
+              data-testid="swap-amount-in"
             />
             <SwapTokenChip
               token={inTok}
@@ -464,7 +551,7 @@ export function SwapPage() {
             />
           </div>
 
-          <div className="row gap-6 mt-14">
+          <div className="row gap-6 mt-14" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <span className="eyebrow">{t('slippageLabel')}</span>
             <div style={{ display: 'flex', gap: 4, background: 'var(--bg-2)', border: '2px solid var(--ink)', borderRadius: 10, padding: 3 }}>
               {[0.1, 0.5, 1.0].map((s) => (
@@ -472,6 +559,7 @@ export function SwapPage() {
                   key={s}
                   onClick={() => {
                     setSlipTouched(true);
+                    setSlipCustom('');
                     setSlip(s);
                   }}
                   style={{
@@ -480,25 +568,85 @@ export function SwapPage() {
                     fontFamily: 'var(--df)',
                     fontWeight: 700,
                     fontSize: 11,
-                    background: slip === s ? 'var(--y)' : 'transparent',
-                    boxShadow: slip === s ? '0 2px 0 0 var(--ink)' : 'none',
+                    background: slip === s && slipCustom === '' ? 'var(--y)' : 'transparent',
+                    boxShadow: slip === s && slipCustom === '' ? '0 2px 0 0 var(--ink)' : 'none',
                   }}
                 >
                   {s}%
                 </button>
               ))}
+              <input
+                type="number"
+                value={slipCustom}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setSlipCustom(raw);
+                  const parsed = Number(raw);
+                  if (raw !== '' && Number.isFinite(parsed) && parsed >= 0 && parsed <= 5) {
+                    setSlipTouched(true);
+                    setSlip(parsed);
+                  }
+                }}
+                placeholder={`${slip}%`}
+                aria-label={t('slippageCustomAria')}
+                min="0"
+                max="5"
+                step="0.1"
+                style={{
+                  width: 64,
+                  padding: '6px 8px',
+                  borderRadius: 8,
+                  border: 0,
+                  background: slipCustom !== '' ? 'var(--y)' : 'transparent',
+                  fontFamily: 'var(--mf)',
+                  fontWeight: 700,
+                  fontSize: 11,
+                  color: 'var(--ink)',
+                }}
+              />
             </div>
+            {slipCustom !== '' &&
+              !(Number.isFinite(Number(slipCustom)) && Number(slipCustom) >= 0 && Number(slipCustom) <= 5) && (
+                <span className="mono tone-warn" style={{ fontSize: 11 }} data-testid="swap-slippage-range">
+                  {t('slippageRangeHint', { slip })}
+                </span>
+              )}
+            {slip >= 2 && (
+              <span className="mono tone-warn" style={{ fontSize: 11 }} data-testid="swap-slippage-high">
+                {t('slippageHighHint')}
+              </span>
+            )}
           </div>
 
           {/* receipt */}
           <div className="block tight mt-14" style={{ background: 'var(--bg-2)', padding: 14, border: '2px dashed var(--ink)', boxShadow: 'none' }}>
             <div className="meta-row">
               <span>{t('rate')}</span>
-              <b>
-                {quote
-                  ? `1 ${inTok!.symbol} ≈ ${fmt(Number(quote.amountOut) / Number(amtIn || 1), 6)} ${outTok!.symbol}`
-                  : '—'}
-              </b>
+              {quote && Number(quote.amountOut) > 0 && Number(amtIn) > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setRateInverted((v) => !v)}
+                  title={t('rateInvert')}
+                  aria-label={t('rateInvert')}
+                  data-testid="swap-rate-toggle"
+                  style={{
+                    background: 'transparent',
+                    border: 0,
+                    padding: 0,
+                    cursor: 'pointer',
+                    font: 'inherit',
+                    fontWeight: 700,
+                    color: 'inherit',
+                  }}
+                >
+                  {rateInverted
+                    ? `1 ${outTok!.symbol} ≈ ${fmt(Number(amtIn) / Number(quote.amountOut), 6)} ${inTok!.symbol}`
+                    : `1 ${inTok!.symbol} ≈ ${fmt(Number(quote.amountOut) / Number(amtIn), 6)} ${outTok!.symbol}`}
+                  {' ⇄'}
+                </button>
+              ) : (
+                <b>—</b>
+              )}
             </div>
             <div className="meta-row" style={{ marginTop: 6 }}>
               <span>{t('minReceived')}</span>
@@ -518,7 +666,9 @@ export function SwapPage() {
               <span>{t('routeLabel')}</span>
               <b style={{ fontFamily: 'var(--mf)', fontSize: 11, wordBreak: 'break-all', textAlign: 'right' }}>
                 {quote?.path?.length
-                  ? quote.path.map((a) => `${a.slice(0, 6)}…${a.slice(-4)}`).join(' → ')
+                  ? quote.path
+                      .map((a) => symbolByAddress.get(a.toLowerCase()) ?? `${a.slice(0, 6)}…${a.slice(-4)}`)
+                      .join(' → ')
                   : '—'}
               </b>
             </div>
@@ -571,15 +721,53 @@ export function SwapPage() {
             </div>
           )}
 
+          {/* High price impact needs an explicit acknowledgement: the number is
+              real (router quote), the user just has to own it before the CTA
+              arms. Resets whenever the pair or amount changes. */}
+          {quoteExecutable && highImpact && (
+            <div
+              className="block tight mt-14"
+              style={{ background: 'var(--o)', color: '#fff', padding: 14, border: '2px solid var(--ink)', boxShadow: 'none' }}
+              data-testid="swap-impact-panel"
+            >
+              <div style={{ fontFamily: 'var(--df)', fontWeight: 800, fontSize: 13 }}>
+                {t('impactPanel.title')}
+              </div>
+              <p style={{ marginTop: 4, fontSize: 12.5, lineHeight: 1.5 }}>
+                {t('impactPanel.body', { impact: fmt(Math.abs(quote!.priceImpactPct), 2) })}
+              </p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={impactAck}
+                  onChange={(e) => setImpactAck(e.target.checked)}
+                  data-testid="swap-impact-ack"
+                />
+                {t('impactPanel.ack')}
+              </label>
+            </div>
+          )}
+
           {/* Advisory pre-sign review, above the CTA it describes. The CTA's
               gate stays routerAddress + quoteExecutable + allowance; this only
               says what is about to happen. */}
           <TxPreflight input={preflightInput} className="mt-14" />
 
-          {/* CTA chain — provenance-gated, unchanged semantics */}
+          {/* CTA chain — provenance-gated. New states (connect, insufficient
+              balance, unacknowledged impact) slot in without weakening the
+              executable-quote gate. */}
           {!routerAddress ? (
             <button className="btn btn-y mt-14" style={{ width: '100%' }} disabled>
               {t('cta.routerMissing', { chainId })}
+            </button>
+          ) : !isConnected || app.walletState !== 'connected' ? (
+            <button
+              className="btn btn-y mt-14"
+              style={{ width: '100%' }}
+              onClick={app.openConnect}
+              data-testid="swap-cta-connect"
+            >
+              {t('cta.connect')}
             </button>
           ) : !quote && !quoteLoading && !quoteError ? (
             <button className="btn btn-y mt-14" style={{ width: '100%' }} disabled>
@@ -628,9 +816,22 @@ export function SwapPage() {
             <button className="btn btn-c mt-14" style={{ width: '100%' }} disabled>
               <span className="spinner" /> {t('cta.approvingBusy', { symbol: inTok!.symbol })}
             </button>
+          ) : insufficientBalance ? (
+            <button className="btn btn-y mt-14" style={{ width: '100%' }} disabled data-testid="swap-cta-insufficient">
+              {t('cta.insufficient', { symbol: inTok!.symbol })}
+            </button>
           ) : needsApproval ? (
             <button className="btn btn-o mt-14" style={{ width: '100%' }} onClick={handlePrimary} data-testid="swap-cta-approve">
               {t('cta.approve', { symbol: inTok!.symbol })}
+            </button>
+          ) : quote && highImpact && !impactAck ? (
+            <button className="btn btn-o mt-14" style={{ width: '100%' }} disabled data-testid="swap-cta-impact-blocked">
+              {t('cta.swapSubmit', {
+                amountIn: amtIn,
+                tokenIn: inTok!.symbol,
+                amountOut: fmt(Number(quote.amountOut), 4),
+                tokenOut: outTok!.symbol,
+              })}
             </button>
           ) : quote ? (
             <button className="btn btn-g mt-14" style={{ width: '100%' }} onClick={handlePrimary} data-testid="swap-cta-submit">

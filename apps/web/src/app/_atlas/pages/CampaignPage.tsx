@@ -7,7 +7,7 @@ import { useAccount } from 'wagmi';
 import { useTranslations, useLocale } from 'next-intl';
 import { Icon } from '../Icon';
 import { PageHeader } from '../Common';
-import { DataStatePanel } from '../DataState';
+import { DataSkeleton, DataStatePanel } from '../DataState';
 import { useApp } from '../AppContext';
 import { getCampaigns, type AtlasCampaign } from '@/lib/api/atlas';
 import {
@@ -110,7 +110,7 @@ export function CampaignPage() {
         kicker={t('headerKicker')}
       />
 
-      {loading && <div className="block">{t('loading')}</div>}
+      {loading && <DataSkeleton shape="cards" count={3} />}
 
       {error && !loading && (
         <DataStatePanel

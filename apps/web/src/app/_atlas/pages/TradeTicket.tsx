@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import type { AppCtx } from '../AppContext';
 import { Icon } from '../Icon';
@@ -18,12 +19,15 @@ type TradeTicketProps = {
   balanceDisplay: string;
   displayLast: string;
   liquidationPrice: string;
-  fee: number;
+  /** Pre-formatted by evaluateTradeOrder — single source with validation. */
+  fee: string;
   margin: number;
-  positionSize: number;
+  positionSize: string;
   slippagePercent: string;
   deadlineMinutes: string;
   notice: TradeTicketNotice;
+  /** Pre-sign review strip for the collateral approval; null once approved. */
+  preflight?: ReactNode;
   canSubmit: boolean;
   isApproving: boolean;
   isOpenPending: boolean;
@@ -35,7 +39,7 @@ type TradeTicketProps = {
   setLev: (lev: number) => void;
   setSlippagePercent: (value: string) => void;
   setDeadlineMinutes: (value: string) => void;
-  handleMax: () => void;
+  handlePercent: (percent: number) => void;
   handleSubmit: () => void;
 };
 
@@ -64,6 +68,7 @@ export function TradeTicket({
   slippagePercent,
   deadlineMinutes,
   notice,
+  preflight,
   canSubmit,
   isApproving,
   isOpenPending,
@@ -75,7 +80,7 @@ export function TradeTicket({
   setLev,
   setSlippagePercent,
   setDeadlineMinutes,
-  handleMax,
+  handlePercent,
   handleSubmit,
 }: TradeTicketProps) {
   const t = useTranslations('trade.ticket');
@@ -189,7 +194,7 @@ export function TradeTicket({
           {t('liq')} · <b className={lev >= 20 ? 'tone-warn' : ''}>${liquidationPrice}</b>
         </span>
         <span>
-          {t('fee')} · <b>${fee.toFixed(2)}</b>
+          {t('fee')} · <b>${fee}</b>
         </span>
       </div>
       <div className="meta-row">
@@ -197,13 +202,29 @@ export function TradeTicket({
           {t('margin')} · <b>${margin.toFixed(2)}</b>
         </span>
         <span>
-          {t('position')} · <b>${positionSize.toFixed(2)}</b>
+          {t('position')} · <b>${positionSize}</b>
         </span>
       </div>
 
       <div className="row gap-6">
-        <button className="btn btn-xs" onClick={handleMax} style={{ flex: 1 }}>
-          <Icon name="plus" size={12} /> {t('useBalance')}
+        {[25, 50, 75].map((percent) => (
+          <button
+            key={percent}
+            className="btn btn-xs"
+            style={{ flex: 1 }}
+            onClick={() => handlePercent(percent)}
+            aria-label={t('pctOfBalance', { percent })}
+          >
+            {percent}%
+          </button>
+        ))}
+        <button
+          className="btn btn-xs"
+          style={{ flex: 1 }}
+          onClick={() => handlePercent(100)}
+          aria-label={t('pctOfBalance', { percent: 100 })}
+        >
+          {t('max')}
         </button>
       </div>
 
@@ -224,6 +245,10 @@ export function TradeTicket({
           <span>{notice.message}</span>
         </div>
       )}
+
+      {/* Pre-sign review of the collateral approval, rendered where the user
+          is about to sign. Advisory: it never gates the CTA below. */}
+      {preflight}
 
       {app.walletState !== 'connected' ? (
         <button className="btn btn-y" style={{ width: '100%' }} onClick={app.openConnect}>

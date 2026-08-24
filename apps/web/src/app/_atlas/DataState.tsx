@@ -17,7 +17,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
+import { ProductStatusHint, useProductStatus } from './ProductStatus';
 
 export type DataPanelState =
   | 'loading'
@@ -182,6 +183,76 @@ export function SourceMeta({
   );
 }
 
+/**
+ * Loading placeholders shaped like what replaces them.
+ *
+ * A centred spinner is honest about "loading" and silent about size, so the
+ * page reflows the moment data lands. Reserving the space up front removes
+ * that jump — the same reasoning as the sidebar overlay, applied to the
+ * network instead of the cursor.
+ *
+ * Deliberately NOT the default: a skeleton that guesses the wrong shape is
+ * worse than a spinner, because it promises a layout and then breaks it. A
+ * caller opts in when it knows what is coming.
+ */
+export type SkeletonShape = 'rows' | 'cards';
+
+export function DataSkeleton({
+  shape,
+  count = 4,
+}: {
+  shape: SkeletonShape;
+  count?: number;
+}) {
+  // aria-hidden + aria-busy on the wrapper: assistive tech should hear "busy",
+  // not have every placeholder bar read out as content.
+  if (shape === 'cards') {
+    return (
+      <div
+        className="skel-grid"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+        aria-busy="true"
+        data-testid="data-skeleton"
+        data-shape="cards"
+      >
+        {Array.from({ length: count }, (_, i) => (
+          <div key={i} className="block" style={{ padding: 18 }} aria-hidden="true">
+            <div className="skel skel-line" style={{ width: '45%' }} />
+            <div className="skel" style={{ height: 26, marginTop: 12, width: '72%' }} />
+            <div className="skel skel-line" style={{ marginTop: 12, width: '55%' }} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="block" aria-busy="true" data-testid="data-skeleton" data-shape="rows">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="skel-row" aria-hidden="true">
+          <div className="skel skel-dot" />
+          <div style={{ flex: 1 }}>
+            <div className="skel skel-line" style={{ width: `${58 - (i % 3) * 9}%` }} />
+            <div className="skel skel-line" style={{ width: '32%', marginTop: 8, height: 10 }} />
+          </div>
+          <div className="skel skel-line" style={{ width: 72 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Header for the diagnostics block in the error state. Separate so it renders
+ * only when there is something to introduce — a heading above an empty list
+ * is its own small lie.
+ */
+function ProductStatusHintLabel() {
+  const t = useTranslations('dataHealth');
+  const { data } = useProductStatus();
+  if (!data?.warnings?.length) return null;
+  return <div style={{ marginBottom: 6 }}>{t('activeDiagnostics')}</div>;
+}
+
 export type DataStatePanelProps = {
   state: DataPanelState;
   endpoint: string;
@@ -189,11 +260,17 @@ export type DataStatePanelProps = {
   emptyTitle: string;
   emptyBody: React.ReactNode;
   errorDetail?: string | null;
-  icon?: string;
+  icon?: IconName;
   onRetry?: () => void;
   onConnect?: () => void;
   /** Extra action rendered in the empty state (e.g. "Launch a token"). */
   emptyAction?: React.ReactNode;
+  /**
+   * Render placeholders shaped like the incoming content instead of a centred
+   * spinner. Opt-in: only pass a shape the caller actually renders.
+   */
+  skeleton?: SkeletonShape;
+  skeletonCount?: number;
 };
 
 /**
@@ -210,15 +287,20 @@ export function DataStatePanel({
   onRetry,
   onConnect,
   emptyAction,
+  skeleton,
+  skeletonCount,
 }: DataStatePanelProps) {
   const t = useTranslations('dataHealth');
   const tc = useTranslations('commonAtlas');
   if (state === 'data') return null;
+  if (state === 'loading' && skeleton) {
+    return <DataSkeleton shape={skeleton} count={skeletonCount} />;
+  }
 
   let title: string;
   let body: React.ReactNode;
   let actions: React.ReactNode = null;
-  let iconName = icon;
+  let iconName: IconName = icon;
 
   switch (state) {
     case 'loading':
@@ -255,6 +337,25 @@ export function DataStatePanel({
               {t('errorDetail')}: {errorDetail.slice(0, 160)}
             </span>
           ) : null}
+          {/*
+            Unfiltered on purpose. The backend already knows whether the
+            database is down or the indexer is behind; a request that just
+            failed is exactly when the user should be told, instead of reading
+            "request failed" and having no idea whether to retry or wait.
+            Renders nothing when the backend reports no warnings, so a one-off
+            failure does not invent a cause.
+
+            The label matters as much as the list. These warnings are whatever
+            is active right now, which is not the same as the cause of THIS
+            failure — a bridge relayer being absent says nothing about why a
+            token request failed. Presenting them unlabelled next to an error
+            implies a causation that is not established, so the copy says
+            "also reporting", not "because".
+          */}
+          <div className="mt-14" style={{ fontSize: 12, color: 'var(--ink-2)' }}>
+            <ProductStatusHintLabel />
+            <ProductStatusHint />
+          </div>
         </>
       );
       iconName = 'warn';

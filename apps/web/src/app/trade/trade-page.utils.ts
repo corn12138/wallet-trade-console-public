@@ -36,6 +36,21 @@ export function formatTradingPrice(value: string) {
     });
 }
 
+/**
+ * A trading price as a plain input-ready decimal string ("1999.00"), without
+ * locale grouping — for pre-filling the limit-price field from a book row.
+ */
+export function formatTradingPriceInput(value: string) {
+    const numericValue = parseTradingNumericString(value, 30);
+    return Number.isFinite(numericValue) ? numericValue.toFixed(2) : '';
+}
+
+/** A raw 30-decimal (or human) trading amount string as a plain number. */
+export function tradingAmountToNumber(value: string) {
+    const numericValue = parseTradingNumericString(value, 30);
+    return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
 export function formatTradingUsdAmount(value: string) {
     return formatTradingAmount(value, 30, {
         minimumFractionDigits: 2,

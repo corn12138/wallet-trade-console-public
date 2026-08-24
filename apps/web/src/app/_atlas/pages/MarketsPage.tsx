@@ -179,7 +179,7 @@ export function MarketsPage() {
                 <div className="mono">${compactFromString(m.volume24h)}</div>
                 <div className="mono">${compactFromString(m.longOpenInterest)}</div>
                 <div className="mono">${compactFromString(m.shortOpenInterest)}</div>
-                <Link href="/trade" className="btn btn-xs btn-y">
+                <Link href={`/trade?symbol=${encodeURIComponent(m.symbol)}`} className="btn btn-xs btn-y">
                   {t('trade')}
                 </Link>
               </div>

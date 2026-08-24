@@ -21,22 +21,28 @@ export function useProductStatus() {
 
 /**
  * Explains WHY a screen is empty or an action disabled, using the real backend
- * diagnostics — never a fake "all green" pill. Renders nothing unless one of
- * `codes` is an active warning, so a healthy page stays clean. Copy is localized
- * by stable warning code (Chinese mode never shows raw English).
+ * diagnostics — never a fake "all green" pill. Copy is localized by stable
+ * warning code (Chinese mode never shows raw English).
+ *
+ * `codes` filters to the diagnostics relevant to one screen, so a healthy page
+ * stays clean. OMITTING it shows every active warning, which is what a failure
+ * state wants: the filter exists to avoid nagging a working page, and a page
+ * that just failed to load is not one. Either way this renders nothing when
+ * the backend reports no warnings.
  */
 export function ProductStatusHint({
   codes,
   className,
 }: {
-  codes: string[];
+  codes?: string[];
   className?: string;
 }) {
   const { data } = useProductStatus();
   const t = useTranslations('diagnostics');
   const locale = useLocale();
 
-  const active = (data?.warnings ?? []).filter((w) => codes.includes(w.code));
+  const all = data?.warnings ?? [];
+  const active = codes ? all.filter((w) => codes.includes(w.code)) : all;
   if (active.length === 0) return null;
 
   return (
