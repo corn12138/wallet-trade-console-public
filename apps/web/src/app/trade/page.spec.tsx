@@ -133,6 +133,8 @@ function tradingState(overrides: Record<string, unknown> = {}) {
         balanceLoading: false,
         positions: [],
         positionsLoading: false,
+        portfolioPositions: [],
+        isPortfolioLoading: false,
         isActivityAuthorized: true,
         orders: [{
             id: 'order-1',
@@ -354,5 +356,61 @@ describe('/trade real-data closure', () => {
 
         expect(screen.getByTestId('tables-signin-gate')).toBeInTheDocument();
         expect(screen.queryByText(/No chain-backed pending orders/)).not.toBeInTheDocument();
+    });
+
+    it('renders the cross-market portfolio: chain rows close, indexed rows switch market', async () => {
+        const user = userEvent.setup();
+        const chainPosition = {
+            size: 1000n * USD_30,
+            collateral: 100n * USD_30,
+            averagePrice: 1900n * USD_30,
+            entryFundingRate: 0n,
+            reserveAmount: 0n,
+            realisedPnl: 0n,
+            lastUpdatedAt: 0n,
+            hasPosition: true,
+            isLong: true,
+            market: market(),
+        };
+        const indexedPosition = {
+            id: 'pos-btc-1',
+            chainId: 11155111,
+            account: '0x1111111111111111111111111111111111111111',
+            token: '0x5555555555555555555555555555555555555555',
+            isLong: false,
+            size: (2000n * USD_30).toString(),
+            collateral: (400n * USD_30).toString(),
+            entryPrice: (65000n * USD_30).toString(),
+            markPrice: (64000n * USD_30).toString(),
+            pnl: (30n * USD_30).toString(),
+            status: 'OPEN',
+            txHash: '0xdef',
+            createdAt: '2026-07-01T08:00:00.000Z',
+            updatedAt: '2026-07-01T09:00:00.000Z',
+        };
+        const state = renderTradePage({
+            portfolioPositions: [
+                { kind: 'chain', position: chainPosition },
+                { kind: 'indexed', position: indexedPosition, marketSymbol: 'BTC-USD' },
+            ],
+        });
+
+        // Both sources render, count includes both markets.
+        expect(screen.getByRole('button', { name: /Positions · 2/ })).toBeInTheDocument();
+        expect(screen.getByTestId('position-row-chain')).toBeInTheDocument();
+        const indexedRow = screen.getByTestId('position-row-indexed');
+        expect(indexedRow.textContent).toContain('BTC-USD');
+        // Indexed rows get 5.0× leverage (2000/400) and the stored pnl.
+        expect(indexedRow.textContent).toContain('5.0×');
+
+        // The chain row closes for real; the indexed row must NOT offer close —
+        // it switches the terminal to its market instead.
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        expect(state.closePosition).toHaveBeenCalledWith(
+            expect.objectContaining({ position: chainPosition }),
+        );
+
+        await user.click(screen.getByRole('button', { name: /Switch the terminal to BTC-USD/ }));
+        expect(state.setSelectedMarketSymbol).toHaveBeenCalledWith('BTC-USD');
     });
 });

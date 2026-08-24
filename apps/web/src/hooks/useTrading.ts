@@ -17,7 +17,7 @@ import { usePerpPositions } from './web3/usePerpPositions';
 import { useTokenBalance } from './web3/useTokenBalance';
 import { useTradingActivity } from './useTradingActivity';
 import { useTradingTransactions } from './useTradingTransactions';
-import type { TradingMarketView } from './trading.types';
+import type { PortfolioPositionRow, TradingMarketView } from './trading.types';
 import { useAuth } from '@/lib/web3/auth-provider';
 
 function toPerpMarketConfig(market: TradingMarketApi): TradingMarketView {
@@ -163,8 +163,10 @@ export function useTrading() {
   const {
     orders,
     history,
+    indexedPositions,
     isOrdersLoading,
     isHistoryLoading,
+    isIndexedPositionsLoading,
     refetchActivity,
   } = useTradingActivity({
     account: address,
@@ -172,6 +174,24 @@ export function useTrading() {
     chainId: liveSelectedMarket?.chainId,
     enabled: isActivityAuthorized,
   });
+
+  // Portfolio = on-chain rows for the selected market (authoritative,
+  // closeable) + indexer rows for every other market. Indexer rows matching
+  // the selected market's token are dropped rather than merged: the chain
+  // read is fresher and showing both would double-count the position.
+  const portfolioPositions = useMemo<PortfolioPositionRow[]>(() => {
+    const selectedToken = liveSelectedMarket?.indexToken?.toLowerCase();
+    const chainRows = positions.map((position) => ({ kind: 'chain' as const, position }));
+    const indexedRows = indexedPositions
+      .filter((position) => position.token.toLowerCase() !== selectedToken)
+      .map((position) => ({
+        kind: 'indexed' as const,
+        position,
+        marketSymbol:
+          markets.find((m) => m.indexToken.toLowerCase() === position.token.toLowerCase())?.symbol ?? null,
+      }));
+    return [...chainRows, ...indexedRows];
+  }, [positions, indexedPositions, liveSelectedMarket?.indexToken, markets]);
   const tradingTransactions = useTradingTransactions({
     address,
     addrs,
@@ -211,6 +231,10 @@ export function useTrading() {
     balanceLoading,
     positions,
     positionsLoading,
+    // Cross-market portfolio rows for the positions table; loading covers
+    // both sources so an empty table can honestly say "still fetching".
+    portfolioPositions,
+    isPortfolioLoading: positionsLoading || isIndexedPositionsLoading,
     orders,
     history,
     isOrdersLoading,

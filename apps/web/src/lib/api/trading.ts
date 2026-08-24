@@ -36,6 +36,25 @@ export interface TradingMarketTickerApi {
   updatedAt: string;
 }
 
+// Open positions as the indexer projects them — the DB-backed portfolio view
+// across all markets, unlike the on-chain read which covers one market.
+export interface TradingPositionApi {
+  id: string;
+  chainId: number;
+  account: string;
+  token: string;
+  isLong: boolean;
+  size: string;
+  collateral: string;
+  entryPrice: string;
+  markPrice: string;
+  pnl: string;
+  status: string;
+  txHash: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TradingPendingOrderApi {
   id: string;
   token: string;
@@ -116,6 +135,18 @@ export async function getTradingMarketTrades(symbol: string, chainId?: number, l
   }
 
   return unwrapApiData<TradingHistoryApi[]>(await response.json());
+}
+
+export async function getTradingPositions(account: `0x${string}`, chainId?: number) {
+  const response = await fetchApi(
+    buildTradingQueryPath(`/trading/positions/${account}`, { chainId }),
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch trading positions');
+  }
+
+  return unwrapApiData<TradingPositionApi[]>(await response.json());
 }
 
 export async function getTradingOrders(

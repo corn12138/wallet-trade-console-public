@@ -8,14 +8,16 @@ import {
   formatTradingPrice,
   formatTradingUsdAmount,
   formatUsd30,
+  tradingAmountToNumber,
 } from '@/app/trade/trade-page.utils';
 import { buildTransactionExplorerUrl } from '@/lib/web3/explorer';
 import { Empty, TabBar } from '../Common';
+import type { PortfolioPositionRow } from '@/hooks/trading.types';
 import type { TabKey, TradeHistoryItem, TradeOrder, TradePosition } from './tradeTypes';
 
 type TradeTablesProps = {
   tab: TabKey;
-  positions: TradePosition[];
+  positions: PortfolioPositionRow[];
   orders: TradeOrder[];
   history: TradeHistoryItem[];
   currentPrice: bigint | undefined;
@@ -32,6 +34,8 @@ type TradeTablesProps = {
   marketStreamStatus: string;
   setTab: (tab: TabKey) => void;
   onClosePosition: (position: TradePosition) => void;
+  /** Point the terminal at another market (indexed rows manage from there). */
+  onSelectMarket: (symbol: string) => void;
   onConnect: () => void;
 };
 
@@ -53,6 +57,7 @@ export function TradeTables({
   marketStreamStatus,
   setTab,
   onClosePosition,
+  onSelectMarket,
   onConnect,
 }: TradeTablesProps) {
   const t = useTranslations('trade.tables');
@@ -121,6 +126,7 @@ export function TradeTables({
             positions={positions}
             currentPrice={currentPrice}
             onClosePosition={onClosePosition}
+            onSelectMarket={onSelectMarket}
             isClosePending={isClosePending}
             isCloseConfirming={isCloseConfirming}
           />
@@ -145,16 +151,76 @@ export function TradeTables({
   );
 }
 
+const POSITIONS_GRID = '1.2fr 0.7fr 0.5fr 1fr 1fr 1fr 1.2fr auto';
+
+type PositionCells = {
+  symbol: string | null;
+  isLong: boolean;
+  leverage: number | null;
+  size: string;
+  entry: string;
+  mark: string;
+  pnlText: string;
+  pnlTone: 'pos' | 'neg' | 'flat';
+  roePct: number | null;
+  source: 'chain' | 'indexed';
+};
+
+// Both row kinds normalize into the same cells; only the trailing action
+// differs (close for chain rows, switch-to-market for indexed ones).
+function chainRowCells(p: TradePosition, currentPrice: bigint | undefined): PositionCells {
+  const pnl = currentPrice
+    ? calculatePnl(p.size, p.averagePrice, currentPrice, p.isLong)
+    : { hasProfit: false, delta: 0n };
+  const collateralNumber = Number(formatUnits(p.collateral, 30));
+  const pnlNumber = Number(formatUnits(pnl.delta, 30)) * (pnl.hasProfit ? 1 : -1);
+  return {
+    symbol: p.market.symbol,
+    isLong: p.isLong,
+    leverage: collateralNumber > 0 ? Number(formatUnits(p.size, 30)) / collateralNumber : null,
+    size: formatUsd30(p.size),
+    entry: formatUsd30(p.averagePrice),
+    mark: currentPrice ? formatUsd30(currentPrice) : '—',
+    pnlText: pnl.delta === 0n ? '$0.00' : `${pnl.hasProfit ? '+' : '−'} $${formatUsd30(pnl.delta)}`,
+    pnlTone: pnl.delta === 0n ? 'flat' : pnl.hasProfit ? 'pos' : 'neg',
+    roePct: collateralNumber > 0 && pnl.delta !== 0n ? (Math.abs(pnlNumber) / collateralNumber) * 100 : null,
+    source: 'chain',
+  };
+}
+
+function indexedRowCells(
+  row: Extract<PortfolioPositionRow, { kind: 'indexed' }>,
+): PositionCells {
+  const p = row.position;
+  const collateralNumber = tradingAmountToNumber(p.collateral);
+  const sizeNumber = tradingAmountToNumber(p.size);
+  const pnlNumber = tradingAmountToNumber(p.pnl);
+  return {
+    symbol: row.marketSymbol,
+    isLong: p.isLong,
+    leverage: collateralNumber > 0 ? sizeNumber / collateralNumber : null,
+    size: formatTradingUsdAmount(p.size),
+    entry: formatTradingPrice(p.entryPrice),
+    mark: formatTradingPrice(p.markPrice),
+    pnlText: pnlNumber === 0 ? '$0.00' : `${pnlNumber > 0 ? '+' : '−'} $${Math.abs(pnlNumber).toFixed(2)}`,
+    pnlTone: pnlNumber === 0 ? 'flat' : pnlNumber > 0 ? 'pos' : 'neg',
+    roePct: collateralNumber > 0 && pnlNumber !== 0 ? (Math.abs(pnlNumber) / collateralNumber) * 100 : null,
+    source: 'indexed',
+  };
+}
+
 function PositionsTable({
   positions,
   currentPrice,
   onClosePosition,
+  onSelectMarket,
   isClosePending,
   isCloseConfirming,
 }: {
-  positions: TradePosition[];
+  positions: PortfolioPositionRow[];
   currentPrice: bigint | undefined;
   onClosePosition: (position: TradePosition) => void;
+  onSelectMarket: (symbol: string) => void;
   isClosePending: boolean;
   isCloseConfirming: boolean;
 }) {
@@ -168,8 +234,8 @@ function PositionsTable({
   }
 
   return (
-    <div>
-      <div className="tbl-head" style={{ gridTemplateColumns: '1.2fr 0.7fr 0.5fr 1fr 1fr 1fr 1.2fr auto', padding: '10px 16px' }}>
+    <div className="tbl-scroll">
+      <div className="tbl-head" style={{ gridTemplateColumns: POSITIONS_GRID, padding: '10px 16px' }}>
         <span>{t('symbol')}</span>
         <span>{t('side')}</span>
         <span>{t('leverage')}</span>
@@ -179,56 +245,71 @@ function PositionsTable({
         <span style={{ textAlign: 'right' }}>{t('pnl')}</span>
         <span />
       </div>
-      {positions.map((p, i) => {
-        const pnl = currentPrice ? calculatePnl(p.size, p.averagePrice, currentPrice, p.isLong) : { hasProfit: false, delta: 0n };
-        const pnlString = pnl.delta === 0n ? '$0.00' : `${pnl.hasProfit ? '+' : '−'} $${formatUsd30(pnl.delta)}`;
-        // Leverage and return-on-equity both derive from the on-chain
-        // collateral: lev = size/collateral, ROE = pnl/collateral.
-        const collateralNumber = Number(formatUnits(p.collateral, 30));
-        const leverage = collateralNumber > 0 ? Number(formatUnits(p.size, 30)) / collateralNumber : null;
-        const roePct =
-          collateralNumber > 0 && pnl.delta !== 0n
-            ? (Number(formatUnits(pnl.delta, 30)) / collateralNumber) * 100
-            : null;
+      {positions.map((row) => {
+        const cells = row.kind === 'chain' ? chainRowCells(row.position, currentPrice) : indexedRowCells(row);
+        const key = row.kind === 'chain'
+          ? `chain-${row.position.market.symbol}-${row.position.isLong ? 'l' : 's'}`
+          : `indexed-${row.position.id}`;
         return (
           <div
-            key={i}
+            key={key}
             className="tbl-row"
-            style={{ gridTemplateColumns: '1.2fr 0.7fr 0.5fr 1fr 1fr 1fr 1.2fr auto', padding: '10px 16px' }}
+            data-testid={`position-row-${cells.source}`}
+            style={{ gridTemplateColumns: POSITIONS_GRID, padding: '10px 16px' }}
           >
             <div className="sym">
-              <span className="b">{p.market.symbol[0]}</span>
-              {p.market.symbol}
+              <span className="b">{cells.symbol ? cells.symbol[0] : '?'}</span>
+              <span>
+                {cells.symbol ?? t('unknownMarket')}
+                <span
+                  className="mono"
+                  style={{ display: 'block', fontSize: 9, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                >
+                  {cells.source === 'chain' ? t('sourceChain') : t('sourceIndexed')}
+                </span>
+              </span>
             </div>
             <div>
-              <span className={'side ' + (p.isLong ? 'long' : 'short')}>{p.isLong ? t('long') : t('short')}</span>
+              <span className={'side ' + (cells.isLong ? 'long' : 'short')}>{cells.isLong ? t('long') : t('short')}</span>
             </div>
-            <div className="mono">{leverage !== null ? `${leverage.toFixed(1)}×` : '—'}</div>
-            <div className="mono">${formatUsd30(p.size)}</div>
-            <div className="mono">${formatUsd30(p.averagePrice)}</div>
-            <div className="mono">{currentPrice ? '$' + formatUsd30(currentPrice) : '—'}</div>
+            <div className="mono">{cells.leverage !== null ? `${cells.leverage.toFixed(1)}×` : '—'}</div>
+            <div className="mono">${cells.size}</div>
+            <div className="mono">${cells.entry}</div>
+            <div className="mono">{cells.mark === '—' ? '—' : `$${cells.mark}`}</div>
             <div
               className="mono"
               style={{
                 textAlign: 'right',
-                color: pnl.hasProfit ? 'var(--pos)' : pnl.delta === 0n ? 'var(--ink-2)' : 'var(--neg)',
+                color: cells.pnlTone === 'pos' ? 'var(--pos)' : cells.pnlTone === 'flat' ? 'var(--ink-2)' : 'var(--neg)',
               }}
             >
-              {pnlString}
-              {roePct !== null && (
+              {cells.pnlText}
+              {cells.roePct !== null && (
                 <span style={{ opacity: 0.75, marginLeft: 4, fontSize: 11 }}>
-                  ({pnl.hasProfit ? '+' : '−'}
-                  {Math.abs(roePct).toFixed(1)}%)
+                  ({cells.pnlTone === 'pos' ? '+' : '−'}
+                  {cells.roePct.toFixed(1)}%)
                 </span>
               )}
             </div>
-            <button
-              className="btn btn-xs btn-o"
-              onClick={() => onClosePosition(p)}
-              disabled={isClosePending || isCloseConfirming}
-            >
-              {t('close')}
-            </button>
+            {row.kind === 'chain' ? (
+              <button
+                className="btn btn-xs btn-o"
+                onClick={() => onClosePosition(row.position)}
+                disabled={isClosePending || isCloseConfirming}
+              >
+                {t('close')}
+              </button>
+            ) : row.marketSymbol ? (
+              <button
+                className="btn btn-xs btn-y"
+                onClick={() => onSelectMarket(row.marketSymbol!)}
+                aria-label={t('switchToAria', { symbol: row.marketSymbol })}
+              >
+                {t('switchTo')}
+              </button>
+            ) : (
+              <span />
+            )}
           </div>
         );
       })}
@@ -250,7 +331,7 @@ function OrdersTable({ orders }: { orders: TradeOrder[] }) {
   }
 
   return (
-    <div>
+    <div className="tbl-scroll">
       <div className="tbl-head" style={{ gridTemplateColumns: '1fr 0.7fr 0.7fr 0.9fr 0.9fr auto', padding: '10px 16px' }}>
         <span>{t('token')}</span>
         <span>{t('type')}</span>
@@ -306,7 +387,7 @@ function HistoryTable({ history, chainId }: { history: TradeHistoryItem[]; chain
   }
 
   return (
-    <div>
+    <div className="tbl-scroll">
       <div
         className="tbl-head"
         style={{ gridTemplateColumns: 'auto 1fr 0.6fr 0.7fr 0.9fr 0.9fr auto', padding: '10px 16px' }}

@@ -5,8 +5,10 @@ import { useQuery } from '@tanstack/react-query';
 import {
   getTradingHistory,
   getTradingOrders,
+  getTradingPositions,
   type TradingHistoryApi,
   type TradingPendingOrderApi,
+  type TradingPositionApi,
 } from '@/lib/api';
 
 interface UseTradingActivityOptions {
@@ -38,16 +40,34 @@ export function useTradingActivity({
     refetchInterval: 10_000,
   });
 
+  // The indexer's cross-market open-positions projection. Deliberately not
+  // keyed on `symbol`: this is the portfolio view, so it must keep covering
+  // every market while the terminal has one selected.
+  const {
+    data: indexedPositions = [],
+    isLoading: isIndexedPositionsLoading,
+    refetch: refetchIndexedPositions,
+  } = useQuery({
+    queryKey: ['trading-positions', account, chainId],
+    enabled: Boolean(account) && enabled,
+    queryFn: async (): Promise<TradingPositionApi[]> => getTradingPositions(account!, chainId),
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+  });
+
   const refetchActivity = useCallback(() => {
     refetchOrders();
     refetchHistory();
-  }, [refetchOrders, refetchHistory]);
+    refetchIndexedPositions();
+  }, [refetchOrders, refetchHistory, refetchIndexedPositions]);
 
   return {
     orders,
     history,
+    indexedPositions,
     isOrdersLoading,
     isHistoryLoading,
+    isIndexedPositionsLoading,
     refetchActivity,
   };
 }
