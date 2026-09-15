@@ -56,13 +56,8 @@ func TestGetQuote_FallbackWhenRouterMissing(t *testing.T) {
 	if got.RouterAddress != nil {
 		t.Errorf("routerAddress = %v, want nil", *got.RouterAddress)
 	}
-	// 100 × 0.997 = 99.7, formatted to min(6, 6) = 6 decimals.
-	if got.AmountOut != "99.700000" {
-		t.Errorf("amountOut = %q, want 99.700000", got.AmountOut)
-	}
-	// (100 × 0.997) × (10000-50)/10000 = 99.20150...
-	if got.MinimumReceived != "99.201500" {
-		t.Errorf("minimumReceived = %q, want 99.201500", got.MinimumReceived)
+	if got.AmountOut != "" || got.MinimumReceived != "" {
+		t.Errorf("unavailable quote fabricated display amounts: %+v", got)
 	}
 	if got.SlippageBps != 50 {
 		t.Errorf("slippageBps = %d, want 50", got.SlippageBps)

@@ -14,6 +14,7 @@
 
 import { getHardhatEthers } from "../hardhat-runtime.js";
 import { persistDeploymentRecord } from "./deployment-artifacts.js";
+import { assertV2CompatibleRouter } from "./router-compatibility.js";
 
 type DeployedToken = {
   contract: any;
@@ -69,6 +70,17 @@ async function addLiquidity(
 
 async function main() {
   const ethers = await getHardhatEthers();
+  const configuredLaunchpadRouter = process.env.LAUNCHPAD_DEX_ROUTER;
+  if (!configuredLaunchpadRouter) {
+    throw new Error(
+      "Missing LAUNCHPAD_DEX_ROUTER. The project Router only supports ERC20 liquidity and cannot graduate launchpad tokens."
+    );
+  }
+  const launchpadDexRouter = await assertV2CompatibleRouter(
+    ethers.provider,
+    configuredLaunchpadRouter,
+    "LAUNCHPAD_DEX_ROUTER"
+  );
   const [deployer] = await ethers.getSigners();
 
   console.log("╔══════════════════════════════════════════╗");
@@ -140,7 +152,7 @@ async function main() {
   const tokenFactory = await TokenFactory.deploy(
     creationFee,
     deployer.address,
-    routerAddress
+    launchpadDexRouter
   );
   await tokenFactory.waitForDeployment();
   const tokenFactoryAddress = await tokenFactory.getAddress();
@@ -246,7 +258,7 @@ async function main() {
         address: tokenFactoryAddress,
         creationFee: creationFee.toString(),
         feeRecipient: deployer.address,
-        dexRouter: routerAddress,
+        dexRouter: launchpadDexRouter,
       },
       StakingToken: {
         address: stakingTokenAddress,

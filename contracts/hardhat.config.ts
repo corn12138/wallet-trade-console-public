@@ -1,10 +1,6 @@
 import * as dotenv from "dotenv";
 import { defineConfig } from "hardhat/config";
 import hardhatEthers from "@nomicfoundation/hardhat-ethers";
-import hardhatEthersChaiMatchers from "@nomicfoundation/hardhat-ethers-chai-matchers";
-import hardhatMocha from "@nomicfoundation/hardhat-mocha";
-import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
-import hardhatTypechain from "@nomicfoundation/hardhat-typechain";
 
 dotenv.config();
 
@@ -18,27 +14,20 @@ if (!process.env.https_proxy && process.env.HTTPS_PROXY) {
 }
 
 export default defineConfig({
-  plugins: [
-    hardhatEthers,
-    hardhatEthersChaiMatchers,
-    hardhatMocha,
-    hardhatNetworkHelpers,
-    hardhatTypechain,
-  ],
+  plugins: [hardhatEthers],
   defaultNetwork: "hardhat",
   solidity: {
     version: "0.8.28",
     settings: {
       optimizer: {
-        enabled: true, // 启用优化
-        runs: 100, // 优化运行次数
+        enabled: true,
+        runs: 200,
       },
-      viaIR: true, // 使用 IR 优化
+      viaIR: true,
     },
   },
   paths: {
     sources: "./src",
-    tests: "./test",
     cache: "./cache",
     artifacts: "./artifacts",
   },
@@ -57,12 +46,12 @@ export default defineConfig({
     sepolia: {
       type: "http",
       chainType: "l1",
-      url: process.env.SEPOLIA_RPC_URL || process.env.SEPOLIA_HTTPS_RPC || "https://rpc.sepolia.org",
+      url:
+        process.env.SEPOLIA_RPC_URL ||
+        process.env.SEPOLIA_HTTPS_RPC ||
+        "https://rpc.sepolia.org",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
     },
-  },
-  typechain: {
-    outDir: "./typechain-types",
   },
 });

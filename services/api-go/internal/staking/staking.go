@@ -511,8 +511,8 @@ func (r *Repository) RecordStake(ctx context.Context, in RecordStakeInput) (User
 	return s, nil
 }
 
-// RecordUnstake sets unstaked_at = NOW() on the matching row.
-func (r *Repository) RecordUnstake(ctx context.Context, stakeID string) (UserStake, error) {
+// RecordUnstake updates only an active stake owned by the authenticated wallet.
+func (r *Repository) RecordUnstake(ctx context.Context, stakeID, ownerAddress string) (UserStake, error) {
 	if r.pool == nil {
 		return UserStake{}, ErrPoolUnavailable
 	}
@@ -521,9 +521,11 @@ func (r *Repository) RecordUnstake(ctx context.Context, stakeID string) (UserSta
 		UPDATE user_stakes
 		SET unstaked_at = NOW()
 		WHERE id = $1
+		  AND LOWER(user_address) = LOWER($2)
+		  AND unstaked_at IS NULL
 		RETURNING id, user_address, pool_id, amount::text, rewards_claimed::text,
 		          staked_at, unstaked_at
-	`, stakeID).Scan(
+	`, stakeID, ownerAddress).Scan(
 		&s.ID, &s.UserAddress, &s.PoolID, &s.Amount,
 		&s.RewardsClaimed, &s.StakedAt, &s.UnstakedAt,
 	)

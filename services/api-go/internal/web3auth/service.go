@@ -2,15 +2,16 @@ package web3auth
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
@@ -51,10 +52,13 @@ type VerifyResponse struct {
 	SessionExpiresAt string `json:"sessionExpiresAt"`
 }
 
-// VerifyInput mirrors VerifyDto.
+// VerifyInput mirrors VerifyDto. Origin is set by the handler from the request
+// header and is deliberately not decodable from the body — a caller must not be
+// able to choose the origin it is checked against.
 type VerifyInput struct {
 	Message   string `json:"message"`
 	Signature string `json:"signature"`
+	Origin    string `json:"-"`
 }
 
 // WalletInfo mirrors WalletInfoDto.
@@ -65,43 +69,44 @@ type WalletInfo struct {
 	CreatedAt   *string `json:"createdAt,omitempty"`
 }
 
-// storedChallenge keeps the issued nonce alongside its expiry + (optional)
-// address binding the nonce was minted for.
-type storedChallenge struct {
-	issuedAt        time.Time
-	expiresAt       time.Time
-	address         string
-	domain          string
-	uri             string
-	statement       string
-	allowedChainIDs []int
-}
+// DefaultMaxClockSkew bounds how far a wallet's "Issued At" may lead the
+// server. Wallets stamp it from the browser clock, which is routinely a few
+// seconds off; anything beyond this is a message that was not minted for the
+// challenge we just issued.
+const DefaultMaxClockSkew = 2 * time.Minute
 
-// Service holds the nonce store + JWT signer config. The nonce store
-// is in-memory only (matches NestJS) — production deployments behind
-// multiple replicas would need a shared store (Redis), which is a
-// later concern.
+// Service holds the challenge store, the optional contract-wallet verifier and
+// the JWT signer config. The store is an interface because a per-process map
+// cannot make a nonce single-use across replicas — see ADR 0007.
 type Service struct {
-	jwtSecret       []byte
-	sessionTTL      time.Duration
-	nonceTTL        time.Duration
-	allowedChains   map[int]bool
-	allowedChainIDs []int
-	domain          string
-	uri             string
-	statement       string
-	mu              sync.Mutex
-	nonces          map[string]storedChallenge
-	consumed        map[string]time.Time
+	jwtSecret        []byte
+	sessionTTL       time.Duration
+	nonceTTL         time.Duration
+	maxClockSkew     time.Duration
+	allowedChains    map[int]bool
+	allowedChainIDs  []int
+	domain           string
+	uri              string
+	statement        string
+	allowedOrigins   map[string]struct{}
+	nonces           NonceStore
+	contractVerifier ContractSignatureVerifier
 }
 
 type Config struct {
 	SessionTTL      time.Duration
 	NonceTTL        time.Duration
+	MaxClockSkew    time.Duration
 	AllowedDomains  []string
 	AllowedURIs     []string
 	AllowedChainIDs []int
 	Statement       string
+	// NonceStore defaults to an in-process map. Production must pass a shared
+	// store; ResolveNonceStore enforces that.
+	NonceStore NonceStore
+	// ContractVerifier enables EIP-1271 logins. Nil means EOA-only: a contract
+	// wallet is rejected rather than assumed valid.
+	ContractVerifier ContractSignatureVerifier
 }
 
 // NewService builds the service. jwtSecret empty → /verify always
@@ -115,15 +120,25 @@ func NewService(jwtSecret string, sessionTTL, nonceTTL time.Duration, allowedCha
 	})
 }
 
-func NewServiceFromEnv(jwtSecret string) *Service {
+// NewServiceFromEnv resolves the challenge store before building the service,
+// so a production process with no reachable shared store fails at startup
+// instead of serving replayable logins.
+func NewServiceFromEnv(ctx context.Context, jwtSecret string, verifier ContractSignatureVerifier) (*Service, error) {
+	store, err := ResolveNonceStore(ctx, NonceStoreConfigFromEnv())
+	if err != nil {
+		return nil, err
+	}
 	return NewServiceWithConfig(jwtSecret, Config{
-		SessionTTL:      secondsEnv("SIWE_SESSION_TTL_SECONDS", DefaultSessionTTL),
-		NonceTTL:        secondsEnv("SIWE_NONCE_TTL_SECONDS", DefaultNonceTTL),
-		AllowedDomains:  csvEnv("SIWE_ALLOWED_DOMAINS"),
-		AllowedURIs:     firstNonEmptyCSVEnv("SIWE_ALLOWED_URIS", "CORS_ALLOWED_ORIGINS", "MOBILE_FIRST_PARTY_WEB_ORIGINS"),
-		AllowedChainIDs: intCSVEnv("SIWE_ALLOWED_CHAIN_IDS"),
-		Statement:       os.Getenv("SIWE_STATEMENT"),
-	})
+		SessionTTL:       secondsEnv("SIWE_SESSION_TTL_SECONDS", DefaultSessionTTL),
+		NonceTTL:         secondsEnv("SIWE_NONCE_TTL_SECONDS", DefaultNonceTTL),
+		MaxClockSkew:     secondsEnv("SIWE_MAX_CLOCK_SKEW_SECONDS", DefaultMaxClockSkew),
+		AllowedDomains:   csvEnv("SIWE_ALLOWED_DOMAINS"),
+		AllowedURIs:      firstNonEmptyCSVEnv("SIWE_ALLOWED_URIS", "CORS_ALLOWED_ORIGINS", "MOBILE_FIRST_PARTY_WEB_ORIGINS"),
+		AllowedChainIDs:  intCSVEnv("SIWE_ALLOWED_CHAIN_IDS"),
+		Statement:        os.Getenv("SIWE_STATEMENT"),
+		NonceStore:       store,
+		ContractVerifier: verifier,
+	}), nil
 }
 
 func NewServiceWithConfig(jwtSecret string, cfg Config) *Service {
@@ -153,24 +168,56 @@ func NewServiceWithConfig(jwtSecret string, cfg Config) *Service {
 	for _, id := range allowedChainIDs {
 		allowed[id] = true
 	}
-	return &Service{
-		jwtSecret:       []byte(jwtSecret),
-		sessionTTL:      sessionTTL,
-		nonceTTL:        nonceTTL,
-		allowedChains:   allowed,
-		allowedChainIDs: append([]int(nil), allowedChainIDs...),
-		domain:          domain,
-		uri:             uri,
-		statement:       statement,
-		nonces:          map[string]storedChallenge{},
-		consumed:        map[string]time.Time{},
+	skew := cfg.MaxClockSkew
+	if skew <= 0 {
+		skew = DefaultMaxClockSkew
 	}
+	store := cfg.NonceStore
+	if store == nil {
+		store = NewMemoryNonceStore()
+	}
+	origins := buildAllowedOrigins(allowedDomains, cfg.AllowedURIs, uri)
+	return &Service{
+		jwtSecret:        []byte(jwtSecret),
+		sessionTTL:       sessionTTL,
+		nonceTTL:         nonceTTL,
+		maxClockSkew:     skew,
+		allowedChains:    allowed,
+		allowedChainIDs:  append([]int(nil), allowedChainIDs...),
+		domain:           domain,
+		uri:              uri,
+		statement:        statement,
+		allowedOrigins:   origins,
+		nonces:           store,
+		contractVerifier: cfg.ContractVerifier,
+	}
+}
+
+// NonceStoreKind names the challenge backend for operator diagnostics. It never
+// carries a connection target.
+func (s *Service) NonceStoreKind() string {
+	if s == nil || s.nonces == nil {
+		return "none"
+	}
+	return s.nonces.Kind()
+}
+
+// Close releases the challenge store.
+func (s *Service) Close() error {
+	if s == nil || s.nonces == nil {
+		return nil
+	}
+	return s.nonces.Close()
 }
 
 // GenerateNonceFor returns a fresh nonce and stores it. If address is
 // provided (and well-formed), the nonce is bound to that address; a
 // subsequent verify must come from the same address.
-func (s *Service) GenerateNonceFor(address string) (NonceResponse, error) {
+//
+// The challenge carries this replica's domain/URI/statement/chain set so the
+// replica that consumes it validates against the configuration the signature
+// was actually produced under.
+func (s *Service) GenerateNonceFor(ctx context.Context, address string) (NonceResponse, error) {
 	addr := ""
 	if address != "" {
 		addr = NormalizeAddress(address)
@@ -178,69 +225,68 @@ func (s *Service) GenerateNonceFor(address string) (NonceResponse, error) {
 			return NonceResponse{}, fmt.Errorf("%w: address", ErrBadMessage)
 		}
 	}
-	nonce := GenerateNonce()
 	now := Now()
-	expires := now.Add(s.nonceTTL)
-	challenge := storedChallenge{
-		issuedAt:        now,
-		expiresAt:       expires,
-		address:         addr,
-		domain:          s.domain,
-		uri:             s.uri,
-		statement:       s.statement,
-		allowedChainIDs: append([]int(nil), s.allowedChainIDs...),
+	challenge := Challenge{
+		IssuedAt:        now,
+		ExpiresAt:       now.Add(s.nonceTTL),
+		Address:         addr,
+		Domain:          s.domain,
+		URI:             s.uri,
+		Statement:       s.statement,
+		AllowedChainIDs: append([]int(nil), s.allowedChainIDs...),
 	}
-	s.mu.Lock()
-	s.cleanupLocked(now)
-	s.nonces[nonce] = challenge
-	s.mu.Unlock()
+	nonce := GenerateNonce()
+	if err := s.nonces.Issue(ctx, nonce, challenge); err != nil {
+		return NonceResponse{}, err
+	}
 	return s.serializeChallenge(nonce, challenge), nil
 }
 
 // VerifySiwe validates the signed SIWE message and issues a JWT.
+//
+// Order matters. The nonce is consumed before the signature is checked, so one
+// issued challenge funds exactly one verification attempt: a failed attempt
+// cannot be repeated against the same challenge, which also bounds the number
+// of EIP-1271 eth_calls an unauthenticated caller can provoke per nonce.
 func (s *Service) VerifySiwe(ctx context.Context, in VerifyInput) (VerifyResponse, error) {
 	msg, err := ParseSiweMessage(in.Message)
 	if err != nil {
 		return VerifyResponse{}, err
 	}
-	recovered, err := RecoverAddress(in.Message, in.Signature)
+
+	now := Now()
+	challenge, err := s.nonces.Consume(ctx, msg.Nonce)
 	if err != nil {
 		return VerifyResponse{}, err
 	}
-	if NormalizeAddress(msg.Address) != recovered {
-		return VerifyResponse{}, ErrAddressMismatch
-	}
-
-	now := Now()
-
-	// Consume nonce.
-	s.mu.Lock()
-	challenge, ok := s.nonces[msg.Nonce]
-	if ok {
-		delete(s.nonces, msg.Nonce)
-		s.consumed[msg.Nonce] = challenge.expiresAt
-	}
-	s.mu.Unlock()
-	if !ok {
-		return VerifyResponse{}, ErrNonceUnknown
-	}
-	if now.After(challenge.expiresAt) {
+	if now.After(challenge.ExpiresAt) {
 		return VerifyResponse{}, ErrNonceExpired
 	}
-	if challenge.address != "" && challenge.address != recovered {
-		return VerifyResponse{}, ErrNonceMismatch
-	}
-	if msg.Domain != challenge.domain || msg.URI != challenge.uri {
+	if msg.Domain != challenge.Domain || msg.URI != challenge.URI {
 		return VerifyResponse{}, ErrDomainMismatch
 	}
-	if msg.Statement != challenge.statement {
+	if msg.Statement != challenge.Statement {
 		return VerifyResponse{}, fmt.Errorf("%w: statement mismatch", ErrBadMessage)
 	}
-	if len(challenge.allowedChainIDs) > 0 && !containsInt(challenge.allowedChainIDs, msg.ChainID) {
+	if len(challenge.AllowedChainIDs) > 0 && !containsInt(challenge.AllowedChainIDs, msg.ChainID) {
 		return VerifyResponse{}, ErrChainNotAllowed
 	}
-	if msg.ExpirationTime != challenge.expiresAt.UTC().Format(time.RFC3339) {
+	if msg.ExpirationTime != challenge.ExpiresAt.UTC().Format(time.RFC3339) {
 		return VerifyResponse{}, ErrNonceExpired
+	}
+	if err := s.checkMessageTimes(msg, now); err != nil {
+		return VerifyResponse{}, err
+	}
+	if err := s.checkRequestOrigin(in.Origin); err != nil {
+		return VerifyResponse{}, err
+	}
+
+	owner := NormalizeAddress(msg.Address)
+	if err := s.authenticateOwner(ctx, msg, in.Signature, owner); err != nil {
+		return VerifyResponse{}, err
+	}
+	if challenge.Address != "" && challenge.Address != owner {
+		return VerifyResponse{}, ErrNonceMismatch
 	}
 
 	if len(s.jwtSecret) == 0 {
@@ -248,7 +294,7 @@ func (s *Service) VerifySiwe(ctx context.Context, in VerifyInput) (VerifyRespons
 	}
 	expires := now.Add(s.sessionTTL)
 	claims := auth.Claims{
-		Sub:     recovered,
+		Sub:     owner,
 		ChainID: msg.ChainID,
 		Type:    "web3",
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -263,10 +309,143 @@ func (s *Service) VerifySiwe(ctx context.Context, in VerifyInput) (VerifyRespons
 	}
 	return VerifyResponse{
 		Token:            signed,
-		Address:          recovered,
+		Address:          owner,
 		ChainID:          msg.ChainID,
 		SessionExpiresAt: expires.UTC().Format(time.RFC3339),
 	}, nil
+}
+
+// authenticateOwner proves that `owner` authorised this message. An EOA proves
+// it by secp256k1 recovery; a contract wallet proves it by EIP-1271. The
+// contract path is a fallback, never a bypass: it runs only when recovery did
+// not already produce the claimed owner, and it authenticates the identical
+// EIP-191 digest.
+func (s *Service) authenticateOwner(ctx context.Context, msg SiweMessage, signature, owner string) error {
+	recovered, recoverErr := RecoverAddress(msg.Raw, signature)
+	if recoverErr == nil && recovered == owner {
+		return nil
+	}
+
+	if s.contractVerifier == nil {
+		if recoverErr != nil {
+			return recoverErr
+		}
+		return ErrAddressMismatch
+	}
+	if !s.contractVerifier.SupportsChain(msg.ChainID) {
+		return ErrContractVerificationUnavailable
+	}
+	sigBytes, err := decodeSignatureBytes(signature)
+	if err != nil {
+		return err
+	}
+	ok, err := s.contractVerifier.IsValidSignature(
+		ctx, msg.ChainID, owner, PersonalSignDigest(msg.Raw), sigBytes)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrBadSignature
+	}
+	return nil
+}
+
+// checkMessageTimes enforces the EIP-4361 time fields the parser previously
+// only collected.
+func (s *Service) checkMessageTimes(msg SiweMessage, now time.Time) error {
+	issuedAt, err := time.Parse(time.RFC3339, msg.IssuedAt)
+	if err != nil {
+		return fmt.Errorf("%w: issuedAt not RFC3339", ErrBadMessage)
+	}
+	if issuedAt.After(now.Add(s.maxClockSkew)) {
+		return fmt.Errorf("%w: issuedAt is in the future", ErrBadMessage)
+	}
+	if msg.NotBefore != "" {
+		notBefore, err := time.Parse(time.RFC3339, msg.NotBefore)
+		if err != nil {
+			return fmt.Errorf("%w: notBefore not RFC3339", ErrBadMessage)
+		}
+		if now.Add(s.maxClockSkew).Before(notBefore) {
+			return fmt.Errorf("%w: notBefore has not passed", ErrBadMessage)
+		}
+	}
+	return nil
+}
+
+// checkRequestOrigin rejects a browser caller from an origin this deployment
+// does not serve.
+//
+// It is checked against the whole configured origin set rather than the single
+// challenge URI: a deployment may legitimately serve several origins (a
+// production domain and a preview domain), and the challenge carries only the
+// first. The signed message's own domain/URI are already pinned to the
+// server-issued challenge, so this is defence in depth against a page on
+// another origin driving the flow — not the primary control.
+//
+// A missing or opaque Origin is accepted: non-browser clients (the mobile
+// surface, the authenticated smoke, curl) legitimately omit it, and refusing
+// them would break the API for every caller that is not a browser.
+func (s *Service) checkRequestOrigin(requestOrigin string) error {
+	origin := strings.TrimSpace(requestOrigin)
+	if origin == "" || strings.EqualFold(origin, "null") {
+		return nil
+	}
+	if len(s.allowedOrigins) == 0 {
+		return nil
+	}
+	if _, ok := s.allowedOrigins[normalizeOrigin(origin)]; !ok {
+		return fmt.Errorf("%w: request origin", ErrDomainMismatch)
+	}
+	return nil
+}
+
+// buildAllowedOrigins collapses the configured URIs and domains into the set of
+// scheme://host values a browser may present.
+func buildAllowedOrigins(domains, uris []string, challengeURI string) map[string]struct{} {
+	out := map[string]struct{}{}
+	add := func(raw string) {
+		if normalized := normalizeOrigin(raw); normalized != "" {
+			out[normalized] = struct{}{}
+		}
+	}
+	for _, uri := range uris {
+		add(uri)
+	}
+	for _, domain := range domains {
+		add(resolvePreferredURI(domain, nil))
+	}
+	add(challengeURI)
+	return out
+}
+
+// normalizeOrigin reduces a URL or bare host to a lowercase scheme://host.
+func normalizeOrigin(raw string) string {
+	value := strings.TrimSpace(raw)
+	if value == "" || value == "*" {
+		return ""
+	}
+	if !strings.Contains(value, "://") {
+		value = resolvePreferredURI(value, nil)
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Host == "" {
+		return ""
+	}
+	return strings.ToLower(parsed.Scheme) + "://" + strings.ToLower(parsed.Host)
+}
+
+// decodeSignatureBytes accepts any length: contract-wallet signatures are not
+// constrained to 65 bytes.
+func decodeSignatureBytes(signature string) ([]byte, error) {
+	raw := strings.TrimPrefix(strings.TrimSpace(signature), "0x")
+	if raw == "" || len(raw)%2 != 0 {
+		return nil, fmt.Errorf("%w: signature format", ErrBadSignature)
+	}
+	out, err := hex.DecodeString(raw)
+	if err != nil {
+		return nil, fmt.Errorf("%w: signature hex", ErrBadSignature)
+	}
+	return out, nil
 }
 
 // Me decodes the bearer + returns a WalletInfo. The verifier is the
@@ -280,20 +459,6 @@ func (s *Service) Me(verifier *auth.Verifier, bearer string) (WalletInfo, error)
 		return WalletInfo{}, err
 	}
 	return WalletInfo{Address: claims.Sub, ChainID: claims.ChainID}, nil
-}
-
-// cleanupLocked removes expired nonces. Caller holds s.mu.
-func (s *Service) cleanupLocked(now time.Time) {
-	for n, c := range s.nonces {
-		if now.After(c.expiresAt) {
-			delete(s.nonces, n)
-		}
-	}
-	for n, exp := range s.consumed {
-		if now.After(exp.Add(s.nonceTTL)) {
-			delete(s.consumed, n)
-		}
-	}
 }
 
 // Router mounts /api/web3-auth/{nonce,verify,me}.
@@ -325,12 +490,7 @@ func RegisterAuthAliases(r chi.Router, svc *Service, verifier *auth.Verifier) {
 
 func (s *Service) handleGetNonce(w http.ResponseWriter, r *http.Request) {
 	addr := strings.TrimSpace(r.URL.Query().Get("address"))
-	out, err := s.GenerateNonceFor(addr)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
+	s.respondWithNonce(w, r, addr)
 }
 
 func (s *Service) handlePostNonce(w http.ResponseWriter, r *http.Request) {
@@ -338,9 +498,21 @@ func (s *Service) handlePostNonce(w http.ResponseWriter, r *http.Request) {
 		Address string `json:"address"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
-	out, err := s.GenerateNonceFor(strings.TrimSpace(body.Address))
+	s.respondWithNonce(w, r, strings.TrimSpace(body.Address))
+}
+
+// respondWithNonce separates a caller mistake from a store outage: a bad
+// address is 400, an unreachable shared store is 503 with no target detail.
+func (s *Service) respondWithNonce(w http.ResponseWriter, r *http.Request, address string) {
+	out, err := s.GenerateNonceFor(r.Context(), address)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		if errors.Is(err, ErrBadMessage) {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		slog.ErrorContext(r.Context(), "web3auth nonce issue failed",
+			"err", err, "store", s.NonceStoreKind())
+		writeError(w, http.StatusServiceUnavailable, "sign-in challenge store unavailable")
 		return
 	}
 	writeJSON(w, http.StatusOK, out)
@@ -352,6 +524,7 @@ func (s *Service) handleVerify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
+	in.Origin = r.Header.Get("Origin")
 	out, err := s.VerifySiwe(r.Context(), in)
 	if err != nil {
 		switch {
@@ -359,11 +532,17 @@ func (s *Service) handleVerify(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnauthorized, err.Error())
 		case errors.Is(err, ErrNonceUnknown), errors.Is(err, ErrNonceExpired), errors.Is(err, ErrNonceMismatch):
 			writeError(w, http.StatusUnauthorized, err.Error())
-		case errors.Is(err, ErrChainNotAllowed):
+		case errors.Is(err, ErrChainNotAllowed), errors.Is(err, ErrContractVerificationUnavailable):
 			writeError(w, http.StatusUnauthorized, err.Error())
+		case errors.Is(err, ErrContractVerificationUnreachable):
+			slog.ErrorContext(r.Context(), "web3auth contract verification unreachable", "err", err)
+			writeError(w, http.StatusServiceUnavailable, ErrContractVerificationUnreachable.Error())
 		default:
-			slog.ErrorContext(r.Context(), "web3auth verify failed", "err", err)
-			writeError(w, http.StatusInternalServerError, err.Error())
+			// The message is deliberately fixed: a store or signing failure
+			// must not put its target, driver text or SQL in a public body.
+			slog.ErrorContext(r.Context(), "web3auth verify failed",
+				"err", err, "store", s.NonceStoreKind())
+			writeError(w, http.StatusServiceUnavailable, "sign-in temporarily unavailable")
 		}
 		return
 	}
@@ -403,15 +582,15 @@ func writeError(w http.ResponseWriter, status int, message string) {
 	})
 }
 
-func (s *Service) serializeChallenge(nonce string, challenge storedChallenge) NonceResponse {
+func (s *Service) serializeChallenge(nonce string, challenge Challenge) NonceResponse {
 	return NonceResponse{
 		Nonce:           nonce,
-		Domain:          challenge.domain,
-		URI:             challenge.uri,
-		Statement:       challenge.statement,
-		IssuedAt:        challenge.issuedAt.UTC().Format(time.RFC3339),
-		ExpirationTime:  challenge.expiresAt.UTC().Format(time.RFC3339),
-		AllowedChainIDs: append([]int(nil), challenge.allowedChainIDs...),
+		Domain:          challenge.Domain,
+		URI:             challenge.URI,
+		Statement:       challenge.Statement,
+		IssuedAt:        challenge.IssuedAt.UTC().Format(time.RFC3339),
+		ExpirationTime:  challenge.ExpiresAt.UTC().Format(time.RFC3339),
+		AllowedChainIDs: append([]int(nil), challenge.AllowedChainIDs...),
 	}
 }
 

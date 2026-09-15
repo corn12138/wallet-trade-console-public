@@ -193,7 +193,10 @@ func (r *Repository) CountTransactionsByFromAddress(ctx context.Context, fromAdd
 		return 0, ErrPoolUnavailable
 	}
 	args := []any{fromAddress}
-	clauses := []string{"from_address = $1"}
+	// Same exclusion as listTransactions. Without it the portfolio scalar counts
+	// superseded attempts the feed deliberately hides, so the two disagree the
+	// moment any transaction is replaced.
+	clauses := []string{"from_address = $1", "status NOT IN ('replaced', 'dropped')"}
 	if chainID != nil {
 		args = append(args, *chainID)
 		clauses = append(clauses, fmt.Sprintf("chain_id = $%d", len(args)))
@@ -226,7 +229,11 @@ func (r *Repository) listTransactions(ctx context.Context, q Query) ([]web3TxRow
 	limit := clampLimit(q.Limit)
 
 	args := []any{addr}
-	clauses := []string{"from_address = $1"}
+	// A speed-up or cancel produces a second ATTEMPT of one user action. Both
+	// rows are retained for history, but showing both in the feed would report
+	// one thing the user did as two. The superseded attempt is excluded here;
+	// its row is still readable by transaction hash.
+	clauses := []string{"from_address = $1", "status NOT IN ('replaced', 'dropped')"}
 	if q.ChainID != nil {
 		args = append(args, *q.ChainID)
 		clauses = append(clauses, fmt.Sprintf("chain_id = $%d", len(args)))
@@ -635,14 +642,33 @@ func buildTransactionTitle(txType *string) string {
 // deriveTxDisplayStatus mirrors hasIndexedMetadata: a confirmed tx
 // whose metadata.indexing.indexedAt is set surfaces as "indexed" so
 // the FE can mark it as fully processed (not just on-chain).
+//
+// The indexed alias applies ONLY to a transaction that is still good. Once a
+// transaction can be reorged, replaced or dropped, reporting an
+// indexed-then-reorged transaction as "indexed" would tell the user the opposite
+// of what happened — the metadata records that we once indexed it, not that it
+// is still on the canonical chain.
 func deriveTxDisplayStatus(status string, metadata []byte) string {
+	normalized := strings.ToLower(strings.TrimSpace(status))
+	if normalized == "" {
+		normalized = "pending"
+	}
+	if isTerminallyNegative(normalized) {
+		return normalized
+	}
 	if hasIndexedMetadata(metadata) {
 		return "indexed"
 	}
-	if status == "" {
-		return "pending"
+	return normalized
+}
+
+// isTerminallyNegative names the statuses that outrank the indexed alias.
+func isTerminallyNegative(status string) bool {
+	switch status {
+	case "failed", "reorged", "replaced", "dropped":
+		return true
 	}
-	return strings.ToLower(status)
+	return false
 }
 
 func hasIndexedMetadata(raw []byte) bool {

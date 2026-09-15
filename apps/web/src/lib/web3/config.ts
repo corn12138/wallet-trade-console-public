@@ -45,7 +45,8 @@ const localAnvil = {
  * 入口。加链和部署网关是同一件事的两半。
  */
 export const wagmiConfig = createConfig({
-  chains: [mainnet, sepolia, baseSepolia, arbitrumSepolia, localAnvil],
+  // A disconnected visitor starts in the same testnet context as the public demo.
+  chains: [sepolia, mainnet, baseSepolia, arbitrumSepolia, localAnvil],
   multiInjectedProviderDiscovery: true,
 
   // 连接器配置 - 仅使用 injected（支持 MetaMask, Rabby, OKX 等浏览器钱包）

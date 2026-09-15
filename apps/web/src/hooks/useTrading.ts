@@ -138,7 +138,7 @@ export function useTrading() {
     price: currentPrice,
     formatted: formattedPrice,
     isLoading: priceLoading,
-  } = usePerpPrice(liveSelectedMarket?.indexToken);
+  } = usePerpPrice(liveSelectedMarket?.indexToken, chainId);
 
   // ═══════════ READ: USDC Balance ═══════════
   const {

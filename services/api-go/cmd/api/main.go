@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math/big"
 	"net/http"
@@ -28,7 +29,6 @@ import (
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/earn"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/eventbus"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/httpx"
-	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/livekit"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/markets"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/media"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/papertrade"
@@ -146,15 +146,6 @@ func run() error {
 	paperTradeRepo := papertrade.NewRepository(pool)
 	usersRepo := users.NewRepository(pool)
 	articleRepo := article.NewRepository(pool)
-	livekitSvc := livekit.NewService(
-		os.Getenv("LIVEKIT_API_KEY"),
-		os.Getenv("LIVEKIT_API_SECRET"),
-		os.Getenv("LIVEKIT_WS_URL"),
-	)
-	if !livekitSvc.Configured() {
-		slog.Warn("LiveKit not configured; /api/livekit/token + /url will respond 400")
-	}
-
 	// Media upload/pinning (Create Token icon/banner + NFT Studio artwork
 	// and metadata). Provider comes from MEDIA_STORAGE env; disabled means
 	// the upload routes answer 503 with the config hint.
@@ -197,11 +188,24 @@ func run() error {
 	// which is the whole extension seam — deploy a counterpart gateway, set its
 	// url, and the route appears with no code change.
 	bridgeRPCs := buildBridgeRPCs(swapRPC)
+	web3TxVerifier := web3events.NewRPCTransactionVerifier(buildWeb3TransactionRPCs(bridgeRPCs))
 
 	// Web3-auth (SIWE). JWT_SECRET also signs the issued web3 access
 	// token (Type="web3"), same secret the existing auth.Verifier
 	// reads — so a token minted here verifies for guarded routes.
-	web3AuthSvc := web3auth.NewServiceFromEnv(os.Getenv("JWT_SECRET"))
+	//
+	// Construction resolves the shared challenge store, so a production
+	// process with no reachable Redis fails here rather than serving logins
+	// whose replay protection is silently process-local (ADR 0007).
+	web3AuthSvc, err := web3auth.NewServiceFromEnv(
+		ctx, os.Getenv("JWT_SECRET"),
+		web3auth.NewRPCContractVerifier(buildContractWalletRPCs(bridgeRPCs)),
+	)
+	if err != nil {
+		return fmt.Errorf("web3 auth: %w", err)
+	}
+	defer func() { _ = web3AuthSvc.Close() }()
+	slog.Info("web3 auth ready", "nonce_store", web3AuthSvc.NonceStoreKind())
 
 	// Pre-built services so portfolio.Deps can hold strongly-typed
 	// providers (AlertLister, MarketSnapshotProvider) without main
@@ -295,6 +299,7 @@ func run() error {
 			TradingRepoConcrete: tradingRepoConcrete,
 			TradingMarkets:      tradingMarketsAdapter{svc: marketsSvc},
 			Web3EventsRepo:      eventsRepoConcrete,
+			Web3TxVerifier:      web3TxVerifier,
 			TagsRepo:            tagsRepo,
 			PaperTradeRepo:      paperTradeRepo,
 			PaperTradeEnabled:   paperTradeEnabled,
@@ -304,7 +309,6 @@ func run() error {
 			CsrfSigner:          csrfSigner,
 			ArticleRepo:         articleRepo,
 			Media:               mediaSvc,
-			LiveKit:             livekitSvc,
 			ContractConfig:      contractCfgSvc,
 			TxReview:            txReviewSvc,
 			AIExplain:           aiExplainSvc,
@@ -350,6 +354,25 @@ func run() error {
 		} else {
 			slog.Warn("token-events producer feed disabled (no database pool)")
 		}
+	}
+
+	// Durable transaction reconciliation (WP1-B). Deliberately OFF unless an
+	// operator sets an interval: every other reconciler in this deployment runs
+	// as its own container, and WP2 moves this one there too. Until then it is
+	// opt-in so enabling it is a decision, not a side effect of deploying.
+	// Every write it makes is idempotent and derived from chain facts, so more
+	// than one API replica running it is harmless.
+	if interval := reconcilerInterval(); interval > 0 && pool != nil && eventsRepoConcrete != nil {
+		reconciler := web3events.NewReconciler(
+			eventsRepoConcrete, web3TxVerifier,
+			web3events.ReconcilerConfig{Interval: interval},
+			slog.Default(),
+		)
+		go reconciler.Run(ctx)
+		slog.Info("web3 transaction reconciler enabled", "interval", interval.String())
+	} else {
+		slog.Info("web3 transaction reconciler disabled",
+			"hint", "set WEB3TX_RECONCILER_INTERVAL_SECONDS to enable")
 	}
 
 	go func() {
@@ -866,6 +889,68 @@ func buildBridgeRPCs(sepolia *rpc.Client) map[int]bridge.EthCaller {
 		}
 		out[chainID] = rpc.NewClient(url, 0)
 		slog.Info("bridge: per-chain RPC configured", "chainId", chainID, "rpc_url", rpc.RedactURL(url))
+	}
+	return out
+}
+
+// reconcilerInterval reads the opt-in. An unset, unparsable or non-positive
+// value means disabled — there is no default-on path.
+func reconcilerInterval() time.Duration {
+	raw := strings.TrimSpace(os.Getenv("WEB3TX_RECONCILER_INTERVAL_SECONDS"))
+	if raw == "" {
+		return 0
+	}
+	seconds, err := strconv.Atoi(raw)
+	if err != nil || seconds <= 0 {
+		slog.Warn("ignoring invalid WEB3TX_RECONCILER_INTERVAL_SECONDS", "value", raw)
+		return 0
+	}
+	return time.Duration(seconds) * time.Second
+}
+
+// buildContractWalletRPCs supplies the EIP-1271 verifier one read client per
+// chain the API can actually reach. A chain absent here cannot authenticate a
+// smart-wallet login at all, which is the intended fail-closed behaviour: the
+// alternative would be trusting an address we cannot ask.
+func buildContractWalletRPCs(bridgeRPCs map[int]bridge.EthCaller) map[int]web3auth.EthCaller {
+	out := make(map[int]web3auth.EthCaller)
+	for chainID, candidate := range bridgeRPCs {
+		if _, allowed := contractWalletChains[chainID]; !allowed {
+			continue
+		}
+		if caller, ok := candidate.(web3auth.EthCaller); ok {
+			out[chainID] = caller
+		}
+	}
+	return out
+}
+
+// contractWalletChains is the testnet allowlist for smart-wallet logins. It
+// mirrors the one buildWeb3TransactionRPCs applies; mainnet chain ids are
+// deliberately absent from both.
+var contractWalletChains = map[int]struct{}{
+	31337:    {},
+	84532:    {},
+	421614:   {},
+	11155111: {},
+}
+
+func buildWeb3TransactionRPCs(bridgeRPCs map[int]bridge.EthCaller) map[int]web3events.ChainRPC {
+	allowedTestnets := map[int]struct{}{
+		31337:    {},
+		84532:    {},
+		421614:   {},
+		11155111: {},
+	}
+	out := make(map[int]web3events.ChainRPC)
+	for chainID, candidate := range bridgeRPCs {
+		if _, allowed := allowedTestnets[chainID]; !allowed {
+			continue
+		}
+		client, ok := candidate.(web3events.ChainRPC)
+		if ok {
+			out[chainID] = client
+		}
 	}
 	return out
 }

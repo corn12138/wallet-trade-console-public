@@ -107,6 +107,24 @@ export const BondingCurveABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minTokens",
+        "type": "uint256"
+      }
+    ],
+    "name": "buyFor",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "claimPayment",
     "outputs": [],
@@ -612,6 +630,19 @@ export const BondingCurveABI = [
         "internalType": "contract LaunchToken",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalPendingPayments",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

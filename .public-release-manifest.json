@@ -138,7 +138,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/Common.tsx",
-      "sha256": "244f38f708452e634d2d7520c245c10439499dc2000586726f1cc8f9d2b8a560"
+      "sha256": "cdfa33450c8cee033bac5b8383b2d5a7dbb9d6d333d15eb0f7acf2ee6a4c870a"
     },
     {
       "mode": "100644",
@@ -183,7 +183,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/PagesMarketing.spec.tsx",
-      "sha256": "790b19a5d6075360b9ac37d3cdebc1becc8cb2c288176b468545c208192aab3a"
+      "sha256": "6b95868ac2396d8c9c735a5fef7a5a6f9936d925eb0dbd0104fa5f8e7a5930cb"
     },
     {
       "mode": "100644",
@@ -194,6 +194,11 @@
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/ProductStatus.tsx",
       "sha256": "5e9419c8d68f690f14dd8dc897add529fbf94b0992bd088fa204a0d90525dc1f"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/app/_atlas/TxIntentModal.spec.tsx",
+      "sha256": "f7085b25cc6f2828c45adf0a315de9143f6f4445f20066b8b8690968963be04d"
     },
     {
       "mode": "100644",
@@ -218,7 +223,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/diagnostics.ts",
-      "sha256": "43d10b1d05accb4caca068e5feeef6a26021a48565d77b346d6fa39a7aeefd39"
+      "sha256": "855044ee2486364506ae1c45f7c8e26f6853aaea9ceaf3b931eec5e22bc58024"
     },
     {
       "mode": "100644",
@@ -303,12 +308,12 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/SwapPage.spec.tsx",
-      "sha256": "804d52ff3ef45cdcd4717feff470f4eef43e15c5a297ec3d914fd2a4ab652ecb"
+      "sha256": "3b0e4194004ef2bb69b1c39aba8bdc6a3e8b9c760aae6d5e4a528ea9c17a2257"
     },
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/SwapPage.tsx",
-      "sha256": "c7dcb3c5331a462405d251fd90e03165fa8657a14ba179d4b5c1d234955d2bba"
+      "sha256": "bffb0707c563365976e2f91e1d9bfa03058ff07a2bbbf3deb58cbc3019da494c"
     },
     {
       "mode": "100644",
@@ -318,7 +323,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/_atlas/pages/TradeCandleChart.tsx",
-      "sha256": "3c7768208d29deed1b44de79934b93f98c4f96b33d33c0aa2c89a506fa6a9533"
+      "sha256": "5a8ed0f0f0539379e1670357525984c05e7645cd084e7091407ae6efb5e9ddf3"
     },
     {
       "mode": "100644",
@@ -443,7 +448,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/app/atlas-design.css",
-      "sha256": "f088c8645ed6a6440b7958f1b8670901476795dfdc416325cdffe01d1b1c5e81"
+      "sha256": "7217762fe1bd85adbc2b2175c79e55e576527aafb40d2dc80874df1b04109553"
     },
     {
       "mode": "100644",
@@ -898,7 +903,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/hooks/useTrading.ts",
-      "sha256": "749d147114fc2bf32e8e86468cca8ffc17605520ca2e26986631d723990ccf72"
+      "sha256": "11fe5ca0175b1a71be426e2ed86ff30af7c9058863e2fe7fce04dcd54920e43c"
     },
     {
       "mode": "100644",
@@ -927,6 +932,51 @@
     },
     {
       "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/errors.spec.ts",
+      "sha256": "546aff8414823ac17c8102da9eccb3d0bbca98a87b18b2b1fabe3a2037321438"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/errors.ts",
+      "sha256": "2de48058fb08c746cfbdf1ca1b2aa8c92e571383c223ad74fb3205d530bc0f02"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/intent.spec.ts",
+      "sha256": "918e3361ce2d179c05e8f4756f05b0afc59abd4e4b3832f35cd98a594d64262b"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/intent.ts",
+      "sha256": "8d39422acf8b4ccf581160aaf86958974c20572a087c811643503772bcf3ffc3"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/machine.spec.ts",
+      "sha256": "e0a070a6796dec4f6d875e634c98d73c5191dc0e7eed8fd2d56885cb61309643"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/machine.ts",
+      "sha256": "5ab723b5cb01f1b6d89e9d2a9af3275c123cc8d017d413146a9c57ad1eaf45ea"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/types.ts",
+      "sha256": "05843d4f343f81c49f10645deb83c6be0eb033c2d1fe359c6f75394f7caa8b64"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/useTxIntent.spec.tsx",
+      "sha256": "40dbdd19037f46bef6bd1c7a3accc7fb847664a63bf5594b07ebeaf0e0b72dcb"
+    },
+    {
+      "mode": "100644",
+      "path": "apps/web/src/hooks/web3/txIntent/useTxIntent.ts",
+      "sha256": "896ee35343b9b46e6570bee442e675ad29bf6a0a118b171ba22e8e6d6045d359"
+    },
+    {
+      "mode": "100644",
       "path": "apps/web/src/hooks/web3/useClientMounted.ts",
       "sha256": "d4a4067e29bf6bdc46a60be8b8945066c0b73ecec56436b34c5ebcece71624a7"
     },
@@ -947,8 +997,13 @@
     },
     {
       "mode": "100644",
+      "path": "apps/web/src/hooks/web3/usePerpPrice.spec.tsx",
+      "sha256": "85da7872a2b42bfbbf2751efe3623e9e742da4ae2b25c00a09f45095ec5a985e"
+    },
+    {
+      "mode": "100644",
       "path": "apps/web/src/hooks/web3/usePerpPrice.ts",
-      "sha256": "40840840449e927b1691392bde1e89adaee4e58e908bda2e1b1d67b28b93e445"
+      "sha256": "3c569cf8c2baec9fdd5fec62f06d4d6ba2ab1fba62b8e86cc6d220d5b67ae96c"
     },
     {
       "mode": "100644",
@@ -1128,7 +1183,7 @@
     {
       "mode": "100644",
       "path": "apps/web/src/lib/web3/config.ts",
-      "sha256": "49817d9b85f154a086d6353a798333de45f6cf452bfafd9673c6e07c1bcb88fa"
+      "sha256": "6e38ee8ebac296002c4cd5360c8ee71a478d46c8502fe91b6389b035741e6b14"
     },
     {
       "mode": "100644",
@@ -1208,7 +1263,7 @@
     {
       "mode": "100644",
       "path": "contracts/README.md",
-      "sha256": "f6b5fb4280acd960beec66a29cea705c74336f2245600fe0b1f357fe40648cc6"
+      "sha256": "193dd729d24285d0756827c32a019f0bcf5dbc0bbf8e1d7b9fc5516ec6700868"
     },
     {
       "mode": "100644",
@@ -1263,17 +1318,17 @@
     {
       "mode": "100644",
       "path": "contracts/hardhat-runtime.ts",
-      "sha256": "e01b8a8fcc77cd6489fc1e1129938a0d5aafe6e2ce63cec2d78c5996889c0667"
+      "sha256": "1384ed94c1bc6c4bdbc407b7315156faadd1442a4f5a131b8871cec20dde9378"
     },
     {
       "mode": "100644",
       "path": "contracts/hardhat.config.ts",
-      "sha256": "c3a1efc6cde90a9c6c8332e72c84677aeb8e0bc61b81d5d7da50a1fb5e1902c6"
+      "sha256": "20a89e2306bb7d823a47df5094f0985641b2efd613bd57c4ed738c6b2767f7ed"
     },
     {
       "mode": "100644",
       "path": "contracts/package.json",
-      "sha256": "27a3749939cf602afb79c94afb8116699fbd738b9cfc711c6fffb4b95ab47015"
+      "sha256": "115589a08962f5bc37e7cbf05bf410f3b1c1be12902013151f62e60191cf9c9d"
     },
     {
       "mode": "100644",
@@ -1288,7 +1343,7 @@
     {
       "mode": "100644",
       "path": "contracts/scripts/deploy-all-sepolia.ts",
-      "sha256": "13d18893b2febeee4dd0c85b8e24508af22bc607ca659bbf171d74ed33dfd9d4"
+      "sha256": "9bcb21d3245812ca6b1fba183102ae53177ac33d54e95b58ca2cebedae0247a3"
     },
     {
       "mode": "100644",
@@ -1303,7 +1358,7 @@
     {
       "mode": "100644",
       "path": "contracts/scripts/deploy-launchpad.ts",
-      "sha256": "55a312116969680c1ca08a5df555aeaa03733bc3c717bd348ed4b57619dc9520"
+      "sha256": "bb3fafec38f31558697ee215c7ec14cb22cce46b18a421504adf97cf5198694f"
     },
     {
       "mode": "100644",
@@ -1354,6 +1409,16 @@
       "mode": "100644",
       "path": "contracts/scripts/onchain-art-nft.utils.ts",
       "sha256": "1efd869f0219368565dda0cdc57fd3ae1d836d9604b8a177b72ecf414a3d4db3"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/router-compatibility.test.ts",
+      "sha256": "3ad4cd8afa976f13d1c5f7e2565d6f6f6eda77b75d065e3f4063a67a625d58a7"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts/scripts/router-compatibility.ts",
+      "sha256": "23b2b5716fc4c24d2b05ea5a9f618bd8027fe590812348801026e8c55ccdb2f5"
     },
     {
       "mode": "100644",
@@ -1408,7 +1473,7 @@
     {
       "mode": "100644",
       "path": "contracts/src/launchpad/BondingCurve.sol",
-      "sha256": "dfbbf07ff2f39853b1a1d614fa28e75ad3cd40c0493262bdfe5b730bd9ac8122"
+      "sha256": "7b02352d7b333178e9ea3d348efd25949227487c83c9a5882295c5ec8d03ccef"
     },
     {
       "mode": "100644",
@@ -1423,7 +1488,7 @@
     {
       "mode": "100644",
       "path": "contracts/src/launchpad/TokenFactory.sol",
-      "sha256": "5ef6136d4519f5ed2f3f964dd9c31b2ee09633070907f78f2121d064a0ff12e1"
+      "sha256": "06a0cea0f65924dca27510d3a8403b7511afc06d6eaeafeda0aefd810bf4cae4"
     },
     {
       "mode": "100644",
@@ -1462,28 +1527,8 @@
     },
     {
       "mode": "100644",
-      "path": "contracts/test/IpfsArtworkNFT.test.ts",
-      "sha256": "6bedf955c800b3d1cf0120001e0718b6ead2c35f59022aa09aed8a7fb6bed8b3"
-    },
-    {
-      "mode": "100644",
-      "path": "contracts/test/OnchainArtworkNFT.test.ts",
-      "sha256": "385f5e791b78f46c889d8f344500fc3bbca1d994f469c77f0d24c5ba63275ab2"
-    },
-    {
-      "mode": "100644",
-      "path": "contracts/test/PerpDEX.test.ts",
-      "sha256": "30fc8591889af42438595b4c074809ce3604fbdf4ed7f77dcca3da77e9c43b74"
-    },
-    {
-      "mode": "100644",
-      "path": "contracts/test/TradingPair.test.ts",
-      "sha256": "0f54986201e3e2fd12159fe044c9f57fdd0b24c78d5f6621ab851c613d5085ff"
-    },
-    {
-      "mode": "100644",
       "path": "contracts/tsconfig.json",
-      "sha256": "c28b2bb9c5745058e8e78c5cc073330204977af6085050f6e631b99224e2cc99"
+      "sha256": "4944ceb8efae40c73d760c5ad476a1642137b9d2ec8da1dfdf76eda26c7f2baf"
     },
     {
       "mode": "100644",
@@ -3311,6 +3356,11 @@
       "sha256": "056b21398bdf3a2452342bea0542ccd539ad18a03cc271aabd8f8b9920026762"
     },
     {
+      "mode": "100644",
+      "path": "contracts-foundry/script/RouterCompatibility.sol",
+      "sha256": "d520dc6f846c38931536fc0e06a835b96e33c1a0f3bc5603c3da0e985ff05003"
+    },
+    {
       "mode": "100755",
       "path": "contracts-foundry/script/generate-abis.sh",
       "sha256": "3570ff5bf3040c7c1a73cf6fa118707a6c7bcd26b238dfa7eaaf47949d0813a0"
@@ -3363,7 +3413,7 @@
     {
       "mode": "100644",
       "path": "contracts-foundry/src/launchpad/BondingCurve.sol",
-      "sha256": "dfbbf07ff2f39853b1a1d614fa28e75ad3cd40c0493262bdfe5b730bd9ac8122"
+      "sha256": "7b02352d7b333178e9ea3d348efd25949227487c83c9a5882295c5ec8d03ccef"
     },
     {
       "mode": "100644",
@@ -3378,7 +3428,7 @@
     {
       "mode": "100644",
       "path": "contracts-foundry/src/launchpad/TokenFactory.sol",
-      "sha256": "5ef6136d4519f5ed2f3f964dd9c31b2ee09633070907f78f2121d064a0ff12e1"
+      "sha256": "06a0cea0f65924dca27510d3a8403b7511afc06d6eaeafeda0aefd810bf4cae4"
     },
     {
       "mode": "100644",
@@ -3417,6 +3467,16 @@
     },
     {
       "mode": "100644",
+      "path": "contracts-foundry/test/ArtworkNFT.t.sol",
+      "sha256": "3235aea5b58a3fa86e47a9e463bef3828080b988d93c948ffa738c274a614025"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/BondingCurveAccounting.t.sol",
+      "sha256": "01ced22c8f3b49a889cdd94a2ab35e9820a35a3a71b81229908edd91467c3ac1"
+    },
+    {
+      "mode": "100644",
       "path": "contracts-foundry/test/BridgeGateway.t.sol",
       "sha256": "a37c25d88f06443649b087a8728484bb3822c9a0c9fded8f37008fbdbe09e359"
     },
@@ -3427,8 +3487,38 @@
     },
     {
       "mode": "100644",
+      "path": "contracts-foundry/test/RouterCompatibility.t.sol",
+      "sha256": "87c09623f0c019d51985eec9c0313aa46c6417131e7c1a401b85dd2efe955be2"
+    },
+    {
+      "mode": "100644",
       "path": "contracts-foundry/test/TradingPair.t.sol",
       "sha256": "3adbaa67ebd2aee74f4493cfb2b98cc290886680f5154061866373b49babdd70"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/fixtures/EIP1271TestWallet.sol",
+      "sha256": "ec8553c8245869db738ffbd7dd3700a7a221dee1b33b9854b6430c9cf1f8922c"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/perp/PerpLifecycle.t.sol",
+      "sha256": "f26281f982c53ce1b7e0aa11c3149ed119f2784c8eebe66399f006f620d7395a"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/perp/PerpOracleVault.t.sol",
+      "sha256": "cb3bf656562b3939ceb593a98284f17130f8cb9213d5914d7b6a0f4c69995eb8"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/perp/PerpPositionManager.t.sol",
+      "sha256": "b6eae35b7af05da9bc7794e834a154c1dd67f3183958e923157cbf031e7d63f6"
+    },
+    {
+      "mode": "100644",
+      "path": "contracts-foundry/test/perp/PerpTestBase.sol",
+      "sha256": "f634bc29194886f2f9d8feaa9dffa59a561ab1cb5f09f7841ec54b2ea1910856"
     },
     {
       "mode": "100644",
@@ -3443,7 +3533,7 @@
     {
       "mode": "100644",
       "path": "package.json",
-      "sha256": "33c8194548bfe8de0cb2ea89ce73bd0d957ff0384a2fb35e37739a0009a31544"
+      "sha256": "6ff0d8850cd7ce00d1399b7e92d71e215edfc085458d7162f6df1111bb6bbf29"
     },
     {
       "mode": "100644",
@@ -3453,7 +3543,7 @@
     {
       "mode": "100644",
       "path": "packages/database/prisma/schema.prisma",
-      "sha256": "f1ebe7356353419e768a4c367cdd91ba96da9f3c4b1807101cebc48ed917d036"
+      "sha256": "1c77f4000f3e6bfd9c26671b52f44d7743cd68c86a025d53f6e58169f8e0fd7e"
     },
     {
       "mode": "100644",
@@ -3598,7 +3688,7 @@
     {
       "mode": "100644",
       "path": "packages/shared/src/web3/abis/BondingCurve.ts",
-      "sha256": "cd267379b9450c2300f763dc503caecf20a5b98d5f25dda940fa4fe299784e1c"
+      "sha256": "12b2c7630ae693e0487b0dad28bf34c8a653bed578d244fd160a554b4c57742d"
     },
     {
       "mode": "100644",
@@ -3703,7 +3793,7 @@
     {
       "mode": "100644",
       "path": "pnpm-lock.yaml",
-      "sha256": "e93f3fa25748173305a3bf815b761c1fe35d70acd5e0b367e7441cd2d418bbf3"
+      "sha256": "c1fdb73f23d8d1cce32157590dfb0c5949efb40e2311d9bf64791313780c73b7"
     },
     {
       "mode": "100644",
@@ -3763,7 +3853,12 @@
     {
       "mode": "100644",
       "path": "services/api-go/cmd/api/main.go",
-      "sha256": "7c993b3ebfd339c601cb5e98d802aa48588e759611584708a1ffad90788ac264"
+      "sha256": "88fda3e5d1b55ea1ef4696291eb89a39098c4e89c2ca9e5a05a9d022777958e0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/api/main_test.go",
+      "sha256": "dd1d101ffa02ae3bfd05df0d72166b07a95714e14d012bce3f7288cec726ce3d"
     },
     {
       "mode": "100644",
@@ -3788,7 +3883,12 @@
     {
       "mode": "100644",
       "path": "services/api-go/cmd/indexer/main.go",
-      "sha256": "9e583a5bc590d2838b67700f91d63c1b31cc1484d60764035796521b07f8b513"
+      "sha256": "cefe04ab399b697d53fa121c9ea7cc11df3a357fd1f111381f268f5c7634ec1a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/cmd/indexer/main_rehearsal_test.go",
+      "sha256": "415e963dbc166922ece5d03967f67ed189e3a279e762edd69d8e9afc29e58f59"
     },
     {
       "mode": "100644",
@@ -3843,12 +3943,12 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/activity/activity.go",
-      "sha256": "7a33775f815d225ad54c2d971924e93e6c7756dfcf3e0b7c788cf37cafa8e859"
+      "sha256": "c39879be9106b2d0547803fe2c8b056be82d5d36370c52f38095ca8f6aae8ec0"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/activity/activity_test.go",
-      "sha256": "7f41c9515b1c78c4131f78d6b109f3ab00d97e5442ac23a5beaa83d124e68458"
+      "sha256": "af39c18bc7300c796b4793fd092e9b3bd969e09650616941deceff0d5e0038e7"
     },
     {
       "mode": "100644",
@@ -3968,7 +4068,7 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/bridge/relayer.go",
-      "sha256": "f3745109fe64ad6ef7cef097eee9594ca6cc683353ca3f11f7eee0d721793d80"
+      "sha256": "be357b7ac3ef3bbb6d393c6a43aab0150cdfa9eff956a8278da30301862af0a9"
     },
     {
       "mode": "100644",
@@ -3977,8 +4077,23 @@
     },
     {
       "mode": "100644",
+      "path": "services/api-go/internal/bridge/scan_progress.go",
+      "sha256": "35f14c88e081cd0898d8fd43842deecdf2fd6c8c76563896c552b79a4c49c7d1"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/scan_progress_integration_test.go",
+      "sha256": "c9d530b0e910b7551bec5996610c31e4a6659c53d329cfda4c75c7f5b101590e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/bridge/scan_progress_test.go",
+      "sha256": "eb761cd9a7c0fe6b401b432f6f07df8becb7d9cf7ad5fee8d3435a733a586014"
+    },
+    {
+      "mode": "100644",
       "path": "services/api-go/internal/bridge/store.go",
-      "sha256": "241749aba5f3ac822f699417c8daa0b0bc699fef0f013c15f6da67e51e19f1ed"
+      "sha256": "46704f82597e076a2e330327550f45548458baf326ef8dd6cb6d082462e61f30"
     },
     {
       "mode": "100644",
@@ -4103,22 +4218,22 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/httpx/server.go",
-      "sha256": "166bdb5b876af1f16afb69d4c85fdeeb15f4ef0376af0feff0479f1e2714d601"
+      "sha256": "108fbdd253573656b02140eac74cf6da062418b8025820f2e378e66064a00fbf"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/httpx/server_test.go",
-      "sha256": "3fa601f694313528691b638429e7c72a88d37a4b5da5b643c556da63f2e10a36"
+      "sha256": "15ac9a3b858c6c0c40c8052a03ed21226bc2b01d43fa0320a65403c5e7f5774e"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/i18n/baseline/en.json",
-      "sha256": "c2d83c01c7aed8ac380353a0b2c6f7254bdb2c65a0907ff2c1305ece74305ca7"
+      "sha256": "4c5df549eb553218c8932c3e75efdff8dc3d60a6dbdc2d85b2076ce1d9f70a64"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/i18n/baseline/zh.json",
-      "sha256": "822bff5c892c6570fa71072dccd3ff4040d7e9758b4b7a69300a1e74f637b5a8"
+      "sha256": "e38e16bee37b0dedf189aaa552da1c750dfdb4b5aa738fb3628b66bc94d27346"
     },
     {
       "mode": "100644",
@@ -4163,7 +4278,7 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/backfill.go",
-      "sha256": "6cb7bf7ecb9a0575e1e545827261a6c200509012857012702a3ddd2f4e875261"
+      "sha256": "cb4f19e435e5c5b5da84fcd2a0eb34bdcecc42df83d87bb4c503443c1f158942"
     },
     {
       "mode": "100644",
@@ -4227,28 +4342,58 @@
     },
     {
       "mode": "100644",
+      "path": "services/api-go/internal/indexer/projection_failure_boundaries_test.go",
+      "sha256": "12a026b80a5325a6853687cb38259295a76c50f08bd24478b18f3c5f8ef6d811"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/projection_identity.go",
+      "sha256": "02923184f85d9e9659d391796c6155e99351431cada8c128b82759f3394670eb"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/projection_repair.go",
+      "sha256": "8a5e157b10f21056be3b65065223859221aa0f47ea46c722ce2cf6a683befbed"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/projection_repair_test.go",
+      "sha256": "d90259ce7e720fc44b5819e0da1183d3b00dba0204529ad8c57314ae201be507"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/projection_transaction.go",
+      "sha256": "fc5630e0b0ee6592176cc0e9c7d6e7f183fb8bab909207e81c2ffdcd949d0806"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/indexer/projection_transaction_test.go",
+      "sha256": "8d95648d8a31e7e25baadde221bb5560352d9c1de0d642803a2c31be5226dc11"
+    },
+    {
+      "mode": "100644",
       "path": "services/api-go/internal/indexer/sink_db.go",
-      "sha256": "fd77ab6432c93a3e66a4881905aa5abe3ac14f379ce55d72adbbc836cb0b2e64"
+      "sha256": "466ccc6a8ea13fa222868139eb04aff778bc6a593927f12f9f2c4c9fe507a684"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/sink_db_test.go",
-      "sha256": "7f47b92f53ad3f3f73dd5f307b00d7319bcd5c6c6e07672d7cf95e00bdc826f2"
+      "sha256": "da5588d835616abd11182d430d656aa743f4c80df92f509d689cb75eac793803"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/sink_perp.go",
-      "sha256": "5c18009760a4f5760ee933a3392148310e5321eb80fe969fee0dd32e75982ff0"
+      "sha256": "9d3c7ad786a1e05eb3c01898b304f0de8e4e0543c5c9fc08721b06b32f4b21bf"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/sink_perp_test.go",
-      "sha256": "ebb37c1e2920f1d1d29e90241193dd6e07548569a5e1129858366f19ec8d2a33"
+      "sha256": "28883f3ed3a30dd20e5708622e125f8a2dd4c3f1e95dc3f18f00c4e2af3ece75"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexer/sink_staking.go",
-      "sha256": "0d5b3856ee1a6e8038eb9f5ef05fb04f565ddb58a287bf9038f7565da921b387"
+      "sha256": "46bcc60a49b86519586558915db969cfb621fcf662ad6dbb2fd28caf3761a7f9"
     },
     {
       "mode": "100644",
@@ -4263,12 +4408,12 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexeradmin/indexeradmin.go",
-      "sha256": "3825df562f92abec62752d2656873e83be357e9d7772b1fc6b484da69ad385f1"
+      "sha256": "4d16a84daf750a38159c033070b9a37c9be43d990663e0efb9887dec13c05d93"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/indexeradmin/indexeradmin_test.go",
-      "sha256": "11b2adf1ed7aa687115f6b9de82820f817073cd34430c8220b75886cf2376004"
+      "sha256": "cac49e59b7650bdc2f29be7572670d64a8551a7cac3e4d6d2d0f21bb4d7cf196"
     },
     {
       "mode": "100644",
@@ -4628,12 +4773,12 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/rpc/client.go",
-      "sha256": "dfb4370cd809c6aef588c551c40511a9da1f8cd21ab07f099aa2fd2c1f0cb3ba"
+      "sha256": "76d9acbe3cd6f72473ad1447f80c7e964759c2c8536ed4a04632cead6bbe31bf"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/rpc/client_test.go",
-      "sha256": "b17b55e20d746297eae79c6251a56973e5bdbbc763b4e9ebc649ef2a372168af"
+      "sha256": "1e49d43633c33dcc8a3ab32cfa0b6639ba01b08c5af76bf34359b11ec4505a09"
     },
     {
       "mode": "100644",
@@ -4703,27 +4848,37 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/staking/handlers.go",
-      "sha256": "4b9a0eb775b292003ae198909ce9d0d58d46389dda7f0c014bef77108b553406"
+      "sha256": "0847b729e7981be40eb7f5b8c2f3ae05d505051bd37e5daa4674eb1e71e3542a"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/staking/handlers_test.go",
-      "sha256": "9a0204783578bb430e3befc5e7e3678211eb815f8860227c183a616e41609c18"
+      "sha256": "79f70fc93273eaa31fe5e9d0820235a48b9543a8e3cf84ffd498edd279514c21"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/staking/staking.go",
-      "sha256": "5ea0b28853a20d7a0e664549241eb9c96a49fa43a3d3561e5e425035889abbc7"
+      "sha256": "efc09b52005c732df620f4e152e02b6a1b402d5c3a8ba7bcd6bd2e7b2e054d03"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/swap/live_quote.go",
+      "sha256": "9737b039acffbcf441599330efa25100f8d376b3bd60d9cafaf4eab9701635a3"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/swap/live_quote_test.go",
+      "sha256": "17fd199b4dd7bfe1aec06d2026ab8e4ed8dcafc691886515015952362c686cd5"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/swap/swap.go",
-      "sha256": "528ab0114da0fb1b162d2ab968d867910d708ea002c86d7f0365194696c86eb2"
+      "sha256": "ad1f997849c1d25935ee891bc4c0630dbdb6b97855046eb1c514a49bdc4554fd"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/swap/swap_test.go",
-      "sha256": "33d9b2828b971e853c69c69319fce65e65ab40179dc4e37c34e8b37787f993d0"
+      "sha256": "0064620a163a342b3dadfde1b8fa01e5a856b591e89dc779932409880b113b14"
     },
     {
       "mode": "100644",
@@ -4932,8 +5087,48 @@
     },
     {
       "mode": "100644",
+      "path": "services/api-go/internal/web3auth/eip1271.go",
+      "sha256": "b21bf6b6a4e0cb9257cd1d68da69a15445f12e99e4c6c5a7dd0fd16aa0b0daf0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/eip1271_chain_integration_test.go",
+      "sha256": "31942c9ac00ac072e72a96f75c7b3b60e7c91ac70bf9f9429908136af683c023"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/eip1271_test.go",
+      "sha256": "f12a7c1f92279da2054a839b06b216737e5e727e76ff89fa1a5209ae840a0bf2"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/noncestore.go",
+      "sha256": "e19e1b76d5a3bcae9ac56b63eefeb925448d9af722094b385517d582e040eaa8"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/noncestore_config.go",
+      "sha256": "a5c59bae74c43df515e426fa6b3808278bddd109247e2f2c37e40072cb5735cd"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/noncestore_redis.go",
+      "sha256": "bc26d6188dce3bc55a35b254438fe60786161887afbed12a9b4e6cbc3a6e9121"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/noncestore_redis_integration_test.go",
+      "sha256": "fc8d4d2e2c8f4a13d5387c0f954b3b653ca6d87f305e050062590056541c241a"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/noncestore_test.go",
+      "sha256": "8d08244e2aeb86a757ffd1f48ef70bb7ebba960f4e821d04fbdbdc6956dd66d6"
+    },
+    {
+      "mode": "100644",
       "path": "services/api-go/internal/web3auth/service.go",
-      "sha256": "7fd468131fae4b44f02f5840761fcdd4115b06abc44b8204a80c62b4c1fbd39e"
+      "sha256": "fe0a43e1c3420b25a6b9f45ed3935a8708020a5e464a84593258baea5012fcfb"
     },
     {
       "mode": "100644",
@@ -4943,12 +5138,37 @@
     {
       "mode": "100644",
       "path": "services/api-go/internal/web3auth/siwe_test.go",
-      "sha256": "9b74d450f20f8bc776210b3369979a1bd9800309ccc19b79229ed058e4ea6e52"
+      "sha256": "ba4cd27288bdbdb27871c4fbdd3272ef832937ea1cd277a82e80b0b058420098"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3auth/verify_test.go",
+      "sha256": "8398bcb35dfc1466ee68f9fcca60292cfd16c65ecb850c2baea90651ba365d55"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/actions.go",
+      "sha256": "867a573b5f895fecbfcdd12e924ad6e160b3c432c79f1f4c0c5e1b9a621bb2e4"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/actions_integration_test.go",
+      "sha256": "b61fe8cc2ef3cd5b49cc853444da0750462bd52b047a897bfcd1b0c0f9a21bb0"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/actions_repo.go",
+      "sha256": "748f42fda39c23bbebea233dec5dc910f98fc5b5e61172c86d2cc0d0cab5911d"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/actions_test.go",
+      "sha256": "d87e76bb5c961cc9a323302a0b2f4ab58c150bf8d418b4391e2865a256af18a4"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/web3events/handlers.go",
-      "sha256": "c089e0b5328e759551adb5238ee575a234e1cf5745547f59abc4504e8bbf7480"
+      "sha256": "2c205b5daee37b618629f84eedfa36a8d5b47641969488bcf65419af0b24b96d"
     },
     {
       "mode": "100644",
@@ -4967,13 +5187,38 @@
     },
     {
       "mode": "100644",
+      "path": "services/api-go/internal/web3events/reconciler.go",
+      "sha256": "f5d7e85c2697eae651ff393a45fe3fd08c341e4ac7316a599c389304b8d69a9e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/reconciler_test.go",
+      "sha256": "800f88aef6018b8e2c6be984df6a5ec6e90e860d15acdfba239644132b198e8e"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/verification.go",
+      "sha256": "72218ddc5acadc8112b394dbc42359ded23fdfc1aa8d036a6d4a8d44889338f7"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/verification_test.go",
+      "sha256": "8e0cbec949bbf5b6b1316e98c1236f7128b1a42c31fa588995debc070953d37e"
+    },
+    {
+      "mode": "100644",
       "path": "services/api-go/internal/web3events/web3events.go",
-      "sha256": "eb9b5b3a7e72d2eb7e627c94030e958f71249cb07a3e08573d2eba4c12c7b026"
+      "sha256": "2719c64e615da48ad0d84f2785871a4b702063a4e071def5b71a542d54c78bcc"
+    },
+    {
+      "mode": "100644",
+      "path": "services/api-go/internal/web3events/writes_integration_test.go",
+      "sha256": "309cedba5e2c04bf53b12cb872a5b39d6125b4baf4fed3679654b1cb4f2f6674"
     },
     {
       "mode": "100644",
       "path": "services/api-go/internal/web3events/writes_test.go",
-      "sha256": "a4b02210f145ed3335a48cab539ca7500d4ae6ff2c905922403aa33fe27c6ac5"
+      "sha256": "a750254dbd8726411a45c63e1def08c52648136dc8a3a6f675ebf8a692283d15"
     },
     {
       "mode": "100644",
@@ -4993,7 +5238,7 @@
     {
       "mode": "100644",
       "path": "services/api-go/testdata/parity/go-routes.txt",
-      "sha256": "e817738e8f4a7b610b18ae8369f9fbb8ed8065cb07f74cf8a345d55c7a32b536"
+      "sha256": "dbf8ac5f77664c3c2894f1a70b242835f526d825f4ccfb80141aa33e40c9959c"
     },
     {
       "mode": "100644",
@@ -5002,5 +5247,5 @@
     }
   ],
   "format": 1,
-  "public_base_commit": "8e9afeb5df38c5fd5cb8d9c63a2280432cd8db77"
+  "public_base_commit": "45d64fd4e8f2f85f3e7d99dbc3dc211f5e266a04"
 }

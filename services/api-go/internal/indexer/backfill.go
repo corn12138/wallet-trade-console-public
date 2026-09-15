@@ -101,11 +101,12 @@ func NewBackfiller(cfg Config, reader ChainReader, checkpoints Checkpointer, sin
 // (exclusive) up to the current chain head (inclusive), in batches of
 // cfg.BatchSize. Returns the number of events handed to the sink.
 //
-// The checkpoint is saved after each batch — including empty ones — so a
-// re-run skips ranges we've already scanned. Reorg safety comes from the
-// checkpoint store rewinding last_safe_block by ConfirmationDepth, so the
-// next Run re-scans the confirmation window even though we backfill all
-// the way to head here (parity with the NestJS loop).
+// The checkpoint is saved after each batch — including empty ones — but only
+// after every event sink call has committed successfully. A sink error aborts
+// the batch before Save, leaving the failed event inside the next replay range.
+// Reorg safety comes from the checkpoint store rewinding last_safe_block by
+// ConfirmationDepth, so the next Run re-scans the confirmation window even
+// though we backfill all the way to head here.
 //
 // A context cancellation (shutdown) aborts cleanly between batches and
 // surfaces ctx.Err(); the events already handed to the sink and the

@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { useQuery } from '@tanstack/react-query';
-import { formatUnits, parseUnits } from 'viem';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { erc20Abi, formatUnits, parseUnits } from 'viem';
 import { useTranslations, useLocale } from 'next-intl';
 import { TOKENS, type ChainTokenConfig } from '@wallet-trade/shared';
 import { getSwapQuote } from '@/lib/api/atlas';
@@ -19,7 +19,12 @@ import { useTokenApproval } from '@/hooks/web3/useTokenApproval';
 import { useTokenBalance } from '@/hooks/web3/useTokenBalance';
 import type { AtlasTxReviewInput } from '@/lib/api/atlas';
 import { TxPreflight } from '../TxPreflight';
-import { useTxFlow } from '@/hooks/web3/useTxFlow';
+import { useTxIntent } from '@/hooks/web3/txIntent/useTxIntent';
+import { freezeStep } from '@/hooks/web3/txIntent/intent';
+import { technicalHint } from '@/hooks/web3/txIntent/errors';
+import type { TxStep } from '@/hooks/web3/txIntent/types';
+import type { TxIntentModalProps } from '../Common';
+import { buildTransactionExplorerUrl } from '@/lib/web3/explorer';
 import { useTradingDefaults } from '@/lib/trading-defaults';
 import { DEFAULT_TRADING_CHAIN_ID } from '@/lib/web3/trading-chain';
 
@@ -122,6 +127,7 @@ export function SwapPage() {
   const app = useApp();
   const t = useTranslations('swap');
   const tCommon = useTranslations('commonAtlas');
+  const tModal = useTranslations('atlasShell.modals');
   const tDiag = useTranslations('diagnostics');
   const locale = useLocale();
   const { chainId, isFallback: isChainFallback } = useDisplayChainId();
@@ -212,6 +218,9 @@ export function SwapPage() {
     quote && (quote.executable ?? quote.routeSource === 'router'),
   ) || (Boolean(quote) && allowFallbackExecution);
 
+  // An older API may still send a synthetic fallback amount; never display it as a quote.
+  const hasLiveAmounts = Boolean(quote && quote.routeSource === 'router' && quote.executable !== false);
+
   // Typed diagnostics state for the quote panel + recovery UI.
   const quoteView: SwapQuoteView = !routerAddress
     ? 'no-router'
@@ -275,14 +284,6 @@ export function SwapPage() {
     setAmtIn(formatUnits(value, inBalance.decimals));
   };
 
-  // The confirmed approval unlocks the swap CTA; say so — silence here reads
-  // as a stalled flow.
-  useEffect(() => {
-    if (approval.isSuccess && inTok) {
-      app.toast(t('toastApproved', { symbol: inTok.symbol }), 'ok');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [approval.isSuccess]);
 
   // The review must describe the transaction the CTA will actually send, so it
   // follows the CTA: approve while an allowance is missing, swap once it isn't.
@@ -320,33 +321,144 @@ export function SwapPage() {
     routerAddress, amtIn, chainId, slippageBps, quoteExecutable,
   ]);
 
-  const swap = useTxFlow({
-    txType: 'swap',
-    title: t('txTitle'),
-    buildSummary: () =>
-      inTok && outTok && quote
-        ? `${amtIn} ${inTok.symbol} → ${fmt(Number(quote.amountOut), 4)} ${outTok.symbol}\nMin out: ${fmt(Number(quote.minimumReceived), 6)} ${outTok.symbol}`
-        : '',
-    buildMetadata: () =>
-      inTok && outTok && quote
-        ? {
-            tokenIn: inTok.address,
-            tokenOut: outTok.address,
-            tokenInSymbol: inTok.symbol,
-            tokenOutSymbol: outTok.symbol,
-            amountIn: amtIn,
-            estimatedOut: quote.amountOut,
-            minimumReceived: quote.minimumReceived,
-            slippageBps,
-            path: quote.path,
-          }
-        : null,
-    toastOnSuccess: t('toastSwapConfirmed'),
+  // --- Shared transaction lifecycle (ADR 0008).
+  //
+  // The step is frozen at review from the quote the user was LOOKING AT, not
+  // the one that refetches every 12 s underneath them: `reviewedQuote` is
+  // captured when the CTA is clicked and is what `build` reads at both review
+  // and send, so a quote tick cannot read as drift. Whether the live quote has
+  // moved unsafely is a separate, value-based check (`liveMinAmountOut`).
+  const reviewedQuote = useRef<typeof quote>(undefined);
+  const queryClient = useQueryClient();
+
+  const build = useCallback((now: number): TxStep[] | null => {
+    const q = reviewedQuote.current;
+    if (!userAddress || !inTok || !outTok || !routerAddress || amountInParsed <= 0n) return null;
+    const steps: TxStep[] = [];
+    const inAddress = inTok.address as `0x${string}`;
+    const outAddress = outTok.address as `0x${string}`;
+    if (needsApproval) {
+      steps.push(freezeStep({
+        kind: 'approve',
+        actionType: 'approve',
+        owner: userAddress,
+        targetChainId: chainId,
+        target: inAddress,
+        abi: erc20Abi,
+        functionName: 'approve',
+        // Exactly the amount, never unlimited — the same bounded approval the
+        // page has always sent.
+        args: [routerAddress, amountInParsed],
+        token: { address: inAddress, symbol: inTok.symbol, decimals: inTok.decimals, amount: amountInParsed },
+        expectsIndexing: false,
+        metadata: { spender: routerAddress, requestedAllowance: amountInParsed.toString() },
+        now,
+      }));
+    }
+    if (q && quoteExecutable) {
+      const amountOutMin = parseUnits(q.minimumReceived, outTok.decimals);
+      const deadline = BigInt(Math.floor(now / 1000) + resolveDeadlineSeconds(deadlineMinutes));
+      steps.push(freezeStep({
+        kind: 'action',
+        actionType: 'swap',
+        owner: userAddress,
+        targetChainId: chainId,
+        target: routerAddress,
+        abi: routerAbi,
+        functionName: 'swapExactTokensForTokens',
+        args: [amountInParsed, amountOutMin, [inAddress, outAddress], userAddress, deadline],
+        token: { address: inAddress, symbol: inTok.symbol, decimals: inTok.decimals, amount: amountInParsed },
+        guard: {
+          slippageBps,
+          minAmountOut: amountOutMin,
+          outToken: { symbol: outTok.symbol, decimals: outTok.decimals },
+          deadline,
+        },
+        expectsIndexing: true,
+        metadata: {
+          tokenIn: inAddress,
+          tokenOut: outAddress,
+          tokenInSymbol: inTok.symbol,
+          tokenOutSymbol: outTok.symbol,
+          amountIn: amtIn,
+          estimatedOut: q.amountOut,
+          minimumReceived: q.minimumReceived,
+          slippageBps,
+          path: q.path,
+        },
+        now,
+      }));
+    }
+    return steps.length ? steps : null;
+  }, [userAddress, inTok, outTok, routerAddress, amountInParsed, needsApproval, chainId, quoteExecutable, deadlineMinutes, slippageBps, amtIn]);
+
+  const liveMinAmountOut = useMemo(() => {
+    if (!quote || !outTok) return undefined;
+    try {
+      return parseUnits(quote.minimumReceived, outTok.decimals);
+    } catch {
+      return undefined;
+    }
+  }, [quote, outTok]);
+
+  const intent = useTxIntent({
+    build,
+    targetChainId: chainId,
+    viewerKey: userAddress ?? null,
+    liveAllowance: approval.allowance,
+    liveMinAmountOut,
+    onFinalized: (step) => {
+      if (step.kind === 'approve') {
+        app.toast(t('toastApproved', { symbol: inTok?.symbol ?? '' }), 'ok');
+        // The allowance read is a wagmi readContract query on a 5 s poll; ask
+        // for it now so the CTA flips to "Swap" as soon as the chain says so.
+        void queryClient.invalidateQueries({
+          predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === 'readContract',
+        });
+        return;
+      }
+      app.toast(t('toastSwapConfirmed'), 'ok');
+      setAmtIn('');
+      void queryClient.invalidateQueries({
+        predicate: (query) => Array.isArray(query.queryKey) && (query.queryKey[0] === 'readContract' || query.queryKey[0] === 'balance'),
+      });
+    },
   });
 
+  // The modal is a projection of the engine: every state change re-renders
+  // it from codes, and the frozen facts it shows are the step's own review.
+  const activeStep = intent.activeStep;
+  const modalOpenFor = useRef<string | null>(null);
   useEffect(() => {
-    if (swap.stage === 'confirmed') setAmtIn('');
-  }, [swap.stage]);
+    if (intent.state === 'DRAFT' || !activeStep) return;
+    const stepTitle = activeStep.kind === 'approve'
+      ? t('intent.stepApprove', { symbol: activeStep.review.token?.symbol ?? '' })
+      : t('intent.stepSwap', { tokenIn: inTok?.symbol ?? '', tokenOut: outTok?.symbol ?? '' });
+    const props: TxIntentModalProps = {
+      mode: 'intent',
+      phase: intent.phase,
+      state: intent.state,
+      title: t('txTitle'),
+      stepTitle,
+      step: { current: intent.activeStepIndex + 1, total: intent.steps.length },
+      review: activeStep.review,
+      expiresAt: activeStep.expiresAt,
+      expectsIndexing: activeStep.expectsIndexing,
+      indexing: intent.indexing,
+      hash: intent.hash,
+      replacedByHash: intent.replacedByHash,
+      explorerUrl: intent.hash ? buildTransactionExplorerUrl(intent.hash, chainId) : null,
+      errorCode: intent.errorCode,
+      invalidationReason: intent.invalidationReason,
+      technicalHint: technicalHint(intent.rawError),
+      onSign: () => { void intent.send(); },
+      onRetry: () => { handlePrimaryRef.current?.(); },
+    };
+    modalOpenFor.current = activeStep.stepId;
+    app.setModal({ kind: 'tx', props });
+    // app/t are stable providers; the modal must track the engine, not them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent.state, intent.phase, intent.hash, intent.replacedByHash, intent.indexing, intent.errorCode, intent.invalidationReason, activeStep]);
 
   const flip = () => {
     setFlipped((f) => !f);
@@ -357,45 +469,25 @@ export function SwapPage() {
     }
   };
 
-  const handleApprove = () => {
-    if (amountInParsed === 0n) return;
-    approval.approve(amountInParsed);
-    app.toast(t('toastApproving', { symbol: inTok!.symbol }), 'warn');
-  };
-
-  const handleSwap = () => {
-    if (!quote || !quoteExecutable || !inTok || !outTok || !routerAddress || !userAddress) return;
-    if (amountInParsed === 0n || insufficientBalance) return;
-    if (highImpact && !impactAck) return;
-
-    const amountOutMin = parseUnits(quote.minimumReceived, outTok.decimals);
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + resolveDeadlineSeconds(deadlineMinutes));
-
-    swap.execute({
-      address: routerAddress,
-      abi: routerAbi,
-      functionName: 'swapExactTokensForTokens',
-      args: [
-        amountInParsed,
-        amountOutMin,
-        [inTok.address as `0x${string}`, outTok.address as `0x${string}`],
-        userAddress,
-        deadline,
-      ],
-    });
-  };
-
+  // One click → review. The wallet is only asked from the modal's "Sign",
+  // after the frozen facts have been shown (contract §WP1.1.3).
   const handlePrimary = () => {
     if (!isConnected || app.walletState !== 'connected') {
       app.openConnect();
       return;
     }
     if (!quote || !quoteExecutable || !routerAddress || insufficientBalance) return;
-    if (needsApproval) handleApprove();
-    else handleSwap();
+    if (highImpact && !impactAck) return;
+    if (amountInParsed === 0n) return;
+    reviewedQuote.current = quote;
+    const blocked = intent.review();
+    if (blocked) {
+      app.toast(tModal(`intent.err.${blocked}`), 'err');
+    }
   };
+  const handlePrimaryRef = useRef(handlePrimary);
+  handlePrimaryRef.current = handlePrimary;
 
-  const approveBusy = approval.isPending || approval.isConfirming;
 
   if (!tokens.length) {
     return (
@@ -536,7 +628,7 @@ export function SwapPage() {
               <div className="skel lg" style={{ flex: 1 }} />
             ) : (
               <input
-                value={quote ? fmt(Number(quote.amountOut), 4) : ''}
+                value={hasLiveAmounts && quote ? fmt(Number(quote.amountOut), 4) : ''}
                 readOnly
                 placeholder="0.0"
                 style={{ flex: 1, fontSize: 32, color: 'var(--ink-2)' }}
@@ -622,7 +714,7 @@ export function SwapPage() {
           <div className="block tight mt-14" style={{ background: 'var(--bg-2)', padding: 14, border: '2px dashed var(--ink)', boxShadow: 'none' }}>
             <div className="meta-row">
               <span>{t('rate')}</span>
-              {quote && Number(quote.amountOut) > 0 && Number(amtIn) > 0 ? (
+              {hasLiveAmounts && quote && Number(quote.amountOut) > 0 && Number(amtIn) > 0 ? (
                 <button
                   type="button"
                   onClick={() => setRateInverted((v) => !v)}
@@ -650,12 +742,12 @@ export function SwapPage() {
             </div>
             <div className="meta-row" style={{ marginTop: 6 }}>
               <span>{t('minReceived')}</span>
-              <b>{quote ? `${fmt(Number(quote.minimumReceived), 4)} ${outTok!.symbol}` : '—'}</b>
+              <b>{hasLiveAmounts && quote ? `${fmt(Number(quote.minimumReceived), 4)} ${outTok!.symbol}` : '—'}</b>
             </div>
             <div className="meta-row" style={{ marginTop: 6 }}>
               <span>{t('priceImpact')}</span>
               <b className={quote && Math.abs(quote.priceImpactPct) > 1 ? 'tone-warn' : ''}>
-                {quote ? fmtPct(quote.priceImpactPct) : '—'}
+                {hasLiveAmounts && quote ? fmtPct(quote.priceImpactPct) : '—'}
               </b>
             </div>
             <div className="meta-row" style={{ marginTop: 6 }}>
@@ -808,13 +900,16 @@ export function SwapPage() {
             <button className="btn btn-y mt-14" style={{ width: '100%' }} disabled data-testid="swap-cta-fallback-disabled">
               {t('cta.fallbackDisabled')}
             </button>
-          ) : swap.isWorking ? (
-            <button className="btn btn-c mt-14" style={{ width: '100%' }} disabled>
-              <span className="spinner" /> {swap.stage === 'submitting' ? t('cta.confirmWallet') : t('cta.swapping')}
-            </button>
-          ) : approveBusy ? (
-            <button className="btn btn-c mt-14" style={{ width: '100%' }} disabled>
-              <span className="spinner" /> {t('cta.approvingBusy', { symbol: inTok!.symbol })}
+          ) : intent.busy ? (
+            <button className="btn btn-c mt-14" style={{ width: '100%' }} disabled data-testid="swap-cta-busy">
+              <span className="spinner" />{' '}
+              {intent.phase === 'wallet'
+                ? t('cta.confirmWallet')
+                : intent.phase === 'review'
+                  ? t('intent.reviewCta')
+                  : activeStep?.kind === 'approve'
+                    ? t('cta.approvingBusy', { symbol: inTok!.symbol })
+                    : t('cta.swapping')}
             </button>
           ) : insufficientBalance ? (
             <button className="btn btn-y mt-14" style={{ width: '100%' }} disabled data-testid="swap-cta-insufficient">

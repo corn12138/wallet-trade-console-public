@@ -3,23 +3,23 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"math/big"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Staking projection: StakingPool's Staked / Unstaked / RewardClaimed /
 // EmergencyWithdraw events land append-only in staking_actions (idempotent by
-// chain_id + tx_hash + log_index) and, only for genuinely new actions,
-// maintain the user_stakes read model (one active row per user+pool, amount
-// in token units).
+// chain_id + tx_hash + log_index) and deterministically rebuild user_stakes for
+// the affected user+pool. Rebuild makes a legacy action-only write repairable
+// without double-applying its amount.
 //
 // Pool resolution: the emitting contract address is matched against
 // staking_pools.metadata->>'contractAddress' for the chain; when no row
 // declares the address but the chain has EXACTLY ONE active single-asset
-// staking pool, that row is used (the deployments registry ships one
-// StakingPool per chain). Ambiguity is logged and the user_stakes step is
-// skipped — the raw action row is still durable evidence.
+// staking pool, that row is used. Missing or ambiguous ownership is retryable;
+// attaching an event to a guessed pool would be an irreversible projection.
 //
 // Amounts: user_stakes.amount is Decimal(36,18) in token units; the chain
 // amount is raw wei. The staked token (StakingToken/STK) is 18-decimals per
@@ -51,51 +51,48 @@ func stakingActionRowFrom(ev ParsedEvent, action string) (stakingActionRow, bool
 	return r, true
 }
 
-func (s *DBSink) handleStakingEvent(ctx context.Context, ev ParsedEvent, action string) error {
+func (s *DBSink) handleStakingEvent(ctx context.Context, projection *eventProjection, ev ParsedEvent, action string) error {
 	r, ok := stakingActionRowFrom(ev, action)
 	if !ok {
 		return fmt.Errorf("%s missing user/amount (tx %s)", action, ev.TxHash)
 	}
 	poolAddr := strings.ToLower(ev.ContractAddress)
 
-	poolID, err := s.resolveStakingPoolID(ctx, ev.ChainID, poolAddr)
+	poolID, err := s.resolveStakingPoolID(ctx, projection.store, ev.ChainID, poolAddr)
 	if err != nil {
 		return err
 	}
 
-	var poolIDArg any
-	if poolID != "" {
-		poolIDArg = poolID
+	if poolID == "" {
+		return fmt.Errorf("staking pool dependency missing or ambiguous for %s on chain %d", poolAddr, ev.ChainID)
 	}
-	tag, err := s.pool.Exec(ctx, `
+	_, err = projection.store.Exec(ctx, `
 		INSERT INTO staking_actions
 			(id, chain_id, pool_id, pool_address, user_address, action, amount_raw,
 			 tx_hash, log_index, block_number, created_at)
 		VALUES
 			(gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-		ON CONFLICT (chain_id, tx_hash, log_index) DO NOTHING
+		ON CONFLICT (chain_id, tx_hash, log_index) DO UPDATE SET
+			pool_id = EXCLUDED.pool_id,
+			pool_address = EXCLUDED.pool_address,
+			user_address = EXCLUDED.user_address,
+			action = EXCLUDED.action,
+			amount_raw = EXCLUDED.amount_raw,
+			block_number = EXCLUDED.block_number
 	`,
-		ev.ChainID, poolIDArg, poolAddr, r.user, r.action, r.amount.String(),
+		ev.ChainID, poolID, poolAddr, r.user, r.action, r.amount.String(),
 		ev.TxHash, ev.LogIndex, ev.BlockNumber,
 	)
 	if err != nil {
 		return fmt.Errorf("insert staking_action %s#%d: %w", ev.TxHash, ev.LogIndex, err)
 	}
-	if tag.RowsAffected() == 0 {
-		return nil // replay — user_stakes already reflects this action
-	}
-	if poolID == "" {
-		slog.WarnContext(ctx, "indexer: staking event on unresolved pool; action recorded, user_stakes skipped",
-			"pool", poolAddr, "chain", ev.ChainID, "tx", ev.TxHash)
-		return nil
-	}
-	return s.applyUserStakeAction(ctx, poolID, r)
+	return s.rebuildUserStakes(ctx, projection.store, ev.ChainID, poolID, r.user)
 }
 
 // resolveStakingPoolID maps the emitting pool contract to a staking_pools
 // row ("" when unresolved). See package comment for the matching rules.
-func (s *DBSink) resolveStakingPoolID(ctx context.Context, chainID int, poolAddr string) (string, error) {
-	rows, err := s.pool.Query(ctx, `
+func (s *DBSink) resolveStakingPoolID(ctx context.Context, store projectionStore, chainID int, poolAddr string) (string, error) {
+	rows, err := store.Query(ctx, `
 		SELECT id FROM staking_pools
 		WHERE chain_id = $1 AND LOWER(COALESCE(metadata->>'contractAddress', '')) = $2
 	`, chainID, poolAddr)
@@ -114,7 +111,7 @@ func (s *DBSink) resolveStakingPoolID(ctx context.Context, chainID int, poolAddr
 	}
 
 	// Fallback: a chain with exactly one active staking pool row.
-	rows, err = s.pool.Query(ctx, `
+	rows, err = store.Query(ctx, `
 		SELECT id FROM staking_pools
 		WHERE chain_id = $1 AND pool_type = 'staking' AND status = 'active'
 		LIMIT 2
@@ -132,71 +129,121 @@ func (s *DBSink) resolveStakingPoolID(ctx context.Context, chainID int, poolAddr
 	return "", nil
 }
 
-// applyUserStakeAction maintains the single active user_stakes row for
-// (user, pool). Amount arithmetic happens in SQL numeric space with the raw
-// wei divided by 1e18 (see package comment for the decimals assumption).
-func (s *DBSink) applyUserStakeAction(ctx context.Context, poolID string, r stakingActionRow) error {
-	raw := r.amount.String()
-	switch r.action {
-	case "STAKE":
-		// Update the active row; insert one when none exists.
-		tag, err := s.pool.Exec(ctx, `
-			UPDATE user_stakes
-			SET amount = amount + ($3::numeric / 1e18)
-			WHERE id = (
-				SELECT id FROM user_stakes
-				WHERE pool_id = $1 AND user_address = $2 AND unstaked_at IS NULL
-				ORDER BY staked_at DESC LIMIT 1
-			)
-		`, poolID, r.user, raw)
-		if err != nil {
-			return fmt.Errorf("stake update (%s): %w", r.user, err)
-		}
-		if tag.RowsAffected() == 0 {
-			if _, err := s.pool.Exec(ctx, `
-				INSERT INTO user_stakes (id, user_address, pool_id, amount, staked_at)
-				VALUES (gen_random_uuid()::text, $1, $2, $3::numeric / 1e18, NOW())
-			`, r.user, poolID, raw); err != nil {
-				return fmt.Errorf("stake insert (%s): %w", r.user, err)
-			}
-		}
-		return nil
+type stakingLedgerEntry struct {
+	action, amount, txHash string
+	logIndex               int
+	blockNumber            int64
+	createdAt              time.Time
+}
 
-	case "UNSTAKE", "EMERGENCY":
-		_, err := s.pool.Exec(ctx, `
-			UPDATE user_stakes
-			SET amount = GREATEST(0, amount - ($3::numeric / 1e18)),
-			    unstaked_at = CASE
-			        WHEN amount - ($3::numeric / 1e18) <= 0 THEN NOW()
-			        ELSE unstaked_at
-			    END
-			WHERE id = (
-				SELECT id FROM user_stakes
-				WHERE pool_id = $1 AND user_address = $2 AND unstaked_at IS NULL
-				ORDER BY staked_at DESC LIMIT 1
-			)
-		`, poolID, r.user, raw)
-		if err != nil {
-			return fmt.Errorf("unstake update (%s): %w", r.user, err)
-		}
-		return nil
+type rebuiltUserStake struct {
+	id         string
+	amount     *big.Int
+	rewards    *big.Int
+	stakedAt   time.Time
+	unstakedAt *time.Time
+}
 
-	case "CLAIM":
-		_, err := s.pool.Exec(ctx, `
-			UPDATE user_stakes
-			SET rewards_claimed = rewards_claimed + ($3::numeric / 1e18)
-			WHERE id = (
-				SELECT id FROM user_stakes
-				WHERE pool_id = $1 AND user_address = $2
-				ORDER BY (unstaked_at IS NULL) DESC, staked_at DESC LIMIT 1
-			)
-		`, poolID, r.user, raw)
-		if err != nil {
-			return fmt.Errorf("claim update (%s): %w", r.user, err)
-		}
-		return nil
+func (s *DBSink) rebuildUserStakes(ctx context.Context, store projectionStore,
+	chainID int, poolID, user string) error {
+	rows, err := store.Query(ctx, `
+		SELECT action, amount_raw, tx_hash, log_index, block_number, created_at
+		FROM staking_actions
+		WHERE chain_id = $1 AND pool_id = $2 AND user_address = $3
+		ORDER BY block_number, log_index, tx_hash
+	`, chainID, poolID, user)
+	if err != nil {
+		return fmt.Errorf("load staking repair ledger (%s/%s): %w", poolID, user, err)
 	}
-	return fmt.Errorf("unknown staking action %q", r.action)
+	entries := []stakingLedgerEntry{}
+	for rows.Next() {
+		var entry stakingLedgerEntry
+		if err := rows.Scan(&entry.action, &entry.amount, &entry.txHash, &entry.logIndex,
+			&entry.blockNumber, &entry.createdAt); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan staking repair ledger: %w", err)
+		}
+		entries = append(entries, entry)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate staking repair ledger: %w", err)
+	}
+	if len(entries) == 0 {
+		return fmt.Errorf("staking repair ledger empty for %s/%s", poolID, user)
+	}
+
+	stakes, err := rebuildStakingState(chainID, poolID, user, entries)
+	if err != nil {
+		return err
+	}
+	// user_stakes is a chain-derived read model; replacing the scoped rows avoids
+	// preserving unverified/manual deltas beside authoritative event history.
+	if _, err := store.Exec(ctx, `DELETE FROM user_stakes WHERE pool_id = $1 AND user_address = $2`, poolID, user); err != nil {
+		return fmt.Errorf("clear user_stakes projection (%s/%s): %w", poolID, user, err)
+	}
+	for _, stake := range stakes {
+		if _, err := store.Exec(ctx, `
+			INSERT INTO user_stakes
+				(id, user_address, pool_id, amount, rewards_claimed, staked_at, unstaked_at)
+			VALUES ($1, $2, $3, $4::numeric / 1e18, $5::numeric / 1e18, $6, $7)
+		`, stake.id, user, poolID, stake.amount.String(), stake.rewards.String(),
+			stake.stakedAt, stake.unstakedAt); err != nil {
+			return fmt.Errorf("insert rebuilt user_stake (%s/%s): %w", poolID, user, err)
+		}
+	}
+	return nil
+}
+
+func rebuildStakingState(chainID int, poolID, user string,
+	entries []stakingLedgerEntry) ([]rebuiltUserStake, error) {
+	stakes := []rebuiltUserStake{}
+	var current *rebuiltUserStake
+	for _, entry := range entries {
+		amount, ok := new(big.Int).SetString(strings.TrimSpace(entry.amount), 10)
+		if !ok || amount.Sign() < 0 {
+			return nil, fmt.Errorf("invalid staking ledger amount %q", entry.amount)
+		}
+		switch entry.action {
+		case "STAKE":
+			if current == nil {
+				current = &rebuiltUserStake{
+					id: projectionStableID("user-stake", strconv.Itoa(chainID), poolID, user,
+						entry.txHash, strconv.Itoa(entry.logIndex)),
+					amount: new(big.Int), rewards: new(big.Int), stakedAt: entry.createdAt,
+				}
+			}
+			current.amount.Add(current.amount, amount)
+		case "UNSTAKE", "EMERGENCY":
+			if current == nil {
+				return nil, fmt.Errorf("staking %s has no active predecessor at block %d log %d",
+					entry.action, entry.blockNumber, entry.logIndex)
+			}
+			current.amount.Sub(current.amount, amount)
+			if current.amount.Sign() <= 0 {
+				current.amount.SetInt64(0)
+				closedAt := entry.createdAt
+				current.unstakedAt = &closedAt
+				stakes = append(stakes, *current)
+				current = nil
+			}
+		case "CLAIM":
+			if current != nil {
+				current.rewards.Add(current.rewards, amount)
+			} else if len(stakes) > 0 {
+				stakes[len(stakes)-1].rewards.Add(stakes[len(stakes)-1].rewards, amount)
+			} else {
+				return nil, fmt.Errorf("staking CLAIM has no stake predecessor at block %d log %d",
+					entry.blockNumber, entry.logIndex)
+			}
+		default:
+			return nil, fmt.Errorf("unknown staking action %q", entry.action)
+		}
+	}
+	if current != nil {
+		stakes = append(stakes, *current)
+	}
+	return stakes, nil
 }
 
 func collectIDs(rows interface {

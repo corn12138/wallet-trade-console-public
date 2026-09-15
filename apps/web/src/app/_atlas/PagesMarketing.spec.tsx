@@ -15,7 +15,7 @@ vi.mock('./MiniChart', () => ({
 
 /**
  * Semantic homepage-action regressions: a control's LABEL must match its
- * real destination/capability. These pin the 2026-07-10 truth fixes:
+ * real destination/capability. The public copy must avoid unsupported capabilities:
  * no whitepaper claim, no faucet claim, no bridge-in-three-clicks claim,
  * no multi-chain badge beyond deployed capability.
  */
@@ -37,20 +37,24 @@ describe('homepage CTA semantics', () => {
     expect(walletLinks.length).toBeGreaterThan(0);
   });
 
-  it('no bridge-capability or multi-chain overclaim while bridge is roadmap', () => {
+  it('describes the deployed testnet and supported wallet connector', () => {
     renderWithIntl(<HomePage />);
-    const body = document.body.textContent ?? '';
+    const body = Array.from(document.querySelectorAll('p, h1, h2, h3, a, span')).map((el) => el.textContent).join(' ');
     expect(body).not.toMatch(/three clicks/i);
     expect(body).not.toMatch(/any chain/i);
     expect(body).not.toMatch(/multi-chain/i);
     expect(body).toMatch(/Sepolia testnet/);
-    expect(body).toMatch(/roadmap/i); // bridging honestly described as roadmap
+    expect(body).toMatch(/injected browser wallet/i);
+    expect(screen.queryByText(/WalletConnect|Coinbase|\bReown\b/i)).not.toBeInTheDocument();
+    expect(body).not.toMatch(/roadmap|under 60s|Realtime matching/i);
   });
 
   it('renders honestly in Chinese too (no English CTA leakage)', () => {
     renderWithIntlZh(<HomePage />);
-    const body = document.body.textContent ?? '';
+    const body = Array.from(document.querySelectorAll('p, h1, h2, h3, a, span')).map((el) => el.textContent).join(' ');
     expect(body).toContain('浏览应用目录');
+    expect(screen.getByText('实时行情。')).toBeInTheDocument();
+    expect(body).not.toMatch(/实时撮合|60 秒|仍未上线|WalletConnect|Coinbase|\bReown\b/);
     expect(body).not.toMatch(/open faucet|whitepaper|three clicks/i);
   });
 });

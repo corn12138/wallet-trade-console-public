@@ -2,8 +2,8 @@
 // Three POST endpoints:
 //
 //	POST /api/swap/quote          (live Router quote via eth_call when an
-//	                                RPC client is wired; degraded fallback
-//	                                estimate otherwise)
+//	                                RPC client is wired; unavailable status
+//	                                otherwise)
 //	POST /api/swap/build-approve  (ERC-20 approve, ABI-encoded)
 //	POST /api/swap/build-swap     (Router.swapExactTokensForTokens —
 //	                                exercises dynamic address[] encoding)
@@ -13,7 +13,7 @@
 // NEVER executable — the FE must not submit a wallet swap from it. The
 // fallback shape otherwise matches NestJS buildFallbackQuote (same
 // `routeSource`, `routerAddress`, `warnings` slots) so the panel keeps
-// rendering an estimate even when the router/RPC isn't available.
+// rendering diagnostics when the router/RPC is unavailable.
 package swap
 
 import (
@@ -21,16 +21,13 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"math"
 	"math/big"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/abi"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/deployments"
-	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/rpc"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -164,7 +161,7 @@ type TxResponse struct {
 // GetQuote returns a live quote when both an RPC client and a Router
 // deployment are available; otherwise it falls back to the same shape
 // with routeSource/quoteStatus "fallback" AND executable=false. A
-// degraded quote is display-only: the FE renders the estimate but the
+// degraded quote contains no amount: the FE renders diagnostics and the
 // swap CTA must stay disabled, so a live-quote failure (RPC error,
 // decode error) can never lead to an executable swap built from a
 // made-up number.
@@ -188,122 +185,13 @@ func (s *Service) GetQuote(req QuoteRequest) (QuoteResponse, error) {
 	}
 
 	if s.rpcClient != nil {
-		if live, ok := s.fetchLiveQuote(req, *chainID, router, amountInRaw); ok {
+		live, reason := s.fetchLiveQuote(req, *chainID, router, amountInRaw)
+		if reason == "" {
 			return live, nil
 		}
+		return buildFallbackQuote(req, *chainID, []string{reason}), nil
 	}
-	return buildFallbackQuote(req, *chainID, []string{"Live quote unavailable, using fallback estimate"}), nil
-}
-
-// fetchLiveQuote calls Router.getAmountsOut + Router.getReserves via
-// eth_call and assembles the live quote payload. Returns ok=false on
-// any failure so GetQuote can fall back transparently.
-func (s *Service) fetchLiveQuote(req QuoteRequest, chainID int, router string, amountInRaw *big.Int) (QuoteResponse, bool) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	slippageBps := defaultSlippageBps
-	if req.SlippageBps != nil {
-		slippageBps = *req.SlippageBps
-	}
-
-	// getAmountsOut(uint256, address[]) — dynamic encoding.
-	amountInArg, err := abi.EncodeUint256(amountInRaw)
-	if err != nil {
-		return QuoteResponse{}, false
-	}
-	pathArg, err := abi.EncodeAddressArrayArg([]string{req.TokenIn, req.TokenOut})
-	if err != nil {
-		return QuoteResponse{}, false
-	}
-	amountsData, err := abi.EncodeCallArgs(
-		"getAmountsOut(uint256,address[])",
-		abi.Static(amountInArg),
-		pathArg,
-	)
-	if err != nil {
-		return QuoteResponse{}, false
-	}
-	amountsRaw, err := s.rpcClient.EthCall(ctx, router, amountsData, "")
-	if err != nil {
-		return QuoteResponse{}, false
-	}
-	amounts, err := rpc.DecodeDynamicUint256Array(amountsRaw)
-	if err != nil || len(amounts) < 2 {
-		return QuoteResponse{}, false
-	}
-	amountOutRaw := amounts[len(amounts)-1]
-
-	// getReserves(address, address) — both static, just two addresses.
-	tokenInArg, err := abi.EncodeAddress(req.TokenIn)
-	if err != nil {
-		return QuoteResponse{}, false
-	}
-	tokenOutArg, err := abi.EncodeAddress(req.TokenOut)
-	if err != nil {
-		return QuoteResponse{}, false
-	}
-	reservesData := abi.EncodeCall("getReserves(address,address)", tokenInArg, tokenOutArg)
-	reservesRaw, err := s.rpcClient.EthCall(ctx, router, reservesData, "")
-	if err != nil || len(reservesRaw) < 64 {
-		return QuoteResponse{}, false
-	}
-	reserveIn, err := rpc.DecodeUint256At(reservesRaw, 0)
-	if err != nil {
-		return QuoteResponse{}, false
-	}
-	reserveOut, err := rpc.DecodeUint256At(reservesRaw, 32)
-	if err != nil {
-		return QuoteResponse{}, false
-	}
-
-	// minimumReceivedRaw = amountOutRaw × (10000 - slippageBps) / 10000.
-	minimumReceivedRaw := new(big.Int).Mul(amountOutRaw, big.NewInt(int64(10000-slippageBps)))
-	minimumReceivedRaw.Quo(minimumReceivedRaw, big.NewInt(10000))
-
-	routerCopy := router
-	return QuoteResponse{
-		ChainID:            chainID,
-		RouteSource:        "router",
-		QuoteStatus:        QuoteStatusLive,
-		Executable:         true,
-		RouterAddress:      &routerCopy,
-		AmountIn:           req.AmountIn,
-		AmountOut:          abi.FormatUnits(amountOutRaw, req.TokenOutDecimals),
-		AmountOutRaw:       amountOutRaw.String(),
-		MinimumReceived:    abi.FormatUnits(minimumReceivedRaw, req.TokenOutDecimals),
-		MinimumReceivedRaw: minimumReceivedRaw.String(),
-		PriceImpactPct:     computePriceImpact(reserveIn, reserveOut, amountInRaw, amountOutRaw),
-		SlippageBps:        slippageBps,
-		Path:               []string{req.TokenIn, req.TokenOut},
-		Warnings:           []string{},
-	}, true
-}
-
-// computePriceImpact mirrors the NestJS computePriceImpact helper. All
-// math is done in float64 — NestJS narrows reserves and amounts via
-// `Number(...)` and rounds to 3 decimals.
-func computePriceImpact(reserveIn, reserveOut, amountIn, amountOut *big.Int) float64 {
-	if reserveIn == nil || reserveOut == nil || amountIn == nil || amountOut == nil {
-		return 0
-	}
-	if reserveIn.Sign() == 0 || reserveOut.Sign() == 0 || amountIn.Sign() == 0 {
-		return 0
-	}
-	rIn, _ := new(big.Float).SetInt(reserveIn).Float64()
-	rOut, _ := new(big.Float).SetInt(reserveOut).Float64()
-	aIn, _ := new(big.Float).SetInt(amountIn).Float64()
-	aOut, _ := new(big.Float).SetInt(amountOut).Float64()
-	if rIn == 0 || aIn == 0 {
-		return 0
-	}
-	current := rOut / rIn
-	execution := aOut / aIn
-	if math.IsNaN(current) || math.IsInf(current, 0) || current == 0 {
-		return 0
-	}
-	pct := ((current - execution) / current) * 100
-	return math.Round(pct*1000) / 1000
+	return buildFallbackQuote(req, *chainID, []string{"Live quote unavailable: RPC not configured"}), nil
 }
 
 // BuildApproveTx mirrors NestJS buildApproveTx: validate address,
@@ -435,43 +323,18 @@ func (s *Service) routerAddress(chainID int) string {
 	return deployments.LookupAddress(registry[chainID], "router", "Router")
 }
 
-// buildFallbackQuote mirrors the NestJS buildFallbackQuote helper.
-// amountOut = amountIn × 0.997 (the 0.3% fee assumption baked into the
-// estimate), formatted to min(decimals, 6) trailing digits — same as
-// the Number(...).toFixed(...) calls in TS.
+// A missing market quote has no exchange rate. Empty display amounts preserve
+// the response shape without suggesting that unrelated tokens trade at parity.
 func buildFallbackQuote(input QuoteRequest, chainID int, warnings []string) QuoteResponse {
-	amountIn, err := strconv.ParseFloat(input.AmountIn, 64)
-	if err != nil || math.IsNaN(amountIn) || math.IsInf(amountIn, 0) {
-		amountIn = 0
-	}
-	amountOut := amountIn * 0.997
 	slippageBps := defaultSlippageBps
 	if input.SlippageBps != nil {
 		slippageBps = *input.SlippageBps
 	}
-	minimumReceived := amountOut * (float64(10000-slippageBps) / 10000.0)
-	precision := input.TokenOutDecimals
-	if precision > 6 {
-		precision = 6
-	}
-	if precision < 0 {
-		precision = 0
-	}
 	return QuoteResponse{
-		ChainID:            chainID,
-		RouteSource:        "fallback",
-		QuoteStatus:        QuoteStatusFallback,
-		Executable:         false,
-		RouterAddress:      nil,
-		AmountIn:           input.AmountIn,
-		AmountOut:          strconv.FormatFloat(amountOut, 'f', precision, 64),
-		AmountOutRaw:       "0",
-		MinimumReceived:    strconv.FormatFloat(minimumReceived, 'f', precision, 64),
-		MinimumReceivedRaw: "0",
-		PriceImpactPct:     0,
-		SlippageBps:        slippageBps,
-		Path:               []string{input.TokenIn, input.TokenOut},
-		Warnings:           warnings,
+		ChainID: chainID, RouteSource: "fallback", QuoteStatus: QuoteStatusFallback,
+		Executable: false, RouterAddress: nil, AmountIn: input.AmountIn,
+		AmountOut: "", AmountOutRaw: "0", MinimumReceived: "", MinimumReceivedRaw: "0",
+		SlippageBps: slippageBps, Path: []string{input.TokenIn, input.TokenOut}, Warnings: warnings,
 	}
 }
 

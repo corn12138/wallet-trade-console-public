@@ -3,9 +3,71 @@ package indexer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
+	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+type tradeLedgerSnapshot struct {
+	user, amount string
+}
+
+type tradeLedgerStore struct {
+	rows         map[string]tradeLedgerSnapshot
+	legacyHashes map[string]bool
+}
+
+func tradeLedgerKey(chainID int, txHash string, logIndex int) string {
+	return fmt.Sprintf("%d/%s/%d", chainID, txHash, logIndex)
+}
+
+func (s *tradeLedgerStore) Exec(_ context.Context, query string, args ...any) (pgconn.CommandTag, error) {
+	switch {
+	case strings.Contains(query, "UPDATE token_trades") && strings.Contains(query, "log_index IS NULL"):
+		chainID, txHash, logIndex := args[0].(int), args[9].(string), args[8].(int)
+		if !s.legacyHashes[txHash] {
+			return pgconn.NewCommandTag("UPDATE 0"), nil
+		}
+		delete(s.legacyHashes, txHash)
+		s.rows[tradeLedgerKey(chainID, txHash, logIndex)] = tradeLedgerSnapshot{
+			user: args[2].(string), amount: args[4].(string),
+		}
+		return pgconn.NewCommandTag("UPDATE 1"), nil
+	case strings.Contains(query, "INSERT INTO token_trades"):
+		chainID, txHash, logIndex := args[0].(int), args[9].(string), args[8].(int)
+		key := tradeLedgerKey(chainID, txHash, logIndex)
+		if _, exists := s.rows[key]; exists {
+			return pgconn.NewCommandTag("INSERT 0 0"), nil
+		}
+		s.rows[key] = tradeLedgerSnapshot{user: args[2].(string), amount: args[4].(string)}
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	case strings.Contains(query, "UPDATE token_trades"):
+		chainID, txHash, logIndex := args[0].(int), args[1].(string), args[2].(int)
+		key := tradeLedgerKey(chainID, txHash, logIndex)
+		if _, exists := s.rows[key]; !exists {
+			return pgconn.NewCommandTag("UPDATE 0"), nil
+		}
+		s.rows[key] = tradeLedgerSnapshot{user: args[4].(string), amount: args[6].(string)}
+		return pgconn.NewCommandTag("UPDATE 1"), nil
+	case strings.Contains(query, "UPDATE tokens AS token"), strings.Contains(query, "INSERT INTO token_holders"):
+		return pgconn.NewCommandTag("UPDATE 1"), nil
+	default:
+		return pgconn.CommandTag{}, fmt.Errorf("trade ledger test received unexpected SQL")
+	}
+}
+
+func (s *tradeLedgerStore) Query(context.Context, string, ...any) (pgx.Rows, error) {
+	return nil, errors.New("trade ledger test received unexpected Query")
+}
+
+func (s *tradeLedgerStore) QueryRow(context.Context, string, ...any) pgx.Row {
+	address := "0x1000000000000000000000000000000000000001"
+	return boundaryRow{values: []any{"token-1", &address}}
+}
 
 func TestDBSink_NilPoolReturnsErr(t *testing.T) {
 	var nilRecv *DBSink
@@ -91,7 +153,7 @@ func TestTokenCreatedRow(t *testing.T) {
 func TestProcessEvent_NonBusinessEventIsNoop(t *testing.T) {
 	// A non-business event must not touch the pool (safe on a nil-pool sink).
 	ev := ParsedEvent{Parsed: ParsedIndexedLog{EventName: "Transfer"}}
-	if err := (&DBSink{}).processEvent(context.Background(), ev); err != nil {
+	if err := (&DBSink{}).processEvent(context.Background(), nil, ev); err != nil {
 		t.Fatalf("Transfer dispatch err = %v, want nil", err)
 	}
 }
@@ -100,7 +162,7 @@ func TestProcessEvent_TokenCreatedValidatesBeforePool(t *testing.T) {
 	// TokenCreated with missing required args must error out before the
 	// (nil) pool is dereferenced — proves the validation guard runs first.
 	ev := tokenCreatedEvent(map[string]any{"symbol": "X"}) // no token/creator
-	if err := (&DBSink{}).processEvent(context.Background(), ev); err == nil {
+	if err := (&DBSink{}).processEvent(context.Background(), nil, ev); err == nil {
 		t.Fatal("expected an error for TokenCreated missing token/creator")
 	}
 }
@@ -209,12 +271,45 @@ func TestTradeRowFrom(t *testing.T) {
 	}
 }
 
+func TestHandleTradeKeepsEveryLogWhenTransactionHashRepeats(t *testing.T) {
+	const txHash = "0xshared-transaction"
+	store := &tradeLedgerStore{
+		rows: map[string]tradeLedgerSnapshot{}, legacyHashes: map[string]bool{txHash: true},
+	}
+	sink := &DBSink{}
+	first := tradeEvent("BUY", map[string]any{
+		"buyer":     "0x1111111111111111111111111111111111111111",
+		"tokensOut": big.NewInt(10), "ethIn": big.NewInt(1), "newPrice": big.NewInt(2),
+	}, "0xcurve", txHash)
+	first.BlockNumber, first.LogIndex = 100, 7
+	second := tradeEvent("BUY", map[string]any{
+		"buyer":     "0x2222222222222222222222222222222222222222",
+		"tokensOut": big.NewInt(20), "ethIn": big.NewInt(2), "newPrice": big.NewInt(3),
+	}, "0xcurve", txHash)
+	second.BlockNumber, second.LogIndex = 100, 8
+
+	for _, event := range []ParsedEvent{first, second, second, first} {
+		if err := sink.handleTrade(t.Context(), &eventProjection{store: store}, event, "BUY"); err != nil {
+			t.Fatalf("handleTrade log %d: %v", event.LogIndex, err)
+		}
+	}
+	if len(store.rows) != 2 {
+		t.Fatalf("durable trade rows = %d, want 2", len(store.rows))
+	}
+	if got := store.rows[tradeLedgerKey(11155111, txHash, 7)].amount; got != "10" {
+		t.Fatalf("log 7 amount = %q", got)
+	}
+	if got := store.rows[tradeLedgerKey(11155111, txHash, 8)].amount; got != "20" {
+		t.Fatalf("log 8 amount = %q", got)
+	}
+}
+
 func TestProcessEvent_TradeValidatesBeforePool(t *testing.T) {
 	// Buy/Sell with missing required args must error out before the (nil) pool is
 	// dereferenced — proves the validation guard runs first for the trade path.
 	for _, side := range []string{"BUY", "SELL"} {
 		ev := tradeEvent(side, map[string]any{"ethIn": big.NewInt(1)}, "0xc", "0xt") // no trader/amount/price
-		if err := (&DBSink{}).processEvent(context.Background(), ev); err == nil {
+		if err := (&DBSink{}).processEvent(context.Background(), nil, ev); err == nil {
 			t.Fatalf("%s: expected an error for missing trader/amount/price", side)
 		}
 	}
