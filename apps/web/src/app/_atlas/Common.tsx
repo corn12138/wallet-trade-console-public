@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { useConnect } from 'wagmi';
+import { formatUnits } from 'viem';
 import { useTranslations } from 'next-intl';
 import { Icon, type IconName } from './Icon';
 import { useApp } from './AppContext';
@@ -8,6 +9,13 @@ import { useTokenBalance } from '@/hooks/web3/useTokenBalance';
 import { getPerpAddresses } from '@/lib/web3/contracts';
 import { buildAddressExplorerUrl } from '@/lib/web3/explorer';
 import { supportedChains as web3SupportedChains } from '@/lib/web3';
+import type {
+  TxErrorCode,
+  TxInvalidationReason,
+  TxLifecycleState,
+  TxPhase,
+  TxReviewFacts,
+} from '@/hooks/web3/txIntent/types';
 
 /* ─────────── helpers to map real chains → design palette ─────────── */
 function chainSwatch(id: number) {
@@ -439,6 +447,9 @@ Nonce: (signed at submission)`}</pre>
       />
     );
   }
+  if (app.modal.kind === 'tx' && app.modal.props?.mode === 'intent') {
+    return <TxIntentModal props={app.modal.props as TxIntentModalProps} onBg={onBg} close={app.closeModal} />;
+  }
   if (app.modal.kind === 'tx') {
     const { stage, title, summary, hash, explorerUrl, error } = app.modal.props || {};
     return (
@@ -725,4 +736,238 @@ export function BlockBtn({
 
 export function PageShell({ children }: { children: React.ReactNode }) {
   return <div className="page-in">{children}</div>;
+}
+
+/* ─────────── frozen-intent transaction modal (ADR 0008) ─────────── */
+
+/**
+ * The modal for the shared transaction lifecycle. It renders a COLLAPSED phase
+ * rather than the raw lifecycle state, and every failure branch has its own
+ * rendering with a way out — no state can fall through to a spinner.
+ *
+ * Everything here is a code translated in this file; the engine never hands
+ * over a string a user could see.
+ */
+export interface TxIntentModalProps {
+  mode: 'intent';
+  phase: TxPhase;
+  state: TxLifecycleState;
+  title: string;
+  stepTitle?: string;
+  step?: { current: number; total: number };
+  review: TxReviewFacts | null;
+  expiresAt?: number;
+  expectsIndexing: boolean;
+  indexing: 'not-expected' | 'pending' | 'indexed' | 'timed-out';
+  hash?: string | null;
+  replacedByHash?: string | null;
+  explorerUrl?: string | null;
+  errorCode?: TxErrorCode | null;
+  invalidationReason?: TxInvalidationReason | null;
+  technicalHint?: string | null;
+  onSign?: () => void;
+  onRetry?: () => void;
+}
+
+function shortHex(value: string): string {
+  return value.length > 14 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value;
+}
+
+/** Which strip step a failure is pinned to, so the user sees how far it got. */
+function failedAtPhase(state: TxLifecycleState, hash: string | null | undefined): TxPhase {
+  switch (state) {
+    case 'REJECTED_BY_WALLET':
+      return 'wallet';
+    case 'REVERTED':
+    case 'REPLACED':
+    case 'REORGED':
+    case 'DROPPED':
+      return 'pending';
+    case 'EXPIRED':
+      return 'review';
+    default:
+      return hash ? 'pending' : 'review';
+  }
+}
+
+export function TxIntentModal({
+  props,
+  onBg,
+  close,
+}: {
+  props: TxIntentModalProps;
+  onBg: (e: React.MouseEvent) => void;
+  close: () => void;
+}) {
+  const t = useTranslations('atlasShell.modals.intent');
+  const tModal = useTranslations('atlasShell.modals');
+  const [showTechnical, setShowTechnical] = useState(false);
+
+  const stripPhases: TxPhase[] = props.expectsIndexing
+    ? ['review', 'wallet', 'pending', 'indexing', 'done']
+    : ['review', 'wallet', 'pending', 'done'];
+  const failed = props.phase === 'failed';
+  const anchor = failed ? failedAtPhase(props.state, props.hash) : props.phase;
+  const anchorIdx = Math.max(0, stripPhases.indexOf(anchor));
+  const labelFor: Record<TxPhase, string> = {
+    review: t('phaseReview'),
+    wallet: t('phaseWallet'),
+    pending: t('phasePending'),
+    indexing: t('phaseIndexing'),
+    done: t('phaseDone'),
+    failed: t('phaseDone'),
+  };
+
+  const facts: Array<[string, string]> = [];
+  if (props.review) {
+    const r = props.review;
+    facts.push([t('factAccount'), shortHex(r.owner)]);
+    facts.push([t('factChain'), String(r.targetChainId)]);
+    facts.push([t('factContract'), shortHex(r.target)]);
+    facts.push([t('factCalldata'), shortHex(r.calldataHash)]);
+    if (r.value > 0n) facts.push([t('factValue'), formatUnits(r.value, 18)]);
+    if (r.token) facts.push([t('factAmount'), `${formatUnits(r.token.amount, r.token.decimals)} ${r.token.symbol}`]);
+    if (r.guard?.slippageBps !== undefined) facts.push([t('factSlippage'), `${r.guard.slippageBps / 100}%`]);
+    if (r.guard?.minAmountOut !== undefined) {
+      const out = r.guard.outToken;
+      facts.push([t('factMinOut'), out ? `${formatUnits(r.guard.minAmountOut, out.decimals)} ${out.symbol}` : r.guard.minAmountOut.toString()]);
+    }
+    if (r.guard?.acceptablePrice !== undefined && r.guard.acceptablePrice > 0n) {
+      facts.push([t('factAcceptablePrice'), formatUnits(r.guard.acceptablePrice, 30)]);
+    }
+    if (r.guard?.deadline !== undefined) {
+      facts.push([t('factDeadline'), new Date(Number(r.guard.deadline) * 1000).toLocaleTimeString()]);
+    }
+    if (props.expiresAt !== undefined && Number.isFinite(props.expiresAt)) {
+      facts.push([t('factExpires'), new Date(props.expiresAt).toLocaleTimeString()]);
+    }
+  }
+
+  const lead = (() => {
+    switch (props.phase) {
+      case 'review':
+        return t('reviewLead');
+      case 'wallet':
+        return t('walletLead');
+      case 'pending':
+        return t('pendingLead');
+      case 'indexing':
+        return t('indexingWait');
+      case 'done':
+        return props.indexing === 'indexed' ? t('indexedOk') : props.indexing === 'timed-out' ? t('indexingTimedOut') : t('doneNoIndex');
+      case 'failed':
+        if (props.state === 'REPLACED') return t('replacedBy');
+        if (props.state === 'REORGED') return t('reorged');
+        if (props.invalidationReason) return t(`inv.${props.invalidationReason}`);
+        return t(`err.${props.errorCode ?? 'UNKNOWN'}`);
+    }
+  })();
+
+  return (
+    <div className="modal-bg" onClick={onBg}>
+      <div className="modal-box" data-testid="tx-intent-modal" data-phase={props.phase} data-state={props.state}>
+        <div className="modal-head">
+          <h3>{props.stepTitle || props.title}</h3>
+          <button className="modal-x" onClick={close} aria-label={t('closeCta')}>
+            <Icon name="close" size={16} />
+          </button>
+        </div>
+        {props.step && props.step.total > 1 && (
+          <div className="eyebrow" style={{ marginBottom: 8 }} data-testid="tx-intent-step">
+            {t('stepOf', { current: props.step.current, total: props.step.total })}
+          </div>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stripPhases.length}, 1fr)`, gap: 6, marginBottom: 14 }}>
+          {stripPhases.map((phase, i) => {
+            const past = i < anchorIdx || (i === anchorIdx && props.phase === 'done');
+            const current = i === anchorIdx && props.phase !== 'done';
+            const bg = failed && current ? 'var(--neg)' : past || current ? 'var(--y)' : 'var(--bg-2)';
+            return (
+              <div
+                key={phase}
+                style={{
+                  padding: 10, borderRadius: 12, border: '3px solid var(--ink)', background: bg,
+                  textAlign: 'center', fontFamily: 'var(--df)', fontWeight: 800, fontSize: 11, letterSpacing: '0.06em',
+                  color: failed && current ? '#fff' : 'var(--ink)',
+                }}
+              >
+                <div style={{ fontSize: 16 }}>
+                  {failed && current ? '✕' : current ? <span className="spinner" /> : past ? '✓' : '·'}
+                </div>
+                {labelFor[phase].toUpperCase()}
+              </div>
+            );
+          })}
+        </div>
+        <div
+          style={{
+            background: 'var(--bg-2)', border: '2px solid var(--ink)', borderRadius: 12, padding: 14,
+            fontFamily: 'var(--mf)', fontSize: 13, lineHeight: 1.6,
+          }}
+        >
+          <div data-testid="tx-intent-lead" style={{ color: failed ? 'var(--neg)' : 'var(--ink)' }}>{lead}</div>
+          {facts.length > 0 && props.phase !== 'failed' && (
+            <div style={{ marginTop: 10 }} data-testid="tx-intent-facts">
+              {facts.map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                  <span style={{ color: 'var(--ink-2)' }}>{k}</span>
+                  <b style={{ textAlign: 'right', wordBreak: 'break-all' }}>{v}</b>
+                </div>
+              ))}
+            </div>
+          )}
+          {props.hash && (
+            <div style={{ marginTop: 10, color: 'var(--ink-2)', wordBreak: 'break-all' }} data-testid="tx-modal-hash">
+              tx: <span style={{ color: 'var(--ink)' }}>{props.hash}</span>
+            </div>
+          )}
+          {props.replacedByHash && (
+            <div style={{ marginTop: 4, color: 'var(--ink-2)', wordBreak: 'break-all' }} data-testid="tx-modal-replaced-by">
+              → <span style={{ color: 'var(--ink)' }}>{props.replacedByHash}</span>
+            </div>
+          )}
+          {failed && props.technicalHint && (
+            <div style={{ marginTop: 10 }}>
+              <button type="button" className="btn btn-xs" onClick={() => setShowTechnical((v) => !v)}>
+                {t('technicalDetails')}
+              </button>
+              {showTechnical && (
+                <div className="mono" style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-2)', wordBreak: 'break-all' }} data-testid="tx-intent-technical">
+                  {props.technicalHint}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {props.explorerUrl && props.hash && (
+          <a className="btn btn-xs mt-14" href={props.explorerUrl} target="_blank" rel="noopener noreferrer"
+            data-testid="tx-modal-explorer" style={{ width: '100%', justifyContent: 'center' }}>
+            <Icon name="ext" size={14} /> {tModal('viewOnExplorer')}
+          </a>
+        )}
+        {props.phase === 'review' && props.onSign && (
+          <button className="btn btn-sm btn-g" style={{ width: '100%', marginTop: 14 }} onClick={props.onSign} data-testid="tx-intent-sign">
+            {t('signCta')}
+          </button>
+        )}
+        {props.phase === 'done' && (
+          <button className="btn btn-sm btn-g" style={{ width: '100%', marginTop: 14 }} onClick={close}>
+            {tModal('done')}
+          </button>
+        )}
+        {failed && (
+          <div className="row" style={{ gap: 8, marginTop: 14 }}>
+            {props.onRetry && (
+              <button className="btn btn-sm btn-y" style={{ flex: 1 }} onClick={props.onRetry} data-testid="tx-intent-retry">
+                {t('retryCta')}
+              </button>
+            )}
+            <button className="btn btn-sm" style={{ flex: 1 }} onClick={close}>
+              {t('closeCta')}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

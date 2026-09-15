@@ -12,11 +12,11 @@ datasource db {
 
 // 新增枚举类型
 enum ArticleStatus {
-  DRAFT      // 草稿
-  PUBLISHED  // 已发布
-  ARCHIVED   // 已归档
-  SCHEDULED  // 定时发布
-  TRASH      // 回收站
+  DRAFT // 草稿
+  PUBLISHED // 已发布
+  ARCHIVED // 已归档
+  SCHEDULED // 定时发布
+  TRASH // 回收站
 }
 
 enum ArticleSourceType {
@@ -37,18 +37,18 @@ enum ArticleVisibility {
 }
 
 enum ConversationStatus {
-  ACTIVE     // 活跃中
-  COMPLETED  // 已完成
-  PAUSED     // 暂停
-  ARCHIVED   // 已归档
-  ERROR      // 错误状态
+  ACTIVE // 活跃中
+  COMPLETED // 已完成
+  PAUSED // 暂停
+  ARCHIVED // 已归档
+  ERROR // 错误状态
 }
 
 enum MessageRole {
-  USER      // 用户消息
+  USER // 用户消息
   ASSISTANT // AI助手消息
-  SYSTEM    // 系统消息
-  FUNCTION  // 函数调用消息
+  SYSTEM // 系统消息
+  FUNCTION // 函数调用消息
 }
 
 // 用户模型 (保持不变，但添加新关系)
@@ -73,13 +73,13 @@ model User {
   messages      Message[]
 
   // 新增关系
-  userStatistics UserStatistics[]
+  userStatistics    UserStatistics[]
   verificationCodes VerificationCode[]
-  createdRooms InterviewRoom[] @relation("CreatedRooms")
-  participations RoomParticipant[]
-  tokenComments TokenComment[]
-  authSessions   AuthSession[]
-  web3Wallets    Web3Wallet[]
+  createdRooms      InterviewRoom[]    @relation("CreatedRooms")
+  participations    RoomParticipant[]
+  tokenComments     TokenComment[]
+  authSessions      AuthSession[]
+  web3Wallets       Web3Wallet[]
 
   @@map("users")
 }
@@ -115,42 +115,42 @@ model Tag {
 
 // 文章模型 (渐进式增强 - 保留published字段，添加新字段)
 model Article {
-  id             String   @id @default(cuid())
-  title          String
-  slug           String?  @unique
-  content        String   @db.Text
-  summary        String?  @db.Text
+  id      String  @id @default(cuid())
+  title   String
+  slug    String? @unique
+  content String  @db.Text
+  summary String? @db.Text
 
   // 保留原字段
-  published      Boolean  @default(false)
+  published Boolean @default(false)
 
   // 新增字段 (设为可选以确保兼容性)
-  status         ArticleStatus? @default(DRAFT)  // 新增：文章状态
-  lastSavedAt    DateTime?                       // 新增：最后保存时间
-  version        Int?          @default(1)       // 新增：版本号
-  draftContent   String?       @db.Text          // 新增：草稿内容
-  metaTitle      String?                         // 新增：SEO标题
-  metaDescription String?                        // 新增：SEO描述
-  keywords       String?                         // 新增：关键词
-  sourceType     ArticleSourceType? @default(MANUAL)
+  status           ArticleStatus?        @default(DRAFT) // 新增：文章状态
+  lastSavedAt      DateTime? // 新增：最后保存时间
+  version          Int?                  @default(1) // 新增：版本号
+  draftContent     String?               @db.Text // 新增：草稿内容
+  metaTitle        String? // 新增：SEO标题
+  metaDescription  String? // 新增：SEO描述
+  keywords         String? // 新增：关键词
+  sourceType       ArticleSourceType?    @default(MANUAL)
   sourceCollection String?
-  sourcePath     String?
-  contentFormat  ArticleContentFormat? @default(MARKDOWN)
-  visibility     ArticleVisibility @default(PUBLIC)
+  sourcePath       String?
+  contentFormat    ArticleContentFormat? @default(MARKDOWN)
+  visibility       ArticleVisibility     @default(PUBLIC)
 
-  featuredImage  String?
-  viewCount      Int      @default(0)
-  authorId       String
-  categoryId     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  publishedAt    DateTime?
+  featuredImage String?
+  viewCount     Int       @default(0)
+  authorId      String
+  categoryId    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  publishedAt   DateTime?
 
   // 关系
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  category  Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  tags      Tag[]
-  comments  Comment[]
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags     Tag[]
+  comments Comment[]
 
   // 新增索引
   @@index([status])
@@ -173,10 +173,10 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  article  Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies  Comment[] @relation("CommentReplies")
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  article Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentReplies")
 
   @@index([authorId])
   @@index([articleId])
@@ -187,18 +187,18 @@ model Comment {
 
 // 低代码页面模型 (保持不变)
 model LowcodePage {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String    @unique
   content     Json
   description String?
-  isHomePage  Boolean  @default(false)
-  published   Boolean  @default(false)
+  isHomePage  Boolean   @default(false)
+  published   Boolean   @default(false)
   config      Json?
   meta        Json?
   ownerId     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -216,22 +216,22 @@ model Conversation {
   updatedAt DateTime @updatedAt
 
   // 新增字段 (设为可选以确保兼容性)
-  modelProvider    String?                        // 模型提供商
-  modelVersion     String?                        // 模型版本
-  messageCount     Int?                @default(0) // 消息总数
-  totalTokens      Int?                @default(0) // 总token数
-  inputTokens      Int?                @default(0) // 输入token数
-  outputTokens     Int?                @default(0) // 输出token数
-  totalCost        Decimal?            @default(0) // 总成本
-  status           ConversationStatus? @default(ACTIVE) // 对话状态
-  temperature      Float?              @default(0.7)   // 温度参数
-  maxTokens        Int?                @default(1000)  // 最大token限制
-  lastMessageAt    DateTime?                           // 最后消息时间
-  duration         Int?                               // 对话持续时间(秒)
-  category         String?                            // 对话分类
-  tags             String[]            @default([])   // 对话标签
-  userRating       Int?                               // 用户评分(1-5)
-  feedback         String?                            // 用户反馈
+  modelProvider String? // 模型提供商
+  modelVersion  String? // 模型版本
+  messageCount  Int?                @default(0) // 消息总数
+  totalTokens   Int?                @default(0) // 总token数
+  inputTokens   Int?                @default(0) // 输入token数
+  outputTokens  Int?                @default(0) // 输出token数
+  totalCost     Decimal?            @default(0) // 总成本
+  status        ConversationStatus? @default(ACTIVE) // 对话状态
+  temperature   Float?              @default(0.7) // 温度参数
+  maxTokens     Int?                @default(1000) // 最大token限制
+  lastMessageAt DateTime? // 最后消息时间
+  duration      Int? // 对话持续时间(秒)
+  category      String? // 对话分类
+  tags          String[]            @default([]) // 对话标签
+  userRating    Int? // 用户评分(1-5)
+  feedback      String? // 用户反馈
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]
@@ -239,7 +239,6 @@ model Conversation {
   // 保留原有索引
   @@index([userId])
   @@index([createdAt])
-
   // 新增索引
   @@index([model])
   @@index([modelProvider])
@@ -252,29 +251,29 @@ model Conversation {
 
 // AI消息模型 (渐进式增强)
 model Message {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   conversationId String
-  role           String   // 暂时保持String，后续迁移到枚举
-  content        String   @db.Text
+  role           String // 暂时保持String，后续迁移到枚举
+  content        String    @db.Text
   model          String?
   tokenCount     Int?
   userId         String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
   readAt         DateTime?
 
   // 新增字段 (设为可选)
-  roleEnum         MessageRole?  // 新的枚举字段
-  modelProvider    String?       // 模型提供商
-  inputTokens      Int?          // 输入token数
-  outputTokens     Int?          // 输出token数
-  totalTokens      Int?          // 总token数
-  responseTime     Int?          // 响应时间(毫秒)
-  cost             Decimal?      // 消息成本
-  confidence       Float?        // AI回复置信度
-  userRating       Int?          // 用户评分
-  temperature      Float?        // 生成参数
-  maxTokens        Int?          // token限制
-  finishReason     String?       // 完成原因
+  roleEnum      MessageRole? // 新的枚举字段
+  modelProvider String? // 模型提供商
+  inputTokens   Int? // 输入token数
+  outputTokens  Int? // 输出token数
+  totalTokens   Int? // 总token数
+  responseTime  Int? // 响应时间(毫秒)
+  cost          Decimal? // 消息成本
+  confidence    Float? // AI回复置信度
+  userRating    Int? // 用户评分
+  temperature   Float? // 生成参数
+  maxTokens     Int? // token限制
+  finishReason  String? // 完成原因
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -282,7 +281,6 @@ model Message {
   // 保留原有索引
   @@index([conversationId])
   @@index([createdAt])
-
   // 新增索引
   @@index([roleEnum])
   @@index([model])
@@ -296,27 +294,27 @@ model Message {
 
 // 用户使用统计
 model UserStatistics {
-  id               String   @id @default(cuid())
-  userId           String
-  date             DateTime // 统计日期(按天)
+  id     String   @id @default(cuid())
+  userId String
+  date   DateTime // 统计日期(按天)
 
   // 使用量统计
   conversationCount Int     @default(0)
-  messageCount     Int      @default(0)
-  totalTokens      Int      @default(0)
-  totalCost        Decimal  @default(0)
+  messageCount      Int     @default(0)
+  totalTokens       Int     @default(0)
+  totalCost         Decimal @default(0)
 
   // 时间和质量统计
-  totalDuration    Int      @default(0)  // 总时长(分钟)
-  avgResponseTime  Int?                   // 平均响应时间
-  modelUsage       Json     @default("{}")// 各模型使用次数
-  avgRating        Float?                 // 平均评分
+  totalDuration   Int    @default(0) // 总时长(分钟)
+  avgResponseTime Int? // 平均响应时间
+  modelUsage      Json   @default("{}") // 各模型使用次数
+  avgRating       Float? // 平均评分
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // 关系
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 唯一约束：每个用户每天只有一条记录
   @@unique([userId, date])
@@ -327,26 +325,26 @@ model UserStatistics {
 
 // 模型使用统计
 model ModelStatistics {
-  id               String   @id @default(cuid())
-  model            String   // 模型名称
-  modelProvider    String   // 提供商
-  date             DateTime // 统计日期
+  id            String   @id @default(cuid())
+  model         String // 模型名称
+  modelProvider String // 提供商
+  date          DateTime // 统计日期
 
   // 使用统计
-  requestCount     Int      @default(0)
-  userCount        Int      @default(0)
-  totalTokens      Int      @default(0)
-  totalCost        Decimal  @default(0)
+  requestCount Int     @default(0)
+  userCount    Int     @default(0)
+  totalTokens  Int     @default(0)
+  totalCost    Decimal @default(0)
 
   // 性能统计
-  avgResponseTime  Int?
-  maxResponseTime  Int?
-  minResponseTime  Int?
-  avgRating        Float?
-  errorRate        Float?
+  avgResponseTime Int?
+  maxResponseTime Int?
+  minResponseTime Int?
+  avgRating       Float?
+  errorRate       Float?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // 唯一约束
   @@unique([model, modelProvider, date])
@@ -357,18 +355,18 @@ model ModelStatistics {
 }
 
 model AuthSession {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   userId           String
-  refreshTokenHash String   @unique
+  refreshTokenHash String    @unique
   expiresAt        DateTime
-  lastUsedAt       DateTime @default(now())
+  lastUsedAt       DateTime  @default(now())
   revokedAt        DateTime?
   userAgent        String?
   ipAddressHash    String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
   @@index([expiresAt])
@@ -379,35 +377,35 @@ model AuthSession {
 
 // 验证码类型枚举
 enum VerificationCodeType {
-  PASSWORD_RESET    // 密码重置
-  EMAIL_LOGIN       // 邮箱登录
+  PASSWORD_RESET // 密码重置
+  EMAIL_LOGIN // 邮箱登录
   EMAIL_VERIFICATION // 邮箱验证
   PHONE_VERIFICATION // 手机验证
 }
 
 // 验证码状态枚举
 enum VerificationCodeStatus {
-  PENDING    // 待验证
-  VERIFIED   // 已验证
-  EXPIRED    // 已过期
-  REVOKED    // 已撤销
+  PENDING // 待验证
+  VERIFIED // 已验证
+  EXPIRED // 已过期
+  REVOKED // 已撤销
 }
 
 // 验证码模型
 model VerificationCode {
-  id        String   @id @default(cuid())
-  code      String   // 验证码
-  email     String   // 目标邮箱
-  type      VerificationCodeType // 验证码类型
-  status    VerificationCodeStatus @default(PENDING) // 验证码状态
-  userId    String?  // 关联用户ID（可选）
-  expiresAt DateTime // 过期时间
-  verifiedAt DateTime? // 验证时间
-  revokedAt  DateTime? // 撤销时间
-  attempts   Int      @default(0) // 尝试次数
-  maxAttempts Int     @default(3) // 最大尝试次数
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String                 @id @default(cuid())
+  code        String // 验证码
+  email       String // 目标邮箱
+  type        VerificationCodeType // 验证码类型
+  status      VerificationCodeStatus @default(PENDING) // 验证码状态
+  userId      String? // 关联用户ID（可选）
+  expiresAt   DateTime // 过期时间
+  verifiedAt  DateTime? // 验证时间
+  revokedAt   DateTime? // 撤销时间
+  attempts    Int                    @default(0) // 尝试次数
+  maxAttempts Int                    @default(3) // 最大尝试次数
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
 
   // 关系
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -423,68 +421,68 @@ model VerificationCode {
 
 // 房间类型枚举
 enum RoomType {
-  ONE_ON_ONE  // 1对1面试
-  PANEL       // 小组面试
-  GROUP       // 群组会议
+  ONE_ON_ONE // 1对1面试
+  PANEL // 小组面试
+  GROUP // 群组会议
 }
 
 // 房间状态枚举
 enum RoomStatus {
-  ACTIVE      // 活跃中
-  ENDED       // 已结束
-  ARCHIVED    // 已归档
+  ACTIVE // 活跃中
+  ENDED // 已结束
+  ARCHIVED // 已归档
 }
 
 // 参与者角色枚举
 enum ParticipantRole {
-  INTERVIEWER  // 面试官
-  INTERVIEWEE  // 面试者
-  OBSERVER     // 观察者
+  INTERVIEWER // 面试官
+  INTERVIEWEE // 面试者
+  OBSERVER // 观察者
 }
 
 // 连接质量枚举
 enum ConnectionQuality {
-  EXCELLENT    // 优秀
-  GOOD         // 良好
-  POOR         // 较差
-  UNKNOWN      // 未知
+  EXCELLENT // 优秀
+  GOOD // 良好
+  POOR // 较差
+  UNKNOWN // 未知
 }
 
 // 面试房间模型
 model InterviewRoom {
-  id              String      @id @default(cuid())
-  roomName        String      @unique // LiveKit房间名称
-  displayName     String      // 显示名称
-  roomType        RoomType    @default(PANEL)
-  status          RoomStatus  @default(ACTIVE)
+  id          String     @id @default(cuid())
+  roomName    String     @unique // LiveKit房间名称
+  displayName String // 显示名称
+  roomType    RoomType   @default(PANEL)
+  status      RoomStatus @default(ACTIVE)
 
   // 房间配置
-  maxParticipants Int         @default(6)
-  isPublic        Boolean     @default(true)
-  password        String?     // 房间密码（可选）
+  maxParticipants Int     @default(6)
+  isPublic        Boolean @default(true)
+  password        String? // 房间密码（可选）
 
   // 描述信息
-  description     String?     @db.Text
-  tags            String[]    @default([])
+  description String?  @db.Text
+  tags        String[] @default([])
 
   // 创建者
-  creatorId       String?
-  creator         User?       @relation("CreatedRooms", fields: [creatorId], references: [id], onDelete: SetNull)
+  creatorId String?
+  creator   User?   @relation("CreatedRooms", fields: [creatorId], references: [id], onDelete: SetNull)
 
   // 时间追踪
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  startedAt       DateTime?   // 首次有人加入的时间
-  endedAt         DateTime?   // 房间结束时间
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  startedAt DateTime? // 首次有人加入的时间
+  endedAt   DateTime? // 房间结束时间
 
   // 统计数据
-  totalDuration   Int         @default(0) // 总持续时间（秒）
-  peakParticipants Int?       // 峰值参与人数
-  totalJoins      Int         @default(0) // 总加入次数
+  totalDuration    Int  @default(0) // 总持续时间（秒）
+  peakParticipants Int? // 峰值参与人数
+  totalJoins       Int  @default(0) // 总加入次数
 
   // 关系
-  participants    RoomParticipant[]
-  sessions        RoomSession[]
+  participants RoomParticipant[]
+  sessions     RoomSession[]
 
   @@index([roomName])
   @@index([status])
@@ -496,26 +494,26 @@ model InterviewRoom {
 
 // 房间参与者模型
 model RoomParticipant {
-  id          String      @id @default(cuid())
-  roomId      String
-  room        InterviewRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  id     String        @id @default(cuid())
+  roomId String
+  room   InterviewRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   // 用户信息
   userId      String?
-  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  displayName String      // 显示名称
-  identity    String      // LiveKit identity
+  user        User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  displayName String // 显示名称
+  identity    String // LiveKit identity
 
   // 角色
-  role        ParticipantRole @default(OBSERVER)
+  role ParticipantRole @default(OBSERVER)
 
   // 时间追踪
-  joinedAt    DateTime    @default(now())
-  leftAt      DateTime?
-  duration    Int         @default(0) // 持续时间（秒）
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+  duration Int       @default(0) // 持续时间（秒）
 
   // 状态
-  isActive    Boolean     @default(true)
+  isActive          Boolean           @default(true)
   connectionQuality ConnectionQuality @default(UNKNOWN)
 
   @@index([roomId])
@@ -527,17 +525,17 @@ model RoomParticipant {
 }
 
 model RoomSession {
-  id          String      @id @default(cuid())
-  roomId      String
-  room        InterviewRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  id     String        @id @default(cuid())
+  roomId String
+  room   InterviewRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   // 会话时间
-  startedAt   DateTime    @default(now())
-  endedAt     DateTime?
-  duration    Int         @default(0) // 会话持续时间（秒）
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  duration  Int       @default(0) // 会话持续时间（秒）
 
   // 会话统计
-  participantCount Int?    // 该会话的参与人数
+  participantCount Int? // 该会话的参与人数
 
   @@index([roomId])
   @@index([startedAt])
@@ -548,28 +546,28 @@ model RoomSession {
 
 // 文档分类枚举
 enum DocCategory {
-  LATEST    // 最新
-  FRONTEND  // 前端
-  BACKEND   // 后端
-  AI        // AI
-  MOBILE    // 移动端
-  DESIGN    // 设计
+  LATEST // 最新
+  FRONTEND // 前端
+  BACKEND // 后端
+  AI // AI
+  MOBILE // 移动端
+  DESIGN // 设计
 }
 
 // 移动端文档模型
 model MobileDoc {
-  id          String      @id @default(uuid())
-  title       String
-  content     String      @db.Text
-  summary     String?     @db.Text
-  filePath    String?     @unique
-  category    DocCategory @default(FRONTEND)
-  tags        String[]    @default([])
-  isHot       Boolean     @default(false)
-  sortOrder   Int         @default(0)
-  published   Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String      @id @default(uuid())
+  title     String
+  content   String      @db.Text
+  summary   String?     @db.Text
+  filePath  String?     @unique
+  category  DocCategory @default(FRONTEND)
+  tags      String[]    @default([])
+  isHot     Boolean     @default(false)
+  sortOrder Int         @default(0)
+  published Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@index([category])
   @@index([isHot])
@@ -585,14 +583,14 @@ model Web3Wallet {
   id          String    @id @default(cuid())
   address     String    @unique @db.VarChar(42) // 以太坊地址 0x...
   chainId     Int       @default(11155111) // 默认 Sepolia
-  userId      String?   // 关联到现有用户（可选）
+  userId      String? // 关联到现有用户（可选）
   nonce       String?   @db.VarChar(100) // SIWE nonce
   lastLoginAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
-  profiles    Web3WalletProfile[]
+  user     User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  profiles Web3WalletProfile[]
 
   @@index([address])
   @@index([userId])
@@ -618,18 +616,18 @@ model Web3WalletGroup {
 // 钱包管理资料
 model Web3WalletProfile {
   id           String           @id @default(cuid())
-  walletId      String
-  ownerAddress  String           @db.VarChar(42)
-  displayName   String?          @db.VarChar(120)
-  groupId       String?
-  isDefault     Boolean          @default(false)
-  isImported    Boolean          @default(false)
-  avatarSeed    String?          @db.VarChar(80)
-  notes         String?          @db.Text
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  wallet        Web3Wallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  group         Web3WalletGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  walletId     String
+  ownerAddress String           @db.VarChar(42)
+  displayName  String?          @db.VarChar(120)
+  groupId      String?
+  isDefault    Boolean          @default(false)
+  isImported   Boolean          @default(false)
+  avatarSeed   String?          @db.VarChar(80)
+  notes        String?          @db.Text
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  wallet       Web3Wallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  group        Web3WalletGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@unique([ownerAddress, walletId], name: "wallet_profiles_owner_wallet")
   @@index([ownerAddress])
@@ -656,16 +654,16 @@ model Web3UserPreference {
 
 // 隐藏资产
 model Web3HiddenAsset {
-  id           String   @id @default(cuid())
-  ownerAddress String   @db.VarChar(42)
-  walletAddress String? @db.VarChar(42)
-  chainId      Int
-  assetKey     String   @db.VarChar(180)
-  assetAddress String?  @db.VarChar(42)
-  symbol       String   @db.VarChar(32)
-  reason       String   @default("manual") @db.VarChar(40)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  ownerAddress  String   @db.VarChar(42)
+  walletAddress String?  @db.VarChar(42)
+  chainId       Int
+  assetKey      String   @db.VarChar(180)
+  assetAddress  String?  @db.VarChar(42)
+  symbol        String   @db.VarChar(32)
+  reason        String   @default("manual") @db.VarChar(40)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([ownerAddress, assetKey], name: "hidden_assets_owner_asset_key")
   @@index([ownerAddress, chainId])
@@ -713,17 +711,22 @@ model ConnectedSite {
 
 // Web3 事件记录（链上事件持久化）
 model Web3Event {
-  id              Int       @id @default(autoincrement())
-  chainId         Int       @map("chain_id")
-  contractAddress String    @map("contract_address") @db.VarChar(42)
-  eventName       String    @map("event_name") @db.VarChar(100)
-  txHash          String    @map("tx_hash") @db.VarChar(66)
-  logIndex        Int       @map("log_index")
-  blockNumber     BigInt    @map("block_number")
-  actorAddress    String?   @map("actor_address") @db.VarChar(42)
-  args            Json      @default("{}")
-  occurredAt      DateTime? @map("occurred_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id                      Int       @id @default(autoincrement())
+  chainId                 Int       @map("chain_id")
+  contractAddress         String    @map("contract_address") @db.VarChar(42)
+  eventName               String    @map("event_name") @db.VarChar(100)
+  txHash                  String    @map("tx_hash") @db.VarChar(66)
+  logIndex                Int       @map("log_index")
+  blockNumber             BigInt    @map("block_number")
+  actorAddress            String?   @map("actor_address") @db.VarChar(42)
+  args                    Json      @default("{}")
+  occurredAt              DateTime? @map("occurred_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  projectionVersion       Int       @default(0) @map("projection_version")
+  projectionCompletedAt   DateTime? @map("projection_completed_at")
+  projectionError         String?   @map("projection_error") @db.Text
+  projectionAttempts      Int       @default(0) @map("projection_attempts")
+  projectionLastAttemptAt DateTime? @map("projection_last_attempt_at")
 
   // 唯一约束确保幂等性
   @@unique([chainId, contractAddress, txHash, logIndex], name: "web3_events_unique")
@@ -732,115 +735,195 @@ model Web3Event {
   @@index([eventName])
   @@index([contractAddress])
   @@index([chainId, contractAddress])
+  @@index([projectionCompletedAt, projectionVersion, id], map: "web3_events_projection_pending_idx")
   @@map("web3_events")
 }
 
 // Indexer 状态（用于断点续传）
 model Web3IndexerState {
-  id                  Int       @id @default(autoincrement())
-  chainId             Int       @map("chain_id")
-  contractAddress     String    @map("contract_address") @db.VarChar(42)
-  lastProcessedBlock  BigInt    @map("last_processed_block")
-  lastSafeBlock       BigInt    @default(0) @map("last_safe_block")
-  confirmationDepth   Int       @default(6) @map("confirmation_depth")
-  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  id                 Int      @id @default(autoincrement())
+  chainId            Int      @map("chain_id")
+  contractAddress    String   @map("contract_address") @db.VarChar(42)
+  lastProcessedBlock BigInt   @map("last_processed_block")
+  lastSafeBlock      BigInt   @default(0) @map("last_safe_block")
+  confirmationDepth  Int      @default(6) @map("confirmation_depth")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@unique([chainId, contractAddress], name: "indexer_state_unique")
   @@map("web3_indexer_state")
 }
 
 // Web3 交易记录（用户交易历史）
+/// One user-authorised action. A speed-up or cancel reuses the sender's nonce
+/// under a NEW hash, so it becomes another ATTEMPT of this action rather than
+/// another action — which is what keeps one intent showing up once.
+///
+/// clientActionId carries its own namespace so the two identity sources can
+/// never collide: "cli:" for a caller-supplied key, "srv:" for one the server
+/// derived. A caller-supplied id matching ^srv: is rejected, which is what makes
+/// CLIENT_ACTION_ID_REUSED unreachable for a caller that supplies no key —
+/// a structural guarantee rather than an emergent one.
+model Web3TransactionAction {
+  id             String  @id
+  chainId        Int     @map("chain_id")
+  ownerAddress   String  @map("owner_address") @db.VarChar(42)
+  clientActionId String  @map("client_action_id") @db.VarChar(160)
+  actionType     String? @map("action_type")
+
+  /// sha256 of the canonical reviewed request. NULL means "server-derived
+  /// identity, no client key", and a NULL fingerprint can never produce a
+  /// reuse conflict — it is adopted by the first request that supplies one.
+  requestFingerprint String? @map("request_fingerprint") @db.VarChar(64)
+
+  /// pending | confirmed | failed | reorged | dropped | replaced.
+  /// Derived from the attempts by one writer, in the same transaction as every
+  /// attempt write. Precedence: confirmed > pending > failed > reorged >
+  /// dropped > replaced — a live attempt outranks a dead one.
+  status       String @default("pending")
+  attemptCount Int    @default(0) @map("attempt_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  attempts Web3Transaction[]
+
+  @@unique([chainId, ownerAddress, clientActionId], map: "web3_tx_actions_client_key")
+  @@index([ownerAddress, createdAt(sort: Desc)], map: "web3_tx_actions_owner_idx")
+  @@map("web3_transaction_actions")
+}
+
+/// An ATTEMPT at its action. The row is keyed by (chainId, txHash) — chain
+/// receipt identity — and is never deleted or repurposed, so a replacement adds
+/// history instead of erasing it.
 model Web3Transaction {
-  id              Int       @id @default(autoincrement())
-  chainId         Int       @map("chain_id")
-  txHash          String    @map("tx_hash") @db.VarChar(66)
-  fromAddress     String    @map("from_address") @db.VarChar(42)
-  toAddress       String?   @map("to_address") @db.VarChar(42)
-  contractAddress String?   @map("contract_address") @db.VarChar(42)
-  value           String?   // Wei value as string
-  gasUsed         BigInt?   @map("gas_used")
-  gasPrice        BigInt?   @map("gas_price")
-  blockNumber     BigInt    @map("block_number")
-  status          String    @default("pending") // pending, confirmed, failed
-  txType          String?   @map("tx_type") // swap, addLiquidity, removeLiquidity, approve
-  metadata        Json?     // 额外信息
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id              Int      @id @default(autoincrement())
+  chainId         Int      @map("chain_id")
+  txHash          String   @map("tx_hash") @db.VarChar(66)
+  fromAddress     String   @map("from_address") @db.VarChar(42)
+  toAddress       String?  @map("to_address") @db.VarChar(42)
+  contractAddress String?  @map("contract_address") @db.VarChar(42)
+  value           String? // Wei value as string
+  gasUsed         BigInt?  @map("gas_used")
+  gasPrice        BigInt?  @map("gas_price")
+  blockNumber     BigInt   @map("block_number")
+  /// pending | confirmed | failed | replaced | dropped | reorged.
+  /// Every value beyond the first three is terminal and is protected from being
+  /// overwritten by a later client re-report.
+  status          String   @default("pending")
+  txType          String?  @map("tx_type") // swap, addLiquidity, removeLiquidity, approve
+  metadata        Json? // 额外信息
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  /// Nullable on purpose: this is the expand half of expand/contract. An older
+  /// binary still inserting action-less rows must not violate a constraint.
+  actionId      String? @map("action_id")
+  attemptNumber Int     @default(1) @map("attempt_number")
+
+  /// The sender's nonce is the replacement key: two attempts sharing
+  /// (chainId, fromAddress, senderNonce) where one mines identify the others as
+  /// replaced. NULL means the node did not tell us, and `dropped` is
+  /// unreachable while it is NULL.
+  senderNonce BigInt? @map("sender_nonce")
+  blockHash   String? @map("block_hash") @db.VarChar(66)
+
+  confirmations  Int       @default(0)
+  submittedAt    DateTime? @map("submitted_at")
+  confirmedAt    DateTime? @map("confirmed_at")
+  finalizedAt    DateTime? @map("finalized_at")
+  lastCheckedAt  DateTime? @map("last_checked_at")
+  checkAttempts  Int       @default(0) @map("check_attempts")
+  /// Consecutive cycles that found the transaction gone. Distinct from
+  /// checkAttempts, which only grows and drives the re-check backoff: sharing
+  /// one counter would let two RPC outages plus a single absence look like
+  /// three agreeing observations of a dropped transaction.
+  missingStreak  Int       @default(0) @map("missing_streak")
+  replacedByHash String?   @map("replaced_by_hash") @db.VarChar(66)
+
+  /// A closed server-side enum, never a provider string. failureDetail is a
+  /// truncated, code-tagged summary and is never serialized to a public route.
+  failureCode   String? @map("failure_code")
+  failureDetail String? @map("failure_detail") @db.Text
+
+  action Web3TransactionAction? @relation(fields: [actionId], references: [id])
 
   @@unique([chainId, txHash])
+  @@unique([actionId, attemptNumber], map: "web3_transactions_action_attempt_key")
   @@index([fromAddress])
   @@index([toAddress])
   @@index([contractAddress])
   @@index([blockNumber(sort: Desc)])
   @@index([status])
+  @@index([chainId, fromAddress, senderNonce], map: "web3_transactions_nonce_idx")
+  @@index([status, lastCheckedAt], map: "web3_transactions_reconcile_idx")
   @@map("web3_transactions")
 }
 
 // Token status enum for launchpad
 enum TokenStatus {
-  PENDING    // Waiting for deployment
-  UPCOMING   // Scheduled for launch
-  LAUNCHED   // Successfully launched
-  GRADUATED  // Bonding curve graduated to DEX liquidity (chain Graduated event)
-  BURNING    // Token is being burned
-  FAILED     // Deployment failed
+  PENDING // Waiting for deployment
+  UPCOMING // Scheduled for launch
+  LAUNCHED // Successfully launched
+  GRADUATED // Bonding curve graduated to DEX liquidity (chain Graduated event)
+  BURNING // Token is being burned
+  FAILED // Deployment failed
 }
 
 // Token launch type
 enum LaunchType {
-  NEW_COIN   // Standard token launch
-  IDO        // Initial DEX Offering
-  BURNING    // Token with burning mechanism
+  NEW_COIN // Standard token launch
+  IDO // Initial DEX Offering
+  BURNING // Token with burning mechanism
 }
 
 // Launchpad Token model
 model Token {
-  id              String       @id @default(cuid())
-  address         String?      @unique @db.VarChar(42)
-  chainId         Int          @map("chain_id")
-  symbol          String       @db.VarChar(20)
-  name            String       @db.VarChar(100)
-  description     String?      @db.Text
-  image           String?      // Token icon URL
-  banner          String?      // Banner image URL
-  tags            Json         @default("[]") // Array of tag strings
+  id          String  @id @default(cuid())
+  address     String? @unique @db.VarChar(42)
+  chainId     Int     @map("chain_id")
+  symbol      String  @db.VarChar(20)
+  name        String  @db.VarChar(100)
+  description String? @db.Text
+  image       String? // Token icon URL
+  banner      String? // Banner image URL
+  tags        Json    @default("[]") // Array of tag strings
 
   // Social links
-  twitter         String?
-  discord         String?
-  telegram        String?
-  website         String?
-  whitepaper      String?
+  twitter    String?
+  discord    String?
+  telegram   String?
+  website    String?
+  whitepaper String?
 
   // Launch configuration
-  status          TokenStatus  @default(PENDING)
-  launchType      LaunchType   @default(NEW_COIN) @map("launch_type")
-  preBuyPercent   Float?       @map("pre_buy_percent")
-  hasMargin       Boolean      @default(false) @map("has_margin")
-  hasReservation  Boolean      @default(false) @map("has_reservation")
-  isOfficial      Boolean      @default(false) @map("is_official")
-  customAddress   String?      @map("custom_address") @db.VarChar(4)
+  status         TokenStatus @default(PENDING)
+  launchType     LaunchType  @default(NEW_COIN) @map("launch_type")
+  preBuyPercent  Float?      @map("pre_buy_percent")
+  hasMargin      Boolean     @default(false) @map("has_margin")
+  hasReservation Boolean     @default(false) @map("has_reservation")
+  isOfficial     Boolean     @default(false) @map("is_official")
+  customAddress  String?     @map("custom_address") @db.VarChar(4)
 
   // Bonding curve / market data. Financial amounts are precise decimals in
   // normalized NATIVE units (wei is converted exactly once at the indexer
   // boundary) — never floats. priceChange24h stays a display-only percent.
-  bondingCurve    String?      @map("bonding_curve") @db.VarChar(42)
-  marketCap       Decimal?     @map("market_cap") @db.Decimal(38, 18)
-  volume24h       Decimal?     @map("volume_24h") @db.Decimal(38, 18)
-  priceChange24h  Float?       @map("price_change_24h")
+  bondingCurve   String?  @map("bonding_curve") @db.VarChar(42)
+  marketCap      Decimal? @map("market_cap") @db.Decimal(38, 18)
+  volume24h      Decimal? @map("volume_24h") @db.Decimal(38, 18)
+  priceChange24h Float?   @map("price_change_24h")
 
   // Creator info
-  creatorAddress  String       @map("creator_address") @db.VarChar(42)
+  creatorAddress String @map("creator_address") @db.VarChar(42)
 
   // Timestamps
-  launchedAt      DateTime?    @map("launched_at")
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
+  launchedAt DateTime? @map("launched_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  comments        TokenComment[]
-  trades          TokenTrade[]
-  candles         TokenCandle[]
-  holders         TokenHolder[]
+  comments TokenComment[]
+  trades   TokenTrade[]
+  candles  TokenCandle[]
+  holders  TokenHolder[]
 
   @@index([chainId])
   @@index([createdAt(sort: Desc)])
@@ -858,8 +941,8 @@ model TokenComment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  token     Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tokenId])
   @@index([userId])
@@ -870,19 +953,23 @@ model TokenComment {
 // Token Trade model (Bonding Curve trades)
 model TokenTrade {
   id              String   @id @default(cuid())
+  chainId         Int      @default(11155111) @map("chain_id")
   tokenId         String
   userAddress     String   @map("user_address") @db.VarChar(42)
-  type            String   // BUY, SELL
-  tokenAmount     String   // raw integer string, smallest unit (auditability)
-  ethAmount       String   // raw integer string, wei (auditability)
+  type            String // BUY, SELL
+  tokenAmount     String // raw integer string, smallest unit (auditability)
+  ethAmount       String // raw integer string, wei (auditability)
   price           Decimal  @db.Decimal(38, 18) // normalized NATIVE per token
   blockNumber     BigInt   @map("block_number")
-  transactionHash String   @map("transaction_hash") @unique
+  logIndex        Int?     @map("log_index")
+  transactionHash String   @map("transaction_hash")
   timestamp       DateTime
 
-  token           Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
 
+  @@unique([chainId, transactionHash, logIndex])
   @@index([tokenId])
+  @@index([chainId, blockNumber, logIndex])
   @@index([userAddress])
   @@index([timestamp(sort: Desc)])
   @@map("token_trades")
@@ -890,17 +977,17 @@ model TokenTrade {
 
 // Token Candle model (OHLCV)
 model TokenCandle {
-  id        String   @id @default(cuid())
-  tokenId   String
-  time      DateTime
-  resolution String  // 1m, 5m, 15m, 1h, 4h, 1d
-  open      Decimal @db.Decimal(38, 18) // normalized NATIVE per token
-  high      Decimal @db.Decimal(38, 18)
-  low       Decimal @db.Decimal(38, 18)
-  close     Decimal @db.Decimal(38, 18)
-  volume    Decimal @db.Decimal(38, 18) // normalized NATIVE
+  id         String   @id @default(cuid())
+  tokenId    String
+  time       DateTime
+  resolution String // 1m, 5m, 15m, 1h, 4h, 1d
+  open       Decimal  @db.Decimal(38, 18) // normalized NATIVE per token
+  high       Decimal  @db.Decimal(38, 18)
+  low        Decimal  @db.Decimal(38, 18)
+  close      Decimal  @db.Decimal(38, 18)
+  volume     Decimal  @db.Decimal(38, 18) // normalized NATIVE
 
-  token     Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
 
   @@unique([tokenId, resolution, time])
   @@index([tokenId, resolution, time(sort: Desc)])
@@ -912,10 +999,10 @@ model TokenHolder {
   id          String   @id @default(cuid())
   tokenId     String
   userAddress String   @map("user_address") @db.VarChar(42)
-  balance     String   // BigInt as String
+  balance     String // BigInt as String
   updatedAt   DateTime @updatedAt
 
-  token       Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
 
   @@unique([tokenId, userAddress])
   @@index([tokenId, balance(sort: Desc)])
@@ -924,18 +1011,18 @@ model TokenHolder {
 
 // Launchpad Campaign model
 model LaunchpadCampaign {
-  id              String    @id @default(cuid())
-  title           String    @db.VarChar(200)
-  description     String?   @db.Text
-  banner          String?
-  startDate       DateTime  @map("start_date")
-  endDate         DateTime  @map("end_date")
-  status          String    @default("upcoming") // upcoming, active, ended
-  reward          String?   // Reward pool description
-  participants    Int       @default(0)
-  metadata        Json?
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id           String   @id @default(cuid())
+  title        String   @db.VarChar(200)
+  description  String?  @db.Text
+  banner       String?
+  startDate    DateTime @map("start_date")
+  endDate      DateTime @map("end_date")
+  status       String   @default("upcoming") // upcoming, active, ended
+  reward       String? // Reward pool description
+  participants Int      @default(0)
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@index([status])
   @@index([startDate])
@@ -945,21 +1032,21 @@ model LaunchpadCampaign {
 
 // Staking/Farming Pool model
 model StakingPool {
-  id              String    @id @default(cuid())
-  name            String    @db.VarChar(100)
-  chainId         Int       @map("chain_id")
-  poolType        String    @map("pool_type") // staking, farming
-  tokenAddress    String    @map("token_address") @db.VarChar(42)
-  rewardToken     String?   @map("reward_token") @db.VarChar(42)
-  apy             Float?
-  tvl             Float?
-  status          String    @default("active") // active, ending, ended
-  startsAt        DateTime? @map("starts_at")
-  endsAt          DateTime? @map("ends_at")
-  metadata        Json?
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  stakes          UserStake[]
+  id           String      @id @default(cuid())
+  name         String      @db.VarChar(100)
+  chainId      Int         @map("chain_id")
+  poolType     String      @map("pool_type") // staking, farming
+  tokenAddress String      @map("token_address") @db.VarChar(42)
+  rewardToken  String?     @map("reward_token") @db.VarChar(42)
+  apy          Float?
+  tvl          Float?
+  status       String      @default("active") // active, ending, ended
+  startsAt     DateTime?   @map("starts_at")
+  endsAt       DateTime?   @map("ends_at")
+  metadata     Json?
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  stakes       UserStake[]
 
   @@index([chainId])
   @@index([poolType])
@@ -969,36 +1056,37 @@ model StakingPool {
 
 // User staking position
 model UserStake {
-  id            String    @id @default(cuid())
-  userAddress   String    @map("user_address") @db.VarChar(42)
-  poolId        String    @map("pool_id")
-  amount        Decimal   @db.Decimal(36, 18)
-  rewardsClaimed Decimal  @default(0) @map("rewards_claimed") @db.Decimal(36, 18)
-  stakedAt      DateTime  @default(now()) @map("staked_at")
-  unstakedAt    DateTime? @map("unstaked_at")
-  pool          StakingPool @relation(fields: [poolId], references: [id])
+  id             String      @id @default(cuid())
+  userAddress    String      @map("user_address") @db.VarChar(42)
+  poolId         String      @map("pool_id")
+  amount         Decimal     @db.Decimal(36, 18)
+  rewardsClaimed Decimal     @default(0) @map("rewards_claimed") @db.Decimal(36, 18)
+  stakedAt       DateTime    @default(now()) @map("staked_at")
+  unstakedAt     DateTime?   @map("unstaked_at")
+  pool           StakingPool @relation(fields: [poolId], references: [id])
 
   @@index([userAddress])
   @@index([poolId])
   @@map("user_stakes")
 }
+
 // ========== Perpetual DEX Models ==========
 
 model PerpPosition {
-  id        String   @id @default(uuid())
-  chainId   Int      @default(11155111) @map("chain_id")
-  account   String
-  token     String
-  isLong    Boolean
-  size      String   // BigInt as String (USD 30 decimals)
-  collateral String  // BigInt as String (USD 30 decimals)
-  entryPrice String  // BigInt as String (USD 30 decimals)
-  markPrice String   // BigInt as String (USD 30 decimals)
-  pnl       String   // BigInt as String (USD 30 decimals)
-  status    String   // OPEN, CLOSED, LIQUIDATED
-  txHash    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  chainId    Int      @default(11155111) @map("chain_id")
+  account    String
+  token      String
+  isLong     Boolean
+  size       String // BigInt as String (USD 30 decimals)
+  collateral String // BigInt as String (USD 30 decimals)
+  entryPrice String // BigInt as String (USD 30 decimals)
+  markPrice  String // BigInt as String (USD 30 decimals)
+  pnl        String // BigInt as String (USD 30 decimals)
+  status     String // OPEN, CLOSED, LIQUIDATED
+  txHash     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([chainId])
   @@index([chainId, account])
@@ -1011,18 +1099,18 @@ model PerpPosition {
 }
 
 model PerpOrder {
-  id        String   @id @default(uuid())
-  chainId   Int      @default(11155111) @map("chain_id")
-  account   String
-  token     String
-  isLong    Boolean
-  sizeDelta String
+  id           String   @id @default(uuid())
+  chainId      Int      @default(11155111) @map("chain_id")
+  account      String
+  token        String
+  isLong       Boolean
+  sizeDelta    String
   triggerPrice String? // For Limit/Stop orders
-  type      String   // MARKET, LIMIT, STOP
-  status    String   // PENDING, FILLED, CANCELLED
-  txHash    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  type         String // MARKET, LIMIT, STOP
+  status       String // PENDING, FILLED, CANCELLED
+  txHash       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([chainId])
   @@index([chainId, account])
@@ -1034,20 +1122,21 @@ model PerpOrder {
 }
 
 model PerpTrade {
-  id        String   @id @default(uuid())
-  chainId   Int      @default(11155111) @map("chain_id")
-  account   String
-  token     String
-  isLong    Boolean
-  sizeDelta String
-  price     String
-  fee       String
-  pnl       String?
-  type      String   // INCREASE, DECREASE, LIQUIDATION
-  txHash    String
-  logIndex  Int?     @map("log_index") // chain event identity; NULL for legacy/manual rows
-  blockNumber Int
-  createdAt DateTime @default(now())
+  id              String   @id @default(uuid())
+  chainId         Int      @default(11155111) @map("chain_id")
+  account         String
+  token           String
+  isLong          Boolean
+  sizeDelta       String
+  collateralDelta String   @default("0") @map("collateral_delta")
+  price           String
+  fee             String
+  pnl             String?
+  type            String // INCREASE, DECREASE, LIQUIDATION
+  txHash          String
+  logIndex        Int?     @map("log_index") // chain event identity; NULL for legacy/manual rows
+  blockNumber     Int
+  createdAt       DateTime @default(now())
 
   // Idempotency key for the chain-event projection: one PerpMarket event =
   // one trade row (NULL logIndex rows stay distinct per Postgres semantics).
@@ -1070,7 +1159,7 @@ model StakingAction {
   poolId      String?  @map("pool_id") // resolved staking_pools row when known
   poolAddress String   @map("pool_address") @db.VarChar(42)
   userAddress String   @map("user_address") @db.VarChar(42)
-  action      String   // STAKE, UNSTAKE, CLAIM, EMERGENCY
+  action      String // STAKE, UNSTAKE, CLAIM, EMERGENCY
   amountRaw   String   @map("amount_raw") // BigInt as string (token wei)
   txHash      String   @map("tx_hash")
   logIndex    Int      @map("log_index")
@@ -1171,8 +1260,8 @@ model I18nMessageDraft {
 model I18nCatalogRevision {
   id               String   @id @default(cuid())
   localeCode       String   @map("locale_code") @db.VarChar(35)
-  version          Int      // monotonically increasing per locale
-  catalog          Json     // complete nested messages object
+  version          Int // monotonically increasing per locale
+  catalog          Json // complete nested messages object
   checksum         String   @db.VarChar(64) // SHA-256 of canonical JSON
   publishedBy      String   @map("published_by") @db.VarChar(42)
   publishedAt      DateTime @default(now()) @map("published_at")
@@ -1339,8 +1428,38 @@ model BridgeRelayerHeartbeat {
   lastCycleError String? @map("last_cycle_error")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@index([lastSeenAt(sort: Desc)])
   @@map("bridge_relayer_heartbeat")
+}
+
+/// Durable first-incomplete block per bridge chain. This is separate from
+/// BridgeTransfer because an empty or fulfil-only block is still scanned work.
+model BridgeRelayerScanProgress {
+  chainId   Int      @id @map("chain_id")
+  nextBlock BigInt   @map("next_block")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("bridge_relayer_scan_progress")
+}
+
+/// Durable retry journal for a log whose block cannot yet be checkpointed.
+model BridgeRelayerLogFailure {
+  chainId     Int    @map("chain_id")
+  blockNumber BigInt @map("block_number")
+  logIndex    Int    @map("log_index")
+  txHash      String @map("tx_hash") @db.VarChar(66)
+
+  lastError String @map("last_error")
+  attempts  Int    @default(1)
+
+  firstFailedAt DateTime  @default(now()) @map("first_failed_at")
+  lastFailedAt  DateTime  @default(now()) @map("last_failed_at")
+  resolvedAt    DateTime? @map("resolved_at")
+
+  @@id([chainId, blockNumber, logIndex, txHash])
+  @@index([resolvedAt, lastFailedAt(sort: Desc)], map: "bridge_relayer_log_failures_unresolved_idx")
+  @@map("bridge_relayer_log_failures")
 }

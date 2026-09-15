@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -85,9 +86,7 @@ type Relayer struct {
 	clients  map[int]ChainClient
 	cfg      RelayerConfig
 	log      *slog.Logger
-
-	// cursors tracks the last scanned block per chain within this process.
-	cursors map[int]uint64
+	progress scanProgressStore
 }
 
 // NewRelayer builds a relayer. A nil signer makes it observe-only: it will keep
@@ -105,7 +104,7 @@ func NewRelayer(registry *Registry, store *Store, signer *ethtx.Signer, clients 
 	}
 	return &Relayer{
 		registry: registry, store: store, signer: signer,
-		clients: clients, cfg: cfg, log: log, cursors: map[int]uint64{},
+		clients: clients, cfg: cfg, log: log, progress: store,
 	}
 }
 
@@ -280,39 +279,110 @@ func (r *Relayer) ScanChain(ctx context.Context, chainID int) error {
 		return fmt.Errorf("bridge relayer: getLogs [%d,%d]: %w", from, to, err)
 	}
 
+	sort.SliceStable(logs, func(i, j int) bool {
+		if logs[i].BlockNumber != logs[j].BlockNumber {
+			return logs[i].BlockNumber < logs[j].BlockNumber
+		}
+		if logs[i].LogIndex != logs[j].LogIndex {
+			return logs[i].LogIndex < logs[j].LogIndex
+		}
+		return strings.ToLower(logs[i].TxHash) < strings.ToLower(logs[j].TxHash)
+	})
+
+	currentBlock := from
 	for _, lg := range logs {
+		if lg.BlockNumber < from || lg.BlockNumber > to {
+			return fmt.Errorf("bridge relayer: provider returned log block %d outside requested range [%d,%d]", lg.BlockNumber, from, to)
+		}
+		if lg.BlockNumber > currentBlock {
+			// A block is the recovery unit: replaying its already-applied logs is
+			// safe, while advancing past any failed sibling log is not.
+			if err := r.ensureNoUnresolvedFailures(ctx, chainID, from, lg.BlockNumber-1); err != nil {
+				return err
+			}
+			if err := r.saveScanProgress(ctx, chainID, lg.BlockNumber); err != nil {
+				return err
+			}
+			currentBlock = lg.BlockNumber
+		}
 		if err := r.handleLog(ctx, chainID, lg); err != nil {
-			// One bad log must not stall the cursor for the whole range —
-			// but it also must not be silently dropped.
 			r.log.Warn("bridge relayer: log handling failed",
-				"chainId", chainID, "tx", lg.TxHash, "err", err)
+				"chainId", chainID, "block", lg.BlockNumber, "logIndex", lg.LogIndex,
+				"tx", lg.TxHash, "err", err)
+			return r.recordLogFailure(ctx, chainID, lg, err)
+		}
+		if err := r.progress.ResolveLogFailure(ctx, chainID, lg); err != nil {
+			return fmt.Errorf("bridge relayer: resolve log failure marker: %w", err)
 		}
 	}
 
-	r.cursors[chainID] = to + 1
+	if to == ^uint64(0) {
+		return errors.New("bridge relayer: scan progress exceeds uint64")
+	}
+	if err := r.ensureNoUnresolvedFailures(ctx, chainID, from, to); err != nil {
+		return err
+	}
+	if err := r.saveScanProgress(ctx, chainID, to+1); err != nil {
+		return err
+	}
 	if len(logs) > 0 {
 		r.log.Info("bridge relayer: scanned", "chainId", chainID, "from", from, "to", to, "logs", len(logs))
 	}
 	return nil
 }
 
-// resumeFrom picks the next block to scan: the in-process cursor, else one past
-// the highest deposit already stored, else the configured start block.
+func (r *Relayer) ensureNoUnresolvedFailures(ctx context.Context, chainID int, from, to uint64) error {
+	if r.progress == nil {
+		return ErrStoreUnavailable
+	}
+	unresolved, err := r.progress.HasUnresolvedLogFailure(ctx, chainID, from, to)
+	if err != nil {
+		return fmt.Errorf("bridge relayer: check unresolved log failures: %w", err)
+	}
+	if unresolved {
+		return fmt.Errorf("%w: chain %d range [%d,%d]", ErrUnresolvedLogFailure, chainID, from, to)
+	}
+	return nil
+}
+
+// resumeFrom picks the durable next block, or the configured seed before the
+// first successful scan. It deliberately does not infer progress from transfer
+// rows: fulfil/refund logs can exist after the newest recorded deposit.
 func (r *Relayer) resumeFrom(ctx context.Context, chainID int) (uint64, error) {
-	if c, ok := r.cursors[chainID]; ok {
-		return c, nil
+	if r.progress == nil {
+		return 0, ErrStoreUnavailable
 	}
-	highest, err := r.store.HighestScannedBlock(ctx, chainID)
-	if err != nil && !errors.Is(err, ErrStoreUnavailable) {
-		return 0, err
+	next, found, err := r.progress.LoadScanProgress(ctx, chainID)
+	if err != nil {
+		return 0, fmt.Errorf("bridge relayer: load scan progress: %w", err)
 	}
-	if highest > 0 {
-		return uint64(highest) + 1, nil
+	if found {
+		return next, nil
 	}
 	if start, ok := r.cfg.StartBlocks[chainID]; ok {
 		return start, nil
 	}
 	return 0, nil
+}
+
+func (r *Relayer) saveScanProgress(ctx context.Context, chainID int, nextBlock uint64) error {
+	if r.progress == nil {
+		return ErrStoreUnavailable
+	}
+	if err := r.progress.SaveScanProgress(ctx, chainID, nextBlock); err != nil {
+		return fmt.Errorf("bridge relayer: save scan progress: %w", err)
+	}
+	return nil
+}
+
+func (r *Relayer) recordLogFailure(ctx context.Context, chainID int, lg rpc.Log, cause error) error {
+	if r.progress == nil {
+		return errors.Join(cause, ErrStoreUnavailable)
+	}
+	if err := r.progress.RecordLogFailure(ctx, chainID, lg, cause.Error()); err != nil {
+		return errors.Join(cause, fmt.Errorf("bridge relayer: persist log failure: %w", err))
+	}
+	return cause
 }
 
 func (r *Relayer) handleLog(ctx context.Context, chainID int, lg rpc.Log) error {

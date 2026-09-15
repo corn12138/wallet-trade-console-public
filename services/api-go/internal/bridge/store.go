@@ -28,6 +28,8 @@ var ErrStoreUnavailable = errors.New("bridge: transfer store unavailable")
 // ErrTransferNotFound is returned when no row matches.
 var ErrTransferNotFound = errors.New("bridge: transfer not found")
 
+var ErrTransferStateConflict = errors.New("bridge: observed terminal event conflicts with transfer state")
+
 // Transfer is one durable cross-chain transfer.
 type Transfer struct {
 	TransferID      string
@@ -54,7 +56,7 @@ type Transfer struct {
 	UpdatedAt       time.Time
 }
 
-// Store persists transfers.
+// Store persists bridge transfers, relayer progress, and liveness.
 type Store struct{ pool *pgxpool.Pool }
 
 // NewStore builds a store. A nil pool makes every method return
@@ -99,8 +101,10 @@ func (s *Store) RecordInitiated(ctx context.Context, t Transfer) (bool, error) {
 
 // MarkFulfilled advances a transfer from an observed BridgeFulfilled log.
 //
-// The WHERE clause pins status to INITIATED so a replayed log cannot resurrect
-// a refunded transfer or overwrite an existing fulfillment.
+// The WHERE clause pins status to INITIATED, except that a real delivery log
+// may fill the empty receipt coordinates left by on-chain state reconciliation.
+// A replayed log cannot resurrect a refunded transfer or overwrite a different
+// observed fulfillment.
 // dstToken is the token the delivery actually paid out. It overwrites whatever
 // the route table reported at deposit time; an empty value leaves the existing
 // column alone rather than blanking a known token.
@@ -113,13 +117,27 @@ func (s *Store) MarkFulfilled(ctx context.Context, srcChainID int, transferID, t
 		   SET status = $1, fulfill_tx_hash = $2, fulfill_block = $3,
 		       fulfilled_at = $4, last_error = NULL, updated_at = NOW(),
 		       dst_token = COALESCE($8, dst_token)
-		 WHERE src_chain_id = $5 AND transfer_id = $6 AND status = $7
+		 WHERE src_chain_id = $5 AND transfer_id = $6
+		   AND (
+		       status = $7
+		       OR (status = $1 AND COALESCE(fulfill_tx_hash, '') = '' AND $2 <> '')
+		   )
 	`, StatusFulfilled, strings.ToLower(txHash), block, at, srcChainID, strings.ToLower(transferID), StatusInitiated,
 		nullableLower(dstToken))
 	if err != nil {
 		return false, fmt.Errorf("bridge: mark fulfilled: %w", err)
 	}
-	return tag.RowsAffected() > 0, nil
+	if tag.RowsAffected() > 0 {
+		return true, nil
+	}
+	existing, err := s.FindByTransferID(ctx, srcChainID, transferID)
+	if err != nil {
+		return false, err
+	}
+	if existing.Status == StatusFulfilled && strings.EqualFold(existing.FulfillTxHash, txHash) {
+		return false, nil
+	}
+	return false, fmt.Errorf("%w: transfer %s is %s", ErrTransferStateConflict, strings.ToLower(transferID), existing.Status)
 }
 
 // MarkRefunded advances a transfer from an observed BridgeRefunded log.
@@ -135,7 +153,17 @@ func (s *Store) MarkRefunded(ctx context.Context, srcChainID int, transferID, tx
 	if err != nil {
 		return false, fmt.Errorf("bridge: mark refunded: %w", err)
 	}
-	return tag.RowsAffected() > 0, nil
+	if tag.RowsAffected() > 0 {
+		return true, nil
+	}
+	existing, err := s.FindByTransferID(ctx, srcChainID, transferID)
+	if err != nil {
+		return false, err
+	}
+	if existing.Status == StatusRefunded && strings.EqualFold(existing.RefundTxHash, txHash) {
+		return false, nil
+	}
+	return false, fmt.Errorf("%w: transfer %s is %s", ErrTransferStateConflict, strings.ToLower(transferID), existing.Status)
 }
 
 // RecordAttempt notes a relayer failure against a transfer so a stuck transfer
@@ -260,24 +288,6 @@ func (s *Store) ListByAddress(ctx context.Context, address string, limit int) ([
 		out = append(out, t)
 	}
 	return out, rows.Err()
-}
-
-// HighestScannedBlock returns the newest deposit block recorded for a chain, so
-// the relayer can resume without rescanning from genesis. Zero when empty.
-func (s *Store) HighestScannedBlock(ctx context.Context, srcChainID int) (int64, error) {
-	if !s.Available() {
-		return 0, ErrStoreUnavailable
-	}
-	var block *int64
-	err := s.pool.QueryRow(ctx,
-		`SELECT MAX(deposit_block) FROM bridge_transfers WHERE src_chain_id = $1`, srcChainID).Scan(&block)
-	if err != nil {
-		return 0, fmt.Errorf("bridge: highest scanned block: %w", err)
-	}
-	if block == nil {
-		return 0, nil
-	}
-	return *block, nil
 }
 
 // Counts summarizes stored transfers by status, for the status endpoint.

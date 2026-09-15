@@ -269,13 +269,12 @@ func TestDecodeInt256(t *testing.T) {
 	}
 }
 
-func TestHandlePerpEvent_NoResolverSkipsBeforePool(t *testing.T) {
-	// Guard order proof: without a symbol resolver the handler returns nil
-	// before touching the (nil) pool — a panic here would mean the projection
-	// tried to write.
+func TestHandlePerpEvent_NoResolverIsRetryable(t *testing.T) {
+	// Missing symbol ownership cannot turn a raw event into a completed read
+	// model; surfacing the error keeps the caller's checkpoint behind it.
 	s := NewDBSink(nil)
 	inc := ParseIndexedLog(increasePositionLog(big.NewInt(1), big.NewInt(1), big.NewInt(1), big.NewInt(0), true))
-	if err := s.handlePerpEvent(t.Context(), toParsed(t, inc), "INCREASE"); err != nil {
-		t.Fatalf("err = %v", err)
+	if err := s.handlePerpEvent(t.Context(), nil, toParsed(t, inc), "INCREASE"); err == nil {
+		t.Fatal("missing resolver must remain retryable")
 	}
 }

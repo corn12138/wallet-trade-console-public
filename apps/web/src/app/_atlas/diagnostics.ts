@@ -32,6 +32,15 @@ function normalizeMessage(raw: string): string {
 
 /** Known API warning / route-note strings → diagnostics.messages.* keys. */
 const KNOWN_MESSAGES: Record<string, string> = {
+  'live quote unavailable: rpc not configured': 'swapRpcMissing',
+  'live quote unavailable: invalid quote data': 'swapDataInvalid',
+  'live quote unavailable: amounts timeout': 'swapAmountsTimeout',
+  'live quote unavailable: amounts rpc rejected': 'swapAmountsRpcrejected',
+  'live quote unavailable: amounts rpc failed': 'swapAmountsRpcfailed',
+  'live quote unavailable: reserves timeout': 'swapReservesTimeout',
+  'live quote unavailable: reserves rpc rejected': 'swapReservesRpcrejected',
+  'live quote unavailable: reserves rpc failed': 'swapReservesRpcfailed',
+
   'live quote unavailable, using fallback estimate': 'swapFallbackEstimate',
   'simulated estimate - execution unavailable (no bridge adapter deployed)':
     'bridgeSimulatedNoAdapter',

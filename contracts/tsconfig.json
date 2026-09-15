@@ -9,17 +9,13 @@
     "outDir": "dist",
     "declaration": true,
     "paths": {
-      "@wallet-trade/shared": [
-        "../packages/shared/src"
-      ],
-      "@wallet-trade/shared/*": [
-        "../packages/shared/src/*"
-      ]
+      "@wallet-trade/shared": ["../packages/shared/src"],
+      "@wallet-trade/shared/*": ["../packages/shared/src/*"]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./scripts", "./test", "./hardhat.config.ts"],
+  "include": ["./scripts", "./hardhat.config.ts"],
   "files": ["./hardhat.config.ts"]
 }

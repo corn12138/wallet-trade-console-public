@@ -14,6 +14,8 @@ import {OnchainArtworkNFT} from "../src/nft/OnchainArtworkNFT.sol";
 import {IpfsArtworkNFT} from "../src/nft/IpfsArtworkNFT.sol";
 import {MockERC20} from "../src/tokens/MockERC20.sol";
 
+import {RouterCompatibility} from "./RouterCompatibility.sol";
+
 abstract contract DeployUnifiedScript is Script {
     uint256 internal constant CREATION_FEE = 0.001 ether;
     uint256 internal constant REWARDS_DURATION = 30 days;
@@ -23,6 +25,7 @@ abstract contract DeployUnifiedScript is Script {
     struct Deployment {
         address factory;
         address router;
+        address launchpadDexRouter;
         address mockUsdc;
         address mockWeth;
         address mockWbtc;
@@ -38,7 +41,9 @@ abstract contract DeployUnifiedScript is Script {
         address ipfsArtworkNft;
     }
 
-    function _deployUnified(address deployer) internal returns (Deployment memory deployment) {
+    function _deployUnified(address deployer, address launchpadDexRouter) internal returns (Deployment memory deployment) {
+        // Validate before any deployment: the launchpad requires native ETH liquidity support.
+        RouterCompatibility.requireV2Compatible(launchpadDexRouter);
         console.log("Deploying unified Foundry stack");
         console.log("Deployer:", deployer);
 
@@ -60,7 +65,7 @@ abstract contract DeployUnifiedScript is Script {
         TokenFactory tokenFactory = new TokenFactory(
             CREATION_FEE,
             deployer,
-            address(router)
+            launchpadDexRouter
         );
 
         MockERC20 stakingToken = new MockERC20("Staking Token", "STK", 18);
@@ -85,6 +90,7 @@ abstract contract DeployUnifiedScript is Script {
         deployment = Deployment({
             factory: address(factory),
             router: address(router),
+            launchpadDexRouter: launchpadDexRouter,
             mockUsdc: address(mockUsdc),
             mockWeth: address(mockWeth),
             mockWbtc: address(mockWbtc),
@@ -186,7 +192,8 @@ abstract contract DeployUnifiedScript is Script {
 
     function _logDeployment(Deployment memory deployment) internal pure {
         console.log("Factory:", deployment.factory);
-        console.log("Router:", deployment.router);
+        console.log("Project ERC20 Router:", deployment.router);
+        console.log("Launchpad V2 Router:", deployment.launchpadDexRouter);
         console.log("MockUSDC:", deployment.mockUsdc);
         console.log("MockWETH:", deployment.mockWeth);
         console.log("MockWBTC:", deployment.mockWbtc);
@@ -210,8 +217,9 @@ contract DeployLocalScript is DeployUnifiedScript {
         // material and creates avoidable secret-scanner exceptions.
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
+        address launchpadDexRouter = vm.envAddress("LAUNCHPAD_DEX_ROUTER");
         vm.startBroadcast(deployerPrivateKey);
-        deployment = _deployUnified(deployer);
+        deployment = _deployUnified(deployer, launchpadDexRouter);
         vm.stopBroadcast();
     }
 }
@@ -221,8 +229,9 @@ contract DeploySepoliaScript is DeployUnifiedScript {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
+        address launchpadDexRouter = vm.envAddress("LAUNCHPAD_DEX_ROUTER");
         vm.startBroadcast(deployerPrivateKey);
-        deployment = _deployUnified(deployer);
+        deployment = _deployUnified(deployer, launchpadDexRouter);
         vm.stopBroadcast();
     }
 }

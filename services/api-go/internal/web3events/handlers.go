@@ -47,6 +47,7 @@ type Writer interface {
 type Service struct {
 	reader         Reader
 	writer         Writer
+	verifier       TransactionVerifier
 	web3Middleware func(http.Handler) http.Handler
 }
 
@@ -60,9 +61,14 @@ func NewService(reader Reader) *Service {
 // WithWrites enables the 2 mutation endpoints (POST /transactions[/receipt]) on
 // the Service, guarded by web3Middleware when non-nil. Without a writer the
 // POSTs are not mounted (the module stays read-only, as before).
-func (s *Service) WithWrites(writer Writer, web3Middleware func(http.Handler) http.Handler) *Service {
+func (s *Service) WithWrites(
+	writer Writer,
+	web3Middleware func(http.Handler) http.Handler,
+	verifier TransactionVerifier,
+) *Service {
 	s.writer = writer
 	s.web3Middleware = web3Middleware
+	s.verifier = verifier
 	return s
 }
 
@@ -311,30 +317,37 @@ type submittedBody struct {
 	Value           *string         `json:"value"`
 	TxType          *string         `json:"txType"`
 	Metadata        json.RawMessage `json:"metadata"`
+	// Optional. Absent keeps today's exact behaviour: the server derives the
+	// action identity, and CLIENT_ACTION_ID_REUSED stays unreachable.
+	ClientActionID    *string `json:"clientActionId"`
+	ClientFingerprint *string `json:"clientFingerprint"`
 }
 
 type receiptBody struct {
-	ChainID         *int            `json:"chainId"`
-	FromAddress     *string         `json:"fromAddress"`
-	Status          *string         `json:"status"`
-	BlockNumber     json.RawMessage `json:"blockNumber"`
-	GasUsed         json.RawMessage `json:"gasUsed"`
-	GasPrice        json.RawMessage `json:"gasPrice"`
-	ToAddress       *string         `json:"toAddress"`
-	ContractAddress *string         `json:"contractAddress"`
-	Value           *string         `json:"value"`
-	TxType          *string         `json:"txType"`
-	Metadata        json.RawMessage `json:"metadata"`
+	ChainID           *int            `json:"chainId"`
+	FromAddress       *string         `json:"fromAddress"`
+	Status            *string         `json:"status"`
+	ClientActionID    *string         `json:"clientActionId"`
+	ClientFingerprint *string         `json:"clientFingerprint"`
+	BlockNumber       json.RawMessage `json:"blockNumber"`
+	GasUsed           json.RawMessage `json:"gasUsed"`
+	GasPrice          json.RawMessage `json:"gasPrice"`
+	ToAddress         *string         `json:"toAddress"`
+	ContractAddress   *string         `json:"contractAddress"`
+	Value             *string         `json:"value"`
+	TxType            *string         `json:"txType"`
+	Metadata          json.RawMessage `json:"metadata"`
 }
 
 // reportSubmittedTransaction is POST /web3-events/transactions — the Go port of
 // web3-events.controller.ts reportSubmittedTransaction (SIWE-guarded). The
 // fromAddress is pinned to the authenticated wallet (resolveAuthenticatedOwnerAddress).
 func (s *Service) reportSubmittedTransaction(w http.ResponseWriter, r *http.Request) {
-	if s.writer == nil {
+	if s.writer == nil || s.verifier == nil {
 		writeError(w, http.StatusServiceUnavailable, "transaction reporting not configured")
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxWriteBodyBytes)
 	var body submittedBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -349,25 +362,57 @@ func (s *Service) reportSubmittedTransaction(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusBadRequest, "Invalid txHash")
 		return
 	}
-	toAddr, ok := normOptAddr(w, body.ToAddress, "toAddress")
+	chainID := chainIDOrDefault(body.ChainID)
+	if chainID <= 0 {
+		writeError(w, http.StatusBadRequest, "Invalid chainId")
+		return
+	}
+	clientTo, ok := normOptAddr(w, body.ToAddress, "toAddress")
 	if !ok {
 		return
 	}
-	contractAddr, ok := normOptAddr(w, body.ContractAddress, "contractAddress")
+	clientContract, ok := normOptAddr(w, body.ContractAddress, "contractAddress")
+	if !ok {
+		return
+	}
+	verified, err := s.verifier.VerifySubmitted(r.Context(), chainID, txHash, from)
+	if err != nil {
+		writeVerificationError(w, r, err)
+		return
+	}
+	if !addressMatches(clientTo, verified.ToAddress) {
+		writeError(w, http.StatusConflict, "reported destination does not match RPC transaction")
+		return
+	}
+	contractAddr, ok := verifiedContract(clientContract, verified.ToAddress, nil)
+	if !ok {
+		writeError(w, http.StatusConflict, "reported contract does not match RPC transaction")
+		return
+	}
+	identity, ok := resolveActionIdentity(w, chainID, from, body.ClientActionID, body.ClientFingerprint,
+		normOptStr(body.TxType), verified.ToAddress, contractAddr, verified.Value)
 	if !ok {
 		return
 	}
 	out, err := s.writer.UpsertSubmittedTransaction(r.Context(), SubmitTxInput{
-		ChainID:         chainIDOrDefault(body.ChainID),
-		TxHash:          txHash,
-		FromAddress:     from,
-		ToAddress:       toAddr,
-		ContractAddress: contractAddr,
-		Value:           normOptStr(body.Value),
-		TxType:          normOptStr(body.TxType),
-		Metadata:        body.Metadata,
+		ChainID:            chainID,
+		TxHash:             txHash,
+		FromAddress:        from,
+		ToAddress:          verified.ToAddress,
+		ContractAddress:    contractAddr,
+		Value:              verified.Value,
+		TxType:             normOptStr(body.TxType),
+		Metadata:           body.Metadata,
+		ClientActionID:     identity.clientActionID,
+		ClientSupplied:     identity.clientSupplied,
+		RequestFingerprint: identity.fingerprint,
+		SenderNonce:        verified.SenderNonce,
+		BlockHash:          verified.BlockHash,
 	})
 	if err != nil {
+		if writeActionConflict(w, r, err) {
+			return
+		}
 		slog.ErrorContext(r.Context(), "report submitted tx failed", "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to record transaction")
 		return
@@ -377,10 +422,11 @@ func (s *Service) reportSubmittedTransaction(w http.ResponseWriter, r *http.Requ
 
 // reportTransactionReceipt is POST /web3-events/transactions/:txHash/receipt.
 func (s *Service) reportTransactionReceipt(w http.ResponseWriter, r *http.Request) {
-	if s.writer == nil {
+	if s.writer == nil || s.verifier == nil {
 		writeError(w, http.StatusServiceUnavailable, "transaction reporting not configured")
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxWriteBodyBytes)
 	var body receiptBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -395,58 +441,168 @@ func (s *Service) reportTransactionReceipt(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusBadRequest, "Invalid txHash")
 		return
 	}
-	toAddr, ok := normOptAddr(w, body.ToAddress, "toAddress")
+	chainID := chainIDOrDefault(body.ChainID)
+	if chainID <= 0 {
+		writeError(w, http.StatusBadRequest, "Invalid chainId")
+		return
+	}
+	clientTo, ok := normOptAddr(w, body.ToAddress, "toAddress")
 	if !ok {
 		return
 	}
-	contractAddr, ok := normOptAddr(w, body.ContractAddress, "contractAddress")
+	clientContract, ok := normOptAddr(w, body.ContractAddress, "contractAddress")
 	if !ok {
 		return
 	}
-	status, ok := normalizeStatus(body.Status)
-	if !ok {
-		writeError(w, http.StatusBadRequest, "Invalid transaction status")
+	verified, err := s.verifier.VerifyReceipt(r.Context(), chainID, txHash, from)
+	if err != nil {
+		writeVerificationError(w, r, err)
 		return
 	}
-	blockNumber, ok := parseBigIntLike(body.BlockNumber)
-	if !ok {
-		writeError(w, http.StatusBadRequest, "Invalid bigint field")
+	if !addressMatches(clientTo, verified.ToAddress) {
+		writeError(w, http.StatusConflict, "reported destination does not match RPC receipt")
 		return
 	}
-	gasUsed, ok := parseBigIntLike(body.GasUsed)
+	contractAddr, ok := verifiedContract(clientContract, verified.ToAddress, verified.ContractAddress)
 	if !ok {
-		writeError(w, http.StatusBadRequest, "Invalid bigint field")
+		writeError(w, http.StatusConflict, "reported contract does not match RPC receipt")
 		return
 	}
-	gasPrice, ok := parseBigIntLike(body.GasPrice)
+	identity, ok := resolveActionIdentity(w, chainID, from, body.ClientActionID, body.ClientFingerprint,
+		normOptStr(body.TxType), verified.ToAddress, contractAddr, verified.Value)
 	if !ok {
-		writeError(w, http.StatusBadRequest, "Invalid bigint field")
 		return
-	}
-	var bn int64
-	if blockNumber != nil {
-		bn = *blockNumber
 	}
 	out, err := s.writer.UpsertTransactionReceipt(r.Context(), ReceiptTxInput{
-		ChainID:         chainIDOrDefault(body.ChainID),
-		TxHash:          txHash,
-		FromAddress:     from,
-		ToAddress:       toAddr,
-		ContractAddress: contractAddr,
-		Value:           normOptStr(body.Value),
-		TxType:          normOptStr(body.TxType),
-		Metadata:        body.Metadata,
-		Status:          status,
-		BlockNumber:     bn,
-		GasUsed:         gasUsed,
-		GasPrice:        gasPrice,
+		ChainID:            chainID,
+		TxHash:             txHash,
+		FromAddress:        from,
+		ToAddress:          verified.ToAddress,
+		ContractAddress:    contractAddr,
+		Value:              verified.Value,
+		TxType:             normOptStr(body.TxType),
+		Metadata:           body.Metadata,
+		Status:             verified.Status,
+		BlockNumber:        verified.BlockNumber,
+		GasUsed:            verified.GasUsed,
+		GasPrice:           verified.GasPrice,
+		ClientActionID:     identity.clientActionID,
+		ClientSupplied:     identity.clientSupplied,
+		RequestFingerprint: identity.fingerprint,
+		SenderNonce:        verified.SenderNonce,
+		BlockHash:          verified.BlockHash,
+		Confirmations:      verified.Confirmations,
 	})
 	if err != nil {
+		if writeActionConflict(w, r, err) {
+			return
+		}
 		slog.ErrorContext(r.Context(), "report tx receipt failed", "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to record transaction")
 		return
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// maxWriteBodyBytes bounds the two mutation endpoints. Oversize input must be
+// refused at the transport, not discovered as a database error.
+const maxWriteBodyBytes = 1 << 20
+
+// actionIdentity is the resolved, validated action input for one write.
+type actionIdentity struct {
+	clientActionID string
+	clientSupplied bool
+	fingerprint    *string
+}
+
+// resolveActionIdentity validates the optional client key and computes the
+// canonical fingerprint. A caller that supplies no key gets a zero identity,
+// which routes to server derivation and can never raise a reuse conflict.
+func resolveActionIdentity(
+	w http.ResponseWriter,
+	chainID int,
+	owner string,
+	rawActionID, clientFingerprint *string,
+	actionType, toAddress, contractAddress, value *string,
+) (actionIdentity, bool) {
+	raw := ""
+	if rawActionID != nil {
+		raw = *rawActionID
+	}
+	normalized, supplied, err := NormalizeClientActionID(raw)
+	if err != nil {
+		writeCodedError(w, http.StatusBadRequest, "CLIENT_ACTION_ID_INVALID", err.Error())
+		return actionIdentity{}, false
+	}
+	if err := ValidateClientFingerprint(clientFingerprint); err != nil {
+		writeCodedError(w, http.StatusBadRequest, "CLIENT_FINGERPRINT_TOO_LONG", err.Error())
+		return actionIdentity{}, false
+	}
+	if !supplied {
+		return actionIdentity{}, true
+	}
+	fingerprint, err := ComputeRequestFingerprint(
+		chainID, owner, actionType, toAddress, contractAddress, value, clientFingerprint)
+	if err != nil {
+		writeCodedError(w, http.StatusBadRequest, "CLIENT_ACTION_ID_INVALID", "unable to canonicalize the request")
+		return actionIdentity{}, false
+	}
+	return actionIdentity{clientActionID: normalized, clientSupplied: true, fingerprint: &fingerprint}, true
+}
+
+// writeActionConflict maps the two stable action conflicts. Every other write
+// error keeps its existing shape.
+func writeActionConflict(w http.ResponseWriter, r *http.Request, err error) bool {
+	switch {
+	case errors.Is(err, ErrClientActionIDReused):
+		writeCodedError(w, http.StatusConflict, "CLIENT_ACTION_ID_REUSED",
+			"clientActionId was already used for a different request")
+		return true
+	case errors.Is(err, ErrActionAttemptBound):
+		writeCodedError(w, http.StatusConflict, "ACTION_ATTEMPT_BOUND",
+			"this transaction already belongs to a different action")
+		return true
+	case errors.Is(err, ErrTransactionOwnerConflict):
+		writeCodedError(w, http.StatusConflict, "TRANSACTION_OWNER_CONFLICT",
+			"transaction is already owned by another wallet")
+		return true
+	}
+	_ = r
+	return false
+}
+
+func writeVerificationError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, ErrSenderMismatch):
+		writeError(w, http.StatusForbidden, ErrSenderMismatch.Error())
+	case errors.Is(err, ErrTransactionNotFound),
+		errors.Is(err, ErrReceiptPending),
+		errors.Is(err, ErrRPCChainMismatch),
+		errors.Is(err, ErrRPCEvidenceMismatch):
+		writeError(w, http.StatusConflict, "transaction evidence is not yet verifiable")
+	case errors.Is(err, ErrVerificationUnavailable), errors.Is(err, ErrUnsupportedChain):
+		writeError(w, http.StatusServiceUnavailable, "transaction verification unavailable")
+	default:
+		slog.ErrorContext(r.Context(), "transaction verification failed", "err", err)
+		writeError(w, http.StatusInternalServerError, "transaction verification failed")
+	}
+}
+
+func addressMatches(hint, authoritative *string) bool {
+	return hint == nil || (authoritative != nil && strings.EqualFold(*hint, *authoritative))
+}
+
+func verifiedContract(hint, transactionTo, createdContract *string) (*string, bool) {
+	if createdContract != nil {
+		return createdContract, hint == nil || strings.EqualFold(*hint, *createdContract)
+	}
+	if hint == nil {
+		return nil, true
+	}
+	if transactionTo == nil || !strings.EqualFold(*hint, *transactionTo) {
+		return nil, false
+	}
+	return transactionTo, true
 }
 
 // resolveOwner mirrors resolveAuthenticatedOwnerAddress: default the address to
@@ -515,42 +671,6 @@ func chainIDOrDefault(p *int) int {
 	return *p
 }
 
-// normalizeStatus mirrors normalizeTransactionStatus (pending/confirmed/failed).
-func normalizeStatus(p *string) (string, bool) {
-	v := ""
-	if p != nil {
-		v = strings.ToLower(strings.TrimSpace(*p))
-	}
-	switch v {
-	case "", "pending":
-		return "pending", true
-	case "success", "confirmed":
-		return "confirmed", true
-	case "reverted", "failed":
-		return "failed", true
-	default:
-		return "", false
-	}
-}
-
-// parseBigIntLike mirrors normalizeBigIntLike: accepts a JSON string ("123") or
-// number (123) or null; returns nil for absent/null, ok=false on garbage.
-func parseBigIntLike(raw json.RawMessage) (*int64, bool) {
-	s := strings.TrimSpace(string(raw))
-	if s == "" || s == "null" {
-		return nil, true
-	}
-	s = strings.Trim(s, `"`)
-	if s == "" {
-		return nil, true
-	}
-	v, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return nil, false
-	}
-	return &v, true
-}
-
 // parsePositiveInt returns (value, ok). Empty input → fallback. min/max
 // are inclusive. maxVal == 0 means no upper bound.
 func parsePositiveInt(raw string, fallback, minVal, maxVal int) (int, bool) {
@@ -601,6 +721,19 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		slog.Error("web3events response encode failed", "err", err)
 	}
+}
+
+// writeCodedError adds a stable machine-readable code alongside the existing
+// {statusCode, message} shape, so a client can branch on the code rather than on
+// prose. Existing consumers that read only `message` are unaffected.
+func writeCodedError(w http.ResponseWriter, status int, code, message string) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"statusCode": status,
+		"code":       code,
+		"message":    message,
+	})
 }
 
 func writeError(w http.ResponseWriter, status int, message string) {

@@ -22,23 +22,18 @@ var ErrSinkPoolNil = errors.New("indexer: db sink pool nil")
 // DBSink is a drop-in EventSink (same interface CountingSink satisfies).
 var _ EventSink = (*DBSink)(nil)
 
-// DBSink persists parsed events into web3_events. It is the Phase 6a.6
-// replacement for CountingSink: HandleEvent mirrors the web3Event.upsert in
-// persistEvent() (indexer.service.ts) — an INSERT … ON CONFLICT keyed by the
-// (chainId, contractAddress, txHash, logIndex) unique constraint, so replays
-// (a backfill re-scan, a reorg rewind, a retry) update the row in place
-// instead of duplicating it.
-//
-// After the raw record, HandleEvent runs the business projection
-// (processEvent): TokenCreated → tokens upsert, and Buy/Sell → token_trades +
-// token_holders. Buy/Sell come from per-token bonding-curve contracts created at
-// runtime, so on each TokenCreated the sink calls its CurveWatcher (the worker)
-// to add the new curve to the live watch set — parity with NestJS startWatching.
+// DBSink persists a raw event and its business projection in one transaction.
+// The raw INSERT uses the (chainId, contractAddress, txHash, logIndex) key, so a
+// backfill re-scan, reorg rewind, or retry repairs the same event without
+// duplicating it. TokenCreated adds its bonding curve to the worker's watch set
+// only after that transaction commits.
 type DBSink struct {
-	pool    *pgxpool.Pool
-	watcher CurveWatcher
-	events  TokenEventPublisher
-	symbols SymbolResolver
+	pool            *pgxpool.Pool
+	beginProjection beginProjectionTx
+	repairStore     projectionStore
+	watcher         CurveWatcher
+	events          TokenEventPublisher
+	symbols         SymbolResolver
 }
 
 // TokenEventPublisher receives realtime notifications AFTER a projection
@@ -50,7 +45,7 @@ type TokenEventPublisher interface {
 // SymbolResolver maps a perp market's index-token address to its market
 // symbol (perp_trades/perp_positions store SYMBOLS, chain events carry
 // addresses). cmd/indexer wires one from the markets catalog + deployments
-// registry; nil makes perp events log-and-skip.
+// registry; a missing resolver keeps the projection retryable.
 type SymbolResolver interface {
 	SymbolForIndexToken(chainID int, indexToken string) string
 }
@@ -58,8 +53,7 @@ type SymbolResolver interface {
 // SetEventPublisher wires the post-commit realtime publisher (nil = off).
 func (s *DBSink) SetEventPublisher(p TokenEventPublisher) { s.events = p }
 
-// SetSymbolResolver wires the perp index-token→symbol lookup (nil = perp
-// events are recorded raw but not projected).
+// SetSymbolResolver wires the perp index-token→symbol lookup.
 func (s *DBSink) SetSymbolResolver(r SymbolResolver) { s.symbols = r }
 
 // publish fans one event to the bus, logging (never failing) on error — the
@@ -81,7 +75,16 @@ func (s *DBSink) publish(ctx context.Context, kind, tokenAddr string, payload an
 // NewDBSink binds the sink to a pool. A nil pool makes HandleEvent return
 // ErrSinkPoolNil (the worker logs it and retries next tick) rather than
 // silently dropping events.
-func NewDBSink(pool *pgxpool.Pool) *DBSink { return &DBSink{pool: pool} }
+func NewDBSink(pool *pgxpool.Pool) *DBSink {
+	sink := &DBSink{pool: pool}
+	if pool != nil {
+		sink.beginProjection = func(ctx context.Context) (projectionTx, error) {
+			return pool.Begin(ctx)
+		}
+		sink.repairStore = pool
+	}
+	return sink
+}
 
 // SetCurveWatcher wires the worker that should start scanning newly created
 // bonding curves. It's a post-construction setter because the sink and worker
@@ -90,106 +93,21 @@ func NewDBSink(pool *pgxpool.Pool) *DBSink { return &DBSink{pool: pool} }
 // watches, and Buy/Sell only arrive for statically-watched curves.
 func (s *DBSink) SetCurveWatcher(w CurveWatcher) { s.watcher = w }
 
-// HandleEvent upserts one parsed event. The block/tx coordinates come from the
-// fetched log; eventName/actorAddress/args from the parser. occurred_at is left
-// NULL — the block timestamp isn't fetched yet (NestJS only sets it when a
-// chain context with a timestamp is supplied), so on conflict we deliberately
-// don't touch it.
-func (s *DBSink) HandleEvent(ctx context.Context, ev ParsedEvent) error {
-	if s == nil || s.pool == nil {
-		return ErrSinkPoolNil
-	}
-	args, err := encodeArgs(ev.Parsed.PersistedArgs)
-	if err != nil {
-		return fmt.Errorf("indexer: encode args for %s#%d: %w", ev.TxHash, ev.LogIndex, err)
-	}
-	_, err = s.pool.Exec(ctx, `
-		INSERT INTO web3_events
-			(chain_id, contract_address, event_name, tx_hash, log_index,
-			 block_number, actor_address, args, occurred_at, created_at)
-		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8::jsonb, NULL, NOW())
-		ON CONFLICT (chain_id, contract_address, tx_hash, log_index) DO UPDATE
-		SET event_name    = EXCLUDED.event_name,
-		    actor_address = EXCLUDED.actor_address,
-		    args          = EXCLUDED.args
-	`,
-		ev.ChainID,
-		ev.ContractAddress, // already lower-cased by toParsedEvent
-		ev.Parsed.EventName,
-		ev.TxHash,
-		ev.LogIndex,
-		ev.BlockNumber,
-		actorOrNil(ev.Parsed.ActorAddress),
-		args,
-	)
-	if err != nil {
-		return fmt.Errorf("indexer: upsert web3_events %s#%d: %w", ev.TxHash, ev.LogIndex, err)
-	}
-
-	// Business projection (token/trade/holder tables). Mirrors NestJS
-	// processEvent(): wrapped so a handler failure is logged but does NOT fail
-	// the event — the raw record is already saved and the checkpoint must still
-	// advance (parity with the try/catch around processEvent).
-	if err := s.processEvent(ctx, ev); err != nil {
-		slog.WarnContext(ctx, "indexer: business handler failed",
-			"event", ev.Parsed.EventName, "tx", ev.TxHash, "err", err)
-	}
-	return nil
-}
-
-// processEvent dispatches an event to its business handler. Mirrors the switch
-// in indexer.service.ts processEvent().
-//
-// TokenCreated is emitted by the watched TokenFactory, so it always reaches the
-// sink. Buy/Sell come from per-token bonding-curve contracts; their handlers are
-// wired here but only fire once the worker is watching that curve (runtime
-// curve-watching is the remaining follow-on — see the DBSink doc).
-func (s *DBSink) processEvent(ctx context.Context, ev ParsedEvent) error {
-	switch ev.Parsed.EventName {
-	case "TokenCreated":
-		return s.handleTokenCreated(ctx, ev)
-	case "Buy":
-		return s.handleTrade(ctx, ev, "BUY")
-	case "Sell":
-		return s.handleTrade(ctx, ev, "SELL")
-	case "Graduated":
-		return s.handleGraduated(ctx, ev)
-	case "IncreasePosition":
-		return s.handlePerpEvent(ctx, ev, "INCREASE")
-	case "DecreasePosition":
-		return s.handlePerpEvent(ctx, ev, "DECREASE")
-	case "LiquidatePosition":
-		return s.handlePerpEvent(ctx, ev, "LIQUIDATION")
-	case "Staked":
-		return s.handleStakingEvent(ctx, ev, "STAKE")
-	case "Unstaked":
-		return s.handleStakingEvent(ctx, ev, "UNSTAKE")
-	case "RewardClaimed":
-		return s.handleStakingEvent(ctx, ev, "CLAIM")
-	case "EmergencyWithdraw":
-		return s.handleStakingEvent(ctx, ev, "EMERGENCY")
-	default:
-		return nil
-	}
-}
-
 // handleGraduated marks the token whose bonding curve emitted Graduated as
 // GRADUATED and publishes the realtime graduation event. Idempotent by
 // construction (status set is absorbing).
-func (s *DBSink) handleGraduated(ctx context.Context, ev ParsedEvent) error {
+func (s *DBSink) handleGraduated(ctx context.Context, projection *eventProjection, ev ParsedEvent) error {
 	curve := strings.ToLower(ev.ContractAddress)
 	a := ev.Parsed.RuntimeArgs
 
 	var tokenAddr *string
-	err := s.pool.QueryRow(ctx, `
+	err := projection.store.QueryRow(ctx, `
 		UPDATE tokens SET status = 'GRADUATED', updated_at = NOW()
 		WHERE bonding_curve = $1
 		RETURNING address
 	`, curve).Scan(&tokenAddr)
 	if errors.Is(err, pgx.ErrNoRows) {
-		slog.WarnContext(ctx, "indexer: Graduated on unknown bonding curve", "curve", curve, "tx", ev.TxHash)
-		return nil
+		return fmt.Errorf("graduated token dependency missing for curve %s", curve)
 	}
 	if err != nil {
 		return fmt.Errorf("mark token graduated (curve %s): %w", curve, err)
@@ -207,7 +125,7 @@ func (s *DBSink) handleGraduated(ctx context.Context, ev ParsedEvent) error {
 		if lp := argBigInt(a["lpAmount"]); lp != nil {
 			payload.LPAmount = lp.String()
 		}
-		s.publish(ctx, eventbus.KindGraduation, *tokenAddr, payload)
+		projection.publishAfterCommit(ctx, s, eventbus.KindGraduation, *tokenAddr, payload)
 	}
 	return nil
 }
@@ -224,8 +142,8 @@ type tokenRow struct {
 
 // tokenCreatedRow pulls the TokenCreated args (keyed by Solidity input name) and
 // lower-cases the addresses, mirroring handleTokenCreated. ok is false when a
-// required field (token address, creator) is missing, so the caller skips the
-// write rather than inserting a half-row.
+// required field (token address, creator) is missing, so the caller rejects the
+// projection rather than inserting a half-row.
 func tokenCreatedRow(ev ParsedEvent) (tokenRow, bool) {
 	a := ev.Parsed.RuntimeArgs
 	r := tokenRow{
@@ -242,23 +160,24 @@ func tokenCreatedRow(ev ParsedEvent) (tokenRow, bool) {
 	return r, true
 }
 
-// handleTokenCreated upserts the tokens row. Mirrors token.upsert in
-// handleTokenCreated(): create with status LAUNCHED, or on an existing address
-// update bonding_curve + status. id/created_at/updated_at follow the
-// gen_random_uuid()::text + NOW() convention (Prisma client-side defaults).
-func (s *DBSink) handleTokenCreated(ctx context.Context, ev ParsedEvent) error {
+// handleTokenCreated upserts the tokens row. id/created_at/updated_at follow
+// the gen_random_uuid()::text + NOW() convention (Prisma client-side defaults).
+func (s *DBSink) handleTokenCreated(ctx context.Context, projection *eventProjection, ev ParsedEvent) error {
 	r, ok := tokenCreatedRow(ev)
 	if !ok {
 		return fmt.Errorf("TokenCreated missing token/creator address (tx %s)", ev.TxHash)
 	}
-	_, err := s.pool.Exec(ctx, `
+	_, err := projection.store.Exec(ctx, `
 		INSERT INTO tokens
 			(id, address, chain_id, symbol, name, status, bonding_curve, creator_address, created_at, updated_at)
 		VALUES
 			(gen_random_uuid()::text, $1, $2, $3, $4, 'LAUNCHED', $5, $6, NOW(), NOW())
 		ON CONFLICT (address) DO UPDATE
 		SET bonding_curve = EXCLUDED.bonding_curve,
-		    status        = 'LAUNCHED',
+		    status        = CASE
+		        WHEN tokens.status = 'GRADUATED' THEN tokens.status
+		        ELSE EXCLUDED.status
+		    END,
 		    updated_at    = NOW()
 	`,
 		r.address, r.chainID, r.symbol, r.name, nullIfEmpty(r.bondingCurve), r.creator,
@@ -267,11 +186,13 @@ func (s *DBSink) handleTokenCreated(ctx context.Context, ev ParsedEvent) error {
 		return fmt.Errorf("upsert tokens %s: %w", r.address, err)
 	}
 
-	// Start watching the new bonding curve so its Buy/Sell events are scanned
-	// from the next tick (parity with NestJS startWatching). No-op when no
-	// watcher is wired or the curve address is empty.
+	// The worker must not scan a curve until the token row it resolves through
+	// is committed; otherwise a concurrent tick can persist trades as unknown.
 	if s.watcher != nil && r.bondingCurve != "" {
-		s.watcher.WatchCurve(r.bondingCurve)
+		watcher := s.watcher
+		projection.deferUntilCommit(func() {
+			watcher.WatchCurve(r.bondingCurve)
+		})
 	}
 	return nil
 }
@@ -318,7 +239,7 @@ type tradeRow struct {
 // arg mapping in handleTrade() (indexer.service.ts). uint256 args arrive as
 // *big.Int and addresses as lower-case strings (set by the parser). ok is false
 // when a required field (trader, token amount, price) is missing so the caller
-// skips the write rather than recording a half-row. A missing eth amount
+// rejects the projection rather than recording a half-row. A missing eth amount
 // defaults to 0 (it's informational, not a balance input).
 func tradeRowFrom(ev ParsedEvent, side string) (tradeRow, bool) {
 	a := ev.Parsed.RuntimeArgs
@@ -348,11 +269,10 @@ func tradeRowFrom(ev ParsedEvent, side string) (tradeRow, bool) {
 
 // handleTrade records a Buy/Sell against the token whose bonding curve emitted
 // it. Mirrors handleTrade(): resolve the token by bonding_curve, insert the
-// trade idempotently (unique transaction_hash), and ONLY on a genuinely new row
-// apply the two non-idempotent follow-ups — set market_cap and move the holder
-// balance. A trade on a curve with no token row is logged and skipped (parity
-// with the NestJS "unknown bonding curve" warn).
-func (s *DBSink) handleTrade(ctx context.Context, ev ParsedEvent, side string) error {
+// trade idempotently by (chain_id, transaction_hash, log_index), then rebuild
+// the two aggregates from the trade ledger. Rebuilding instead of applying a
+// delta makes a legacy trade-row-only write repairable without double-crediting.
+func (s *DBSink) handleTrade(ctx context.Context, projection *eventProjection, ev ParsedEvent, side string) error {
 	r, ok := tradeRowFrom(ev, side)
 	if !ok {
 		return fmt.Errorf("%s missing trader/amount/price (tx %s)", side, ev.TxHash)
@@ -362,10 +282,9 @@ func (s *DBSink) handleTrade(ctx context.Context, ev ParsedEvent, side string) e
 		tokenID   string
 		tokenAddr *string
 	)
-	err := s.pool.QueryRow(ctx, `SELECT id, address FROM tokens WHERE bonding_curve = $1`, r.curve).Scan(&tokenID, &tokenAddr)
+	err := projection.store.QueryRow(ctx, `SELECT id, address FROM tokens WHERE bonding_curve = $1`, r.curve).Scan(&tokenID, &tokenAddr)
 	if errors.Is(err, pgx.ErrNoRows) {
-		slog.WarnContext(ctx, "indexer: trade on unknown bonding curve", "curve", r.curve, "tx", r.txHash)
-		return nil
+		return fmt.Errorf("trade token dependency missing for curve %s", r.curve)
 	}
 	if err != nil {
 		return fmt.Errorf("lookup token for curve %s: %w", r.curve, err)
@@ -380,50 +299,78 @@ func (s *DBSink) handleTrade(ctx context.Context, ev ParsedEvent, side string) e
 	// price × 1e9 — computed with integer math (wei × 1e9 → normalize).
 	marketCap := num.MulWeiInt(r.newPrice, 1_000_000_000)
 
-	// Idempotent insert keyed by the unique transaction_hash. ON CONFLICT DO
-	// NOTHING + RowsAffected==0 means a replay (backfill re-scan / reorg / retry)
-	// already recorded this trade, so we must NOT re-apply the holder delta.
-	tag, err := s.pool.Exec(ctx, `
-		INSERT INTO token_trades
-			(id, "tokenId", user_address, type, "tokenAmount", "ethAmount", price,
-			 block_number, transaction_hash, "timestamp")
-		VALUES
-			(gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, NOW())
-		ON CONFLICT (transaction_hash) DO NOTHING
-	`,
-		tokenID, r.user, side, r.tokenAmount.String(), r.ethAmount.String(), price,
-		r.blockNumber, r.txHash,
-	)
+	// The former ledger kept one row per transaction without a log coordinate.
+	// Chronological repair claims that row before inserting any additional logs
+	// from the same transaction, preserving its identity without losing events.
+	legacyTag, err := projection.store.Exec(ctx, `
+		UPDATE token_trades
+		SET chain_id = $1, "tokenId" = $2, user_address = $3, type = $4,
+		    "tokenAmount" = $5, "ethAmount" = $6, price = $7,
+		    block_number = $8, log_index = $9
+		WHERE transaction_hash = $10 AND log_index IS NULL
+	`, ev.ChainID, tokenID, r.user, side, r.tokenAmount.String(), r.ethAmount.String(),
+		price, r.blockNumber, ev.LogIndex, r.txHash)
 	if err != nil {
-		return fmt.Errorf("insert token_trade %s: %w", r.txHash, err)
+		return fmt.Errorf("claim legacy token_trade %s: %w", r.txHash, err)
 	}
-	if tag.RowsAffected() == 0 {
-		return nil // already recorded
+	if legacyTag.RowsAffected() > 1 {
+		return fmt.Errorf("ambiguous legacy token_trades for transaction %s", r.txHash)
 	}
 
-	// market_cap = normalized price × fixed 1e9 supply (exact decimal).
-	if _, err := s.pool.Exec(ctx,
-		`UPDATE tokens SET market_cap = $1::numeric, updated_at = NOW() WHERE id = $2`,
-		marketCap, tokenID,
-	); err != nil {
+	isNew := false
+	if legacyTag.RowsAffected() == 0 {
+		tag, err := projection.store.Exec(ctx, `
+		INSERT INTO token_trades
+			(id, chain_id, "tokenId", user_address, type, "tokenAmount", "ethAmount", price,
+			 block_number, log_index, transaction_hash, "timestamp")
+		VALUES
+			(gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+		ON CONFLICT (chain_id, transaction_hash, log_index) DO NOTHING
+		`, ev.ChainID, tokenID, r.user, side, r.tokenAmount.String(), r.ethAmount.String(), price,
+			r.blockNumber, ev.LogIndex, r.txHash)
+		if err != nil {
+			return fmt.Errorf("insert token_trade %s#%d: %w", r.txHash, ev.LogIndex, err)
+		}
+		isNew = tag.RowsAffected() > 0
+		if !isNew {
+			if _, err := projection.store.Exec(ctx, `
+			UPDATE token_trades
+			SET "tokenId" = $4, user_address = $5, type = $6,
+			    "tokenAmount" = $7, "ethAmount" = $8, price = $9,
+			    block_number = $10
+			WHERE chain_id = $1 AND transaction_hash = $2 AND log_index = $3
+			`, ev.ChainID, r.txHash, ev.LogIndex, tokenID, r.user, side,
+				r.tokenAmount.String(), r.ethAmount.String(), price, r.blockNumber); err != nil {
+				return fmt.Errorf("repair token_trade %s#%d: %w", r.txHash, ev.LogIndex, err)
+			}
+		}
+	}
+
+	// An older event can be repaired after newer events, so market cap comes from
+	// the latest durable coordinate rather than whichever event is replayed now.
+	if _, err := projection.store.Exec(ctx, `
+		UPDATE tokens AS token
+		SET market_cap = latest.price * 1000000000::numeric, updated_at = NOW()
+		FROM (
+			SELECT price FROM token_trades
+			WHERE chain_id = $1 AND "tokenId" = $2
+			ORDER BY block_number DESC, log_index DESC NULLS LAST, transaction_hash DESC
+			LIMIT 1
+		) AS latest
+		WHERE token.id = $2
+	`, ev.ChainID, tokenID); err != nil {
 		return fmt.Errorf("update market_cap %s: %w", tokenID, err)
 	}
 
-	// Holder balance: BUY adds the token amount, SELL subtracts it.
-	delta := new(big.Int).Set(r.tokenAmount)
-	if side == "SELL" {
-		delta.Neg(delta)
-	}
-	if err := s.updateHolderBalance(ctx, tokenID, r.user, delta); err != nil {
+	if err := s.rebuildHolderBalance(ctx, projection.store, ev.ChainID, tokenID, r.user); err != nil {
 		return fmt.Errorf("update holder balance %s/%s: %w", tokenID, r.user, err)
 	}
 
-	// Realtime fan-out — only for a genuinely NEW trade (replays returned
-	// above), and only after the durable writes: this is the production
-	// producer for the /token-events namespace.
-	if tokenAddr != nil && *tokenAddr != "" {
+	// Realtime fan-out is queued only for a genuinely new trade and runs after
+	// commit, so subscribers never observe a projection that later rolls back.
+	if isNew && tokenAddr != nil && *tokenAddr != "" {
 		now := time.Now().UTC().Format(time.RFC3339)
-		s.publish(ctx, eventbus.KindTrade, *tokenAddr, eventbus.TradePayload{
+		projection.publishAfterCommit(ctx, s, eventbus.KindTrade, *tokenAddr, eventbus.TradePayload{
 			TokenAddress: strings.ToLower(*tokenAddr),
 			TokenID:      tokenID,
 			Type:         side,
@@ -435,7 +382,7 @@ func (s *DBSink) handleTrade(ctx context.Context, ev ParsedEvent, side string) e
 			BlockNumber:  r.blockNumber,
 			Timestamp:    now,
 		})
-		s.publish(ctx, eventbus.KindPriceUpdate, *tokenAddr, eventbus.PricePayload{
+		projection.publishAfterCommit(ctx, s, eventbus.KindPriceUpdate, *tokenAddr, eventbus.PricePayload{
 			TokenAddress: strings.ToLower(*tokenAddr),
 			Price:        price,
 			MarketCap:    marketCap,
@@ -445,21 +392,27 @@ func (s *DBSink) handleTrade(ctx context.Context, ev ParsedEvent, side string) e
 	return nil
 }
 
-// updateHolderBalance applies a signed token-amount delta to the holder row in a
-// single locked statement (parity with the NestJS GREATEST upsert). The balance
-// is stored as a decimal string and clamped at zero on both the insert and the
-// update sides, so a SELL against an unseen holder lands at 0 rather than going
-// negative. ON CONFLICT keys the unique (tokenId, user_address) so concurrent
-// trades against one holder can't lose a delta.
-func (s *DBSink) updateHolderBalance(ctx context.Context, tokenID, user string, delta *big.Int) error {
-	d := delta.String()
-	_, err := s.pool.Exec(ctx, `
+// rebuildHolderBalance derives the aggregate from its append-only evidence so a
+// replay repairs both a missing row and a legacy row that may already include
+// the event. No caller has to guess whether a prior delta reached the aggregate.
+func (s *DBSink) rebuildHolderBalance(ctx context.Context, store projectionStore, chainID int, tokenID, user string) error {
+	_, err := store.Exec(ctx, `
 		INSERT INTO token_holders (id, "tokenId", user_address, balance, "updatedAt")
-		VALUES (gen_random_uuid()::text, $1, $2, GREATEST(0::numeric, $3::numeric)::text, NOW())
+		SELECT gen_random_uuid()::text, $1, $2,
+		       GREATEST(0::numeric, COALESCE(SUM(
+		           CASE type
+		               WHEN 'BUY' THEN "tokenAmount"::numeric
+		               WHEN 'SELL' THEN -"tokenAmount"::numeric
+		               ELSE 0::numeric
+		           END
+		       ), 0::numeric))::text,
+		       NOW()
+		FROM token_trades
+		WHERE chain_id = $3 AND "tokenId" = $1 AND user_address = $2
 		ON CONFLICT ("tokenId", user_address) DO UPDATE
-		SET balance = GREATEST(0::numeric, token_holders.balance::numeric + $3::numeric)::text,
+		SET balance = EXCLUDED.balance,
 		    "updatedAt" = NOW()
-	`, tokenID, user, d)
+	`, tokenID, user, chainID)
 	return err
 }
 

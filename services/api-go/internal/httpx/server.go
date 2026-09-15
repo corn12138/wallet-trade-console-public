@@ -23,12 +23,10 @@ import (
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/earn"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/i18n"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/indexeradmin"
-	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/livekit"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/markets"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/media"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/mobilebff"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/mobilecontrol"
-	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/mobiledoc"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/papertrade"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/portfolio"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/pricefeed"
@@ -86,6 +84,7 @@ type Deps struct {
 	TradingRepoConcrete *trading.Repository
 	TradingMarkets      trading.MarketsProvider
 	Web3EventsRepo      *web3events.Repository
+	Web3TxVerifier      web3events.TransactionVerifier
 	TagsRepo            *tags.Repository
 	PaperTradeRepo      *papertrade.Repository
 	PaperTradeEnabled   bool
@@ -95,13 +94,11 @@ type Deps struct {
 	CsrfSigner          *auth.CsrfSigner
 	ArticleRepo         *article.Repository
 	Media               *media.Service
-	LiveKit             *livekit.Service
 	ContractConfig      *contractconfig.Service
 	TxReview            *txreview.Service
 	AIExplain           *ai.Service
 	Web3Auth            *web3auth.Service
 	PortfolioDeps       portfolio.Deps
-	MobileDocRepo       *mobiledoc.Repository
 	IndexerAdmin        *indexeradmin.Service
 	MobileControl       *mobilecontrol.Service
 	MobileBFF           *mobilebff.Service
@@ -345,8 +342,10 @@ func NewRouter(deps Deps) *chi.Mux {
 			accessUserChecker = deps.UsersRepo
 		}
 		var accessGuard func(http.Handler) http.Handler
+		var stakingAdminGuard func(http.Handler) http.Handler
 		if deps.UserVerifier != nil {
 			accessGuard = userauth.AccessMiddleware(deps.UserVerifier, accessUserChecker)
+			stakingAdminGuard = userauth.RequireRoles(deps.UserVerifier, accessUserChecker, "admin")
 		}
 		// mountGuarded mounts a sub-router under an optional middleware. A nil
 		// guard mounts it open (dev without the relevant secret), matching the
@@ -509,7 +508,11 @@ func NewRouter(deps Deps) *chi.Mux {
 			// Enable the SIWE-guarded tx-reporting writes (POST /transactions
 			// [/receipt]) — the FE depends on them (events.ts). guardedAuth is the
 			// web3 middleware matching NestJS @UseGuards(Web3AuthGuard).
-			web3svc = web3events.NewService(web3eventsReader).WithWrites(deps.Web3EventsRepo, guardedAuth)
+			web3svc = web3events.NewService(web3eventsReader).WithWrites(
+				deps.Web3EventsRepo,
+				guardedAuth,
+				deps.Web3TxVerifier,
+			)
 		}
 		api.Mount("/web3-events", web3events.Router(web3svc))
 		// Tags: 3 GETs. nil repo → [] for list, 503 for detail.
@@ -538,15 +541,11 @@ func NewRouter(deps Deps) *chi.Mux {
 		if deps.StakingRepo != nil {
 			stakingStore = deps.StakingRepo
 		}
-		// Staking: the pool CATALOG reads (/pools, /pools/stats, /pools/{id}) are
-		// Go-canonical PUBLIC — the FE advanced-earn page loads /pools +
-		// /pools/stats with plain fetch + no auth (broken pre-login on the NestJS
-		// access guard), same as token/earn/bridge/swap. The admin pool mutations
-		// + user-specific read + stake/unstake writes stay access-guarded inside
-		// staking.Router (accessGuard, per-route). Only /pools + /pools/stats are
-		// routed to Go via the gateway (exact blocks); the rest stay NestJS.
-		// See cutover/staking.md.
-		api.Mount("/staking", staking.Router(staking.NewService(stakingStore), accessGuard))
+		api.Mount("/staking", staking.Router(
+			staking.NewService(stakingStore),
+			stakingAdminGuard,
+			guardedAuth,
+		))
 		// /api/health + /api/health/db + /api/metrics + /api/metrics/custom
 		// mirror NestJS health/metrics modules. Root /healthz, /readyz,
 		// /metrics keep working — the /api aliases let nginx route the
@@ -598,14 +597,6 @@ func NewRouter(deps Deps) *chi.Mux {
 			accessGuardForUsers = userauth.AccessMiddleware(deps.UserVerifier, accessUserChecker)
 		}
 		api.Mount("/users", users.Router(userStore, accessGuardForUsers))
-		// LiveKit: 2 public GETs (/token, /url). Service builds even
-		// when env vars are missing — handlers surface the human-readable
-		// "not configured" message just like NestJS.
-		if deps.LiveKit != nil {
-			api.Mount("/livekit", livekit.Router(deps.LiveKit))
-		} else {
-			api.Mount("/livekit", livekit.Router(livekit.NewService("", "", "")))
-		}
 		// Contract-config: 3 public GETs (config, by-chain, by-name).
 		// Service falls back to empty chains/abis when the loader or
 		// ABIs dir aren't wired.
@@ -617,18 +608,6 @@ func NewRouter(deps Deps) *chi.Mux {
 		if deps.Web3Auth != nil {
 			api.Mount("/web3-auth", web3auth.Router(deps.Web3Auth, deps.AuthVerifier))
 		}
-		// Mobile CMS (content app's MobileModule): the MobileDoc surface —
-		// /api/mobile/docs/* (legacy, raw), /api/mobile/v1/* (SuccessResponse),
-		// and /api/web/v1/docs/* (web-enhanced). The legacy reads +
-		// create/batch/clear are @Public; the legacy mutations and EVERY v1 /
-		// web-v1 route carry no @Public, so they mount under accessGuard
-		// (parity with the content app's global JwtAuthGuard). The repo
-		// degrades on a nil pool ([] list / 503 detail / 404 miss).
-		mobileDocRepo := deps.MobileDocRepo
-		if mobileDocRepo == nil {
-			mobileDocRepo = mobiledoc.NewRepository(deps.Pool)
-		}
-		mobileDocSvc := mobiledoc.NewService(mobileDocRepo)
 		// Mobile control plane (mobile-control.controller): runtime bootstrap,
 		// session context, route resolve, capability check, web bootstrap,
 		// analytics ingest. All @Public; session login state comes from the user
@@ -657,15 +636,11 @@ func NewRouter(deps Deps) *chi.Mux {
 			)
 		}
 		api.Route("/mobile", func(m chi.Router) {
-			mobiledoc.RegisterMobile(m, mobileDocSvc, accessGuard)
 			mobilecontrol.Register(m, mobileControlSvc)
 			mobilebff.Register(m, bffSvc)
 		})
-		api.Mount("/web/v1", mobiledoc.WebV1Router(mobileDocSvc, accessGuard))
-		// Indexer admin: GET /status (checkpoints from web3_indexer_state) +
-		// start/stop/backfill/resync-tx. All @Public. status is fully ported;
-		// backfill/resync-tx degrade honestly (503 naming the missing RPC) when
-		// no chain-RPC hook is wired into the admin path — see internal/indexeradmin.
+		// Indexer HTTP access is monitoring-only; worker control and repair stay
+		// on internal process boundaries.
 		indexerAdmin := deps.IndexerAdmin
 		if indexerAdmin == nil {
 			transport := "http"

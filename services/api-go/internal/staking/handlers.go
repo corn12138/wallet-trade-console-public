@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -26,7 +27,7 @@ type Store interface {
 	GetPoolStats(ctx context.Context) (PoolStats, error)
 	ListActiveUserStakes(ctx context.Context, userAddress string) ([]UserStake, error)
 	RecordStake(ctx context.Context, in RecordStakeInput) (UserStake, error)
-	RecordUnstake(ctx context.Context, stakeID string) (UserStake, error)
+	RecordUnstake(ctx context.Context, stakeID, ownerAddress string) (UserStake, error)
 }
 
 // Service wires a Store for the HTTP layer.
@@ -39,36 +40,41 @@ func NewService(store Store) *Service {
 	return &Service{store: store}
 }
 
-// Router mounts /api/staking with the 8 NestJS routes, split by guard.
-//
-// The pool CATALOG reads (`/pools`, `/pools/stats`, `/pools/{id}`) are
-// Go-canonical PUBLIC market/catalog data — the FE advanced-earn page loads
-// `/pools` + `/pools/stats` with plain `fetch` and NO auth header (broken
-// pre-login on the deployed NestJS, whose StakingController carries no @Public
-// so the global JwtAuthGuard 401s them). Same rationale as the token GET reads +
-// earn/products + bridge + swap. The admin pool mutations (POST/PUT `/pools`),
-// the user-specific stakes read (`/user/{address}`), and the user stake/unstake
-// writes stay ACCESS-guarded (parity with the NestJS global JwtAuthGuard) — a nil
-// middleware (dev without JWT_SECRET) mounts them open exactly as before.
-// See cutover/staking.md + guard-parity.md.
-func Router(svc *Service, accessMiddleware func(http.Handler) http.Handler) chi.Router {
+// Router keeps catalog reads public, requires an admin role for pool mutations,
+// and requires a SIWE wallet for owner-scoped stake state.
+func Router(
+	svc *Service,
+	adminMiddleware func(http.Handler) http.Handler,
+	walletMiddleware func(http.Handler) http.Handler,
+) chi.Router {
 	r := chi.NewRouter()
-	// Public catalog reads (no guard).
 	r.Get("/pools", svc.listPools)
 	r.Get("/pools/stats", svc.poolStats)
 	r.Get("/pools/{id}", svc.findPool)
-	// Access-guarded: admin pool mutations + user-specific read + user writes.
+
 	r.Group(func(r chi.Router) {
-		if accessMiddleware != nil {
-			r.Use(accessMiddleware)
-		}
+		r.Use(requiredMiddleware(adminMiddleware, "staking admin authentication not configured"))
 		r.Post("/pools", svc.createPool)
 		r.Put("/pools/{id}", svc.updatePool)
+	})
+	r.Group(func(r chi.Router) {
+		r.Use(requiredMiddleware(walletMiddleware, "staking wallet authentication not configured"))
 		r.Get("/user/{address}", svc.userStakes)
 		r.Post("/stake", svc.recordStake)
 		r.Post("/unstake/{stakeId}", svc.recordUnstake)
 	})
 	return r
+}
+
+func requiredMiddleware(mw func(http.Handler) http.Handler, message string) func(http.Handler) http.Handler {
+	if mw != nil {
+		return mw
+	}
+	return func(http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			writeError(w, http.StatusServiceUnavailable, message)
+		})
+	}
 }
 
 func (s *Service) listPools(w http.ResponseWriter, r *http.Request) {
@@ -227,12 +233,10 @@ func (s *Service) updatePool(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) userStakes(w http.ResponseWriter, r *http.Request) {
-	address := strings.TrimSpace(chi.URLParam(r, "address"))
-	if !addressRE.MatchString(address) {
-		writeError(w, http.StatusBadRequest, "invalid address")
+	address, ok := resolveWalletOwner(w, r, chi.URLParam(r, "address"))
+	if !ok {
 		return
 	}
-	address = strings.ToLower(address)
 
 	if s.store == nil {
 		writeJSON(w, http.StatusOK, []UserStake{})
@@ -270,7 +274,11 @@ func (s *Service) recordStake(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "amount must be > 0")
 		return
 	}
-	in.UserAddress = strings.ToLower(in.UserAddress)
+	owner, ok := resolveWalletOwner(w, r, in.UserAddress)
+	if !ok {
+		return
+	}
+	in.UserAddress = owner
 
 	if s.store == nil {
 		writeError(w, http.StatusServiceUnavailable, "database unavailable")
@@ -299,7 +307,11 @@ func (s *Service) recordUnstake(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "database unavailable")
 		return
 	}
-	out, err := s.store.RecordUnstake(r.Context(), stakeID)
+	owner, ok := resolveWalletOwner(w, r, "")
+	if !ok {
+		return
+	}
+	out, err := s.store.RecordUnstake(r.Context(), stakeID, owner)
 	if errors.Is(err, ErrPoolUnavailable) {
 		writeError(w, http.StatusServiceUnavailable, "database unavailable")
 		return
@@ -314,6 +326,22 @@ func (s *Service) recordUnstake(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+func resolveWalletOwner(w http.ResponseWriter, r *http.Request, requested string) (string, bool) {
+	owner, err := auth.ResolveOwner(auth.AddressFromContext(r.Context()), strings.TrimSpace(requested))
+	if err == nil {
+		return owner, true
+	}
+	switch {
+	case errors.Is(err, auth.ErrMissingAuthenticated):
+		writeError(w, http.StatusUnauthorized, err.Error())
+	case errors.Is(err, auth.ErrOwnerMismatch):
+		writeError(w, http.StatusForbidden, err.Error())
+	default:
+		writeError(w, http.StatusBadRequest, err.Error())
+	}
+	return "", false
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

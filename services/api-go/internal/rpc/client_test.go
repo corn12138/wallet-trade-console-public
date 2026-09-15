@@ -169,6 +169,70 @@ func TestCallHex_EmptyResultIsZero(t *testing.T) {
 	}
 }
 
+func TestGetTransactionByHash_DecodesAuthoritativeFields(t *testing.T) {
+	to := "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req rpcRequest
+		body, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(body, &req)
+		if req.Method != "eth_getTransactionByHash" {
+			t.Errorf("method = %q", req.Method)
+		}
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0xabc","from":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","to":"` + to + `","value":"0x2a"}}`))
+	}))
+	defer srv.Close()
+
+	tx, ok, err := NewClient(srv.URL, 0).GetTransactionByHash(context.Background(), "0xabc")
+	if err != nil || !ok {
+		t.Fatalf("tx=%+v ok=%v err=%v", tx, ok, err)
+	}
+	if tx.TxHash != "0xabc" || tx.From != "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" || tx.To == nil || *tx.To != to {
+		t.Errorf("transaction fields = %+v", tx)
+	}
+	if tx.Value == nil || tx.Value.Cmp(big.NewInt(42)) != 0 {
+		t.Errorf("value = %v, want 42", tx.Value)
+	}
+}
+
+func TestGetTransactionByHash_NullIsNotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
+	}))
+	defer srv.Close()
+	_, ok, err := NewClient(srv.URL, 0).GetTransactionByHash(context.Background(), "0xabc")
+	if err != nil || ok {
+		t.Fatalf("ok=%v err=%v, want false,nil", ok, err)
+	}
+}
+
+func TestGetTransactionReceipt_DecodesStatusAndGas(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"transactionHash":"0xabc","from":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","to":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","contractAddress":null,"blockNumber":"0x7b","gasUsed":"0x5208","effectiveGasPrice":"0x3b9aca00","status":"0x1"}}`))
+	}))
+	defer srv.Close()
+
+	receipt, ok, err := NewClient(srv.URL, 0).GetTransactionReceipt(context.Background(), "0xabc")
+	if err != nil || !ok {
+		t.Fatalf("receipt=%+v ok=%v err=%v", receipt, ok, err)
+	}
+	if !receipt.Success || receipt.BlockNumber != 123 || receipt.GasUsed == nil || receipt.GasUsed.Int64() != 21000 {
+		t.Errorf("receipt = %+v", receipt)
+	}
+	if receipt.EffectiveGasPrice == nil || receipt.EffectiveGasPrice.Int64() != 1_000_000_000 {
+		t.Errorf("gas price = %v", receipt.EffectiveGasPrice)
+	}
+}
+
+func TestGetTransactionReceipt_RequiresStatusProof(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"transactionHash":"0xabc","blockNumber":"0x7b"}}`))
+	}))
+	defer srv.Close()
+	if _, _, err := NewClient(srv.URL, 0).GetTransactionReceipt(context.Background(), "0xabc"); err == nil {
+		t.Fatal("expected missing receipt status to fail verification")
+	}
+}
+
 func TestDecodeUint256At(t *testing.T) {
 	// Build 64 bytes: first 32 = 0x01, second 32 = 0xff
 	buf := make([]byte, 64)
@@ -333,5 +397,100 @@ func TestHexQuantity_RoundTrip(t *testing.T) {
 	}
 	if v, err := parseHexQuantity(""); err != nil || v != 0 {
 		t.Errorf("empty quantity → %d, %v; want 0, nil", v, err)
+	}
+}
+
+// TestGetTransactionByHashReadsNonceAndBlockHash pins the two fields that make a
+// replacement observable. A speed-up reuses the sender's nonce under a new hash,
+// so without the nonce the two attempts are indistinguishable.
+func TestGetTransactionByHashReadsNonceAndBlockHash(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{
+			"hash":"0xabc","from":"0xdead","to":"0xcafe","value":"0x2a",
+			"nonce":"0x11","blockHash":"0xbbb"}}`))
+	}))
+	defer server.Close()
+
+	tx, ok, err := NewClient(server.URL, 0).GetTransactionByHash(context.Background(), "0xabc")
+	if err != nil || !ok {
+		t.Fatalf("GetTransactionByHash ok=%v err=%v", ok, err)
+	}
+	if tx.Nonce == nil || *tx.Nonce != 17 {
+		t.Errorf("nonce = %v, want 17 (0x11)", tx.Nonce)
+	}
+	if tx.BlockHash == nil || *tx.BlockHash != "0xbbb" {
+		t.Errorf("blockHash = %v, want 0xbbb", tx.BlockHash)
+	}
+}
+
+// A mempool transaction has no block. Nodes disagree on whether that is null or
+// "", and both must normalise to nil so "mined" is never inferred from a value
+// that is merely present.
+func TestGetTransactionByHashTreatsAbsentBlockHashAsNotMined(t *testing.T) {
+	for _, raw := range []string{`null`, `""`} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{
+				"hash":"0xabc","from":"0xdead","to":null,"value":"0x0",
+				"nonce":"0x0","blockHash":` + raw + `}}`))
+		}))
+		tx, ok, err := NewClient(server.URL, 0).GetTransactionByHash(context.Background(), "0xabc")
+		server.Close()
+		if err != nil || !ok {
+			t.Fatalf("blockHash %s: ok=%v err=%v", raw, ok, err)
+		}
+		if tx.BlockHash != nil {
+			t.Errorf("blockHash %s: got %q, want nil", raw, *tx.BlockHash)
+		}
+	}
+}
+
+func TestGetTransactionReceiptReadsBlockHash(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{
+			"transactionHash":"0xabc","from":"0xdead","to":"0xcafe",
+			"blockNumber":"0x7","blockHash":"0xccc","gasUsed":"0x5208",
+			"effectiveGasPrice":"0x1","status":"0x1"}}`))
+	}))
+	defer server.Close()
+
+	receipt, ok, err := NewClient(server.URL, 0).GetTransactionReceipt(context.Background(), "0xabc")
+	if err != nil || !ok {
+		t.Fatalf("GetTransactionReceipt ok=%v err=%v", ok, err)
+	}
+	if receipt.BlockHash == nil || *receipt.BlockHash != "0xccc" {
+		t.Errorf("blockHash = %v, want 0xccc", receipt.BlockHash)
+	}
+}
+
+// A malformed nonce must fail the read rather than default to 0 — nonce 0 is a
+// real, meaningful value (a wallet's first transaction).
+func TestGetTransactionByHashRejectsAMalformedNonce(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{
+			"hash":"0xabc","from":"0xdead","to":null,"value":"0x0","nonce":"zz"}}`))
+	}))
+	defer server.Close()
+
+	if _, _, err := NewClient(server.URL, 0).GetTransactionByHash(context.Background(), "0xabc"); err == nil {
+		t.Fatal("a malformed nonce must be an error, not a silent 0")
+	}
+}
+
+// An absent nonce must read as "unknown", never as nonce 0. parseHexQuantity
+// maps "" to 0 and 0 is a real nonce, so collapsing the two would make every
+// first transaction look like it shares a nonce with the others.
+func TestGetTransactionByHashLeavesAnAbsentNonceUnknown(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{
+			"hash":"0xabc","from":"0xdead","to":null,"value":"0x0"}}`))
+	}))
+	defer server.Close()
+
+	tx, ok, err := NewClient(server.URL, 0).GetTransactionByHash(context.Background(), "0xabc")
+	if err != nil || !ok {
+		t.Fatalf("an absent nonce must not fail the read: ok=%v err=%v", ok, err)
+	}
+	if tx.Nonce != nil {
+		t.Fatalf("nonce = %d, want nil (unknown) — 0 is a real nonce", *tx.Nonce)
 	}
 }

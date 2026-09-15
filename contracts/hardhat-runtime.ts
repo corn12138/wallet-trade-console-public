@@ -8,11 +8,3 @@ export async function getHardhatEthers(networkName?: string) {
   const connection = await getHardhatConnection(networkName);
   return connection.ethers;
 }
-
-export async function loadHardhatFixture<T>(
-  fixture: (connection: Awaited<ReturnType<typeof getHardhatConnection>>) => Promise<T>,
-  networkName?: string
-) {
-  const connection = await getHardhatConnection(networkName);
-  return connection.networkHelpers.loadFixture(fixture);
-}

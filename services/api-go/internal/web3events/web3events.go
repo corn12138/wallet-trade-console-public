@@ -121,6 +121,10 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 // ErrPoolUnavailable mirrors the pattern from sibling internal/* repos.
 var ErrPoolUnavailable = fmt.Errorf("web3events repository: database pool not configured")
 
+// ErrTransactionOwnerConflict prevents a globally unique chain transaction
+// from being reassigned after its first verified insert.
+var ErrTransactionOwnerConflict = errors.New("web3events: transaction owner conflict")
+
 // GetStats returns the counters discover/home cares about.
 func (r *Repository) GetStats(ctx context.Context, chainID int) (Stats, error) {
 	if r.pool == nil {
@@ -459,6 +463,17 @@ type SubmitTxInput struct {
 	Value           *string
 	TxType          *string
 	Metadata        json.RawMessage
+
+	// Action identity. ClientActionID is already namespaced by the handler;
+	// empty means "derive one". Fingerprint is only compared when the caller
+	// supplied a key, so a derived action can never raise a reuse conflict.
+	ClientActionID     string
+	ClientSupplied     bool
+	RequestFingerprint *string
+
+	// Chain-observed attempt facts.
+	SenderNonce *uint64
+	BlockHash   *string
 }
 
 // ReceiptTxInput is the normalized payload for reportTransactionReceipt.
@@ -475,6 +490,14 @@ type ReceiptTxInput struct {
 	BlockNumber     int64
 	GasUsed         *int64
 	GasPrice        *int64
+
+	ClientActionID     string
+	ClientSupplied     bool
+	RequestFingerprint *string
+
+	SenderNonce   *uint64
+	BlockHash     *string
+	Confirmations int
 }
 
 // metaArg returns a jsonb-encodable value (a JSON string) or nil so an absent
@@ -486,61 +509,278 @@ func metaArg(m json.RawMessage) any {
 	return string(m)
 }
 
-// UpsertSubmittedTransaction mirrors reportSubmittedTransaction: upsert by
-// (chainId, txHash) — create with status='pending' and blockNumber=0; on
-// conflict refresh the address/value/type/metadata (keeping existing where the
-// new value is absent) and reset status to 'pending'.
+// UpsertSubmittedTransaction records a submitted attempt and binds it to its
+// action, atomically.
+//
+// The whole sequence is one transaction: an owner conflict or a reuse conflict
+// rolls the action creation back with it, so a rejected report can never leave
+// an orphan action behind.
 func (r *Repository) UpsertSubmittedTransaction(ctx context.Context, in SubmitTxInput) (TransactionRow, error) {
 	if r.pool == nil {
 		return TransactionRow{}, ErrPoolUnavailable
 	}
-	row := r.pool.QueryRow(ctx, `
-		INSERT INTO web3_transactions
-			(chain_id, tx_hash, from_address, to_address, contract_address,
-			 value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,NULL,NULL,0,'pending',$7,$8, now())
-		ON CONFLICT (chain_id, tx_hash) DO UPDATE SET
-			from_address     = EXCLUDED.from_address,
-			to_address       = COALESCE(EXCLUDED.to_address, web3_transactions.to_address),
-			contract_address = COALESCE(EXCLUDED.contract_address, web3_transactions.contract_address),
-			value            = COALESCE(EXCLUDED.value, web3_transactions.value),
-			tx_type          = COALESCE(EXCLUDED.tx_type, web3_transactions.tx_type),
-			metadata         = COALESCE(EXCLUDED.metadata, web3_transactions.metadata),
-			status           = 'pending'
-		RETURNING id, chain_id, tx_hash, from_address, to_address, contract_address,
-		          value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at
-	`, in.ChainID, in.TxHash, in.FromAddress, in.ToAddress, in.ContractAddress,
-		in.Value, in.TxType, metaArg(in.Metadata))
-	return scanTxRow(row)
+	return r.recordAttempt(ctx, attemptWrite{
+		chainID:            in.ChainID,
+		txHash:             in.TxHash,
+		fromAddress:        in.FromAddress,
+		toAddress:          in.ToAddress,
+		contractAddress:    in.ContractAddress,
+		value:              in.Value,
+		txType:             in.TxType,
+		metadata:           in.Metadata,
+		clientActionID:     in.ClientActionID,
+		clientSupplied:     in.ClientSupplied,
+		requestFingerprint: in.RequestFingerprint,
+		senderNonce:        in.SenderNonce,
+		blockHash:          in.BlockHash,
+	})
 }
 
-// UpsertTransactionReceipt mirrors reportTransactionReceipt: same upsert keyed
-// on (chainId, txHash), additionally writing the confirmed block/gas/status.
+// UpsertTransactionReceipt writes RPC-verified final state, binds the attempt to
+// its action, and closes out any sibling attempt the mined one replaced.
 func (r *Repository) UpsertTransactionReceipt(ctx context.Context, in ReceiptTxInput) (TransactionRow, error) {
 	if r.pool == nil {
 		return TransactionRow{}, ErrPoolUnavailable
 	}
-	row := r.pool.QueryRow(ctx, `
+	return r.recordAttempt(ctx, attemptWrite{
+		chainID:            in.ChainID,
+		txHash:             in.TxHash,
+		fromAddress:        in.FromAddress,
+		toAddress:          in.ToAddress,
+		contractAddress:    in.ContractAddress,
+		value:              in.Value,
+		txType:             in.TxType,
+		metadata:           in.Metadata,
+		clientActionID:     in.ClientActionID,
+		clientSupplied:     in.ClientSupplied,
+		requestFingerprint: in.RequestFingerprint,
+		senderNonce:        in.SenderNonce,
+		blockHash:          in.BlockHash,
+		receipt: &receiptFacts{
+			status:        in.Status,
+			blockNumber:   in.BlockNumber,
+			gasUsed:       in.GasUsed,
+			gasPrice:      in.GasPrice,
+			confirmations: in.Confirmations,
+		},
+	})
+}
+
+type receiptFacts struct {
+	status        string
+	blockNumber   int64
+	gasUsed       *int64
+	gasPrice      *int64
+	confirmations int
+}
+
+// attemptWrite is the union of what both write paths need. receipt is nil for a
+// submit.
+type attemptWrite struct {
+	chainID            int
+	txHash             string
+	fromAddress        string
+	toAddress          *string
+	contractAddress    *string
+	value              *string
+	txType             *string
+	metadata           json.RawMessage
+	clientActionID     string
+	clientSupplied     bool
+	requestFingerprint *string
+	senderNonce        *uint64
+	blockHash          *string
+	receipt            *receiptFacts
+}
+
+func (r *Repository) recordAttempt(ctx context.Context, in attemptWrite) (TransactionRow, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return TransactionRow{}, fmt.Errorf("web3events: begin attempt write: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	row, err := recordAttemptTx(ctx, tx, in)
+	if err != nil {
+		return TransactionRow{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return TransactionRow{}, fmt.Errorf("web3events: commit attempt write: %w", err)
+	}
+	return row, nil
+}
+
+// recordAttemptTx is the whole sequence, separated from pool handling so the
+// failure paths can be driven without a live database.
+func recordAttemptTx(ctx context.Context, tx attemptTx, in attemptWrite) (TransactionRow, error) {
+	existing, err := lockAttempt(ctx, tx, in.chainID, in.txHash)
+	if err != nil {
+		return TransactionRow{}, err
+	}
+	// A chain transaction has exactly one owner, forever.
+	if existing.found && !ownerMatches(existing.fromAddress, in.fromAddress) {
+		return TransactionRow{}, ErrTransactionOwnerConflict
+	}
+
+	actionID, err := bindAction(ctx, tx, in, existing)
+	if err != nil {
+		return TransactionRow{}, err
+	}
+
+	// SELECT ... FOR UPDATE locks nothing when the row does not exist, so two
+	// concurrent reports of the SAME hash can both reach this point. Re-check
+	// under the action's own lock — bindAction has taken it — so the counter is
+	// bumped exactly once per real attempt rather than once per request.
+	attemptNumber := existing.attemptNumber
+	if !existing.found {
+		claimed, err := claimAttemptNumber(ctx, tx, actionID, in.chainID, in.txHash)
+		if err != nil {
+			return TransactionRow{}, err
+		}
+		attemptNumber = claimed
+	}
+
+	row, err := writeAttemptRow(ctx, tx, in, actionID, attemptNumber)
+	if err != nil {
+		return TransactionRow{}, err
+	}
+
+	// Mined is what consumes the nonce, and a REVERTED transaction consumes it
+	// exactly as a successful one does — so its same-nonce siblings are just as
+	// replaced. Gating this on 'confirmed' left them pending forever.
+	if in.receipt != nil && isMinedStatus(in.receipt.status) {
+		affected, err := markReplacedSiblings(ctx, tx, in.chainID, in.fromAddress, in.txHash, in.senderNonce)
+		if err != nil {
+			return TransactionRow{}, err
+		}
+		if err := refreshActions(ctx, tx, affected); err != nil {
+			return TransactionRow{}, err
+		}
+	}
+	if err := refreshActionStatus(ctx, tx, actionID); err != nil {
+		return TransactionRow{}, err
+	}
+	return row, nil
+}
+
+// bindAction resolves the action for this attempt. An attempt already bound to
+// an action keeps it: rebinding is refused rather than silently reparenting the
+// transaction, which is also what bounds how many actions one real transaction
+// can ever mint.
+func bindAction(ctx context.Context, tx attemptTx, in attemptWrite, existing existingAttempt) (string, error) {
+	key := in.clientActionID
+	if key == "" {
+		key = DeriveServerActionID(in.chainID, in.senderNonce, in.txHash)
+	}
+
+	if existing.found && existing.actionID != nil {
+		if !in.clientSupplied {
+			return *existing.actionID, nil
+		}
+		resolved, err := resolveAction(ctx, tx, in.chainID, in.fromAddress, key,
+			in.txType, in.requestFingerprint, in.clientSupplied)
+		if err != nil {
+			return "", err
+		}
+		if resolved != *existing.actionID {
+			return "", ErrActionAttemptBound
+		}
+		return resolved, nil
+	}
+
+	return resolveAction(ctx, tx, in.chainID, in.fromAddress, key,
+		in.txType, in.requestFingerprint, in.clientSupplied)
+}
+
+// writeAttemptRow upserts the attempt.
+//
+// Every status beyond 'pending' is terminal and is protected here: without that,
+// the next client re-report would silently downgrade a reconciler verdict back
+// to 'pending' (submit) or overwrite a 'reorged' row with a stale confirmation
+// (receipt), and the two would flap against each other forever.
+//
+// The RETURNING list is deliberately the original column set: the public
+// GET /web3-events/transactions is unguarded, so the new columns must never
+// reach TransactionRow.
+func writeAttemptRow(ctx context.Context, tx attemptTx, in attemptWrite, actionID string, attemptNumber int) (TransactionRow, error) {
+	var nonce *int64
+	if in.senderNonce != nil {
+		converted := int64(*in.senderNonce)
+		nonce = &converted
+	}
+
+	if in.receipt == nil {
+		return scanTxRow(tx.QueryRow(ctx, `
+			INSERT INTO web3_transactions
+				(chain_id, tx_hash, from_address, to_address, contract_address,
+				 value, gas_used, gas_price, block_number, status, tx_type, metadata,
+				 created_at, action_id, attempt_number, sender_nonce, block_hash,
+				 submitted_at, last_checked_at)
+			VALUES ($1,$2,$3,$4,$5,$6,NULL,NULL,0,'pending',$7,$8, now(), $9,$10,$11,$12, now(), now())
+			ON CONFLICT (chain_id, tx_hash) DO UPDATE SET
+				to_address       = COALESCE(EXCLUDED.to_address, web3_transactions.to_address),
+				contract_address = COALESCE(EXCLUDED.contract_address, web3_transactions.contract_address),
+				value            = COALESCE(EXCLUDED.value, web3_transactions.value),
+				tx_type          = COALESCE(EXCLUDED.tx_type, web3_transactions.tx_type),
+				metadata         = COALESCE(EXCLUDED.metadata, web3_transactions.metadata),
+				action_id        = COALESCE(web3_transactions.action_id, EXCLUDED.action_id),
+				sender_nonce     = COALESCE(web3_transactions.sender_nonce, EXCLUDED.sender_nonce),
+				block_hash       = COALESCE(EXCLUDED.block_hash, web3_transactions.block_hash),
+				last_checked_at  = now(),
+				status           = CASE
+					WHEN web3_transactions.status IN ('confirmed','failed','replaced','dropped','reorged')
+						THEN web3_transactions.status
+					ELSE 'pending'
+				END
+			WHERE LOWER(web3_transactions.from_address) = LOWER(EXCLUDED.from_address)
+			RETURNING id, chain_id, tx_hash, from_address, to_address, contract_address,
+			          value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at
+		`, in.chainID, in.txHash, in.fromAddress, in.toAddress, in.contractAddress,
+			in.value, in.txType, metaArg(in.metadata), actionID, attemptNumber, nonce, in.blockHash))
+	}
+
+	return scanTxRow(tx.QueryRow(ctx, `
 		INSERT INTO web3_transactions
 			(chain_id, tx_hash, from_address, to_address, contract_address,
-			 value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now())
+			 value, gas_used, gas_price, block_number, status, tx_type, metadata,
+			 created_at, action_id, attempt_number, sender_nonce, block_hash,
+			 confirmations, submitted_at, confirmed_at, last_checked_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now(), $13,$14,$15,$16,$17, now(), now(), now())
 		ON CONFLICT (chain_id, tx_hash) DO UPDATE SET
-			from_address     = EXCLUDED.from_address,
 			to_address       = COALESCE(EXCLUDED.to_address, web3_transactions.to_address),
 			contract_address = COALESCE(EXCLUDED.contract_address, web3_transactions.contract_address),
 			value            = COALESCE(EXCLUDED.value, web3_transactions.value),
 			tx_type          = COALESCE(EXCLUDED.tx_type, web3_transactions.tx_type),
 			metadata         = COALESCE(EXCLUDED.metadata, web3_transactions.metadata),
-			block_number     = EXCLUDED.block_number,
-			gas_used         = EXCLUDED.gas_used,
-			gas_price        = EXCLUDED.gas_price,
-			status           = EXCLUDED.status
+			action_id        = COALESCE(web3_transactions.action_id, EXCLUDED.action_id),
+			sender_nonce     = COALESCE(web3_transactions.sender_nonce, EXCLUDED.sender_nonce),
+			last_checked_at  = now(),
+			-- A reorged attempt is not re-confirmed by a replayed receipt. Block
+			-- facts move only when the reported block is the one already stored
+			-- or the row had none.
+			block_number     = CASE WHEN web3_transactions.status = 'reorged'
+			                        THEN web3_transactions.block_number ELSE EXCLUDED.block_number END,
+			block_hash       = CASE WHEN web3_transactions.status = 'reorged'
+			                        THEN web3_transactions.block_hash ELSE EXCLUDED.block_hash END,
+			confirmations    = CASE WHEN web3_transactions.status = 'reorged'
+			                        THEN web3_transactions.confirmations ELSE EXCLUDED.confirmations END,
+			gas_used         = CASE WHEN web3_transactions.status = 'reorged'
+			                        THEN web3_transactions.gas_used ELSE EXCLUDED.gas_used END,
+			gas_price        = CASE WHEN web3_transactions.status = 'reorged'
+			                        THEN web3_transactions.gas_price ELSE EXCLUDED.gas_price END,
+			confirmed_at     = COALESCE(web3_transactions.confirmed_at, now()),
+			status           = CASE
+				WHEN web3_transactions.status IN ('reorged','replaced','dropped')
+					THEN web3_transactions.status
+				ELSE EXCLUDED.status
+			END
+		WHERE LOWER(web3_transactions.from_address) = LOWER(EXCLUDED.from_address)
 		RETURNING id, chain_id, tx_hash, from_address, to_address, contract_address,
 		          value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at
-	`, in.ChainID, in.TxHash, in.FromAddress, in.ToAddress, in.ContractAddress,
-		in.Value, in.GasUsed, in.GasPrice, in.BlockNumber, in.Status, in.TxType, metaArg(in.Metadata))
-	return scanTxRow(row)
+	`, in.chainID, in.txHash, in.fromAddress, in.toAddress, in.contractAddress,
+		in.value, in.receipt.gasUsed, in.receipt.gasPrice, in.receipt.blockNumber,
+		in.receipt.status, in.txType, metaArg(in.metadata), actionID, attemptNumber,
+		nonce, in.blockHash, in.receipt.confirmations))
 }
 
 func scanTxRow(row pgx.Row) (TransactionRow, error) {
@@ -555,7 +795,9 @@ func scanTxRow(row pgx.Row) (TransactionRow, error) {
 		&tx.ID, &tx.ChainID, &tx.TxHash, &tx.FromAddress, &tx.ToAddress,
 		&tx.ContractAddress, &tx.Value, &gasUsed, &gasPrice,
 		&blockNumber, &tx.Status, &tx.TxType, &metadata, &tx.CreatedAt,
-	); err != nil {
+	); errors.Is(err, pgx.ErrNoRows) {
+		return TransactionRow{}, ErrTransactionOwnerConflict
+	} else if err != nil {
 		return TransactionRow{}, fmt.Errorf("scan web3_transactions upsert: %w", err)
 	}
 	tx.BlockNumber = strconv.FormatInt(blockNumber, 10)

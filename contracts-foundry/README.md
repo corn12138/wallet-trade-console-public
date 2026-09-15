@@ -1,6 +1,6 @@
 # Web3 Trading Contracts (Foundry)
 
-基于 Foundry 的 Web3 合约工程，当前以 `contracts/` 为真源同步维护。能力面已经与 Hardhat 侧对齐，覆盖:
+基于 Foundry 的 Web3 合约工程，以 `contracts-foundry/src/` 为合约真源，`contracts/src/` 为 Hardhat 兼容镜像。覆盖：
 
 - AMM `swap` 与流动性
 - `create-token` Launchpad 与 BondingCurve
@@ -33,7 +33,7 @@ contracts-foundry/
 ├── test/                  # 测试文件 (Solidity)
 │   ├── TradingPair.t.sol
 │   └── FeatureParity.t.sol
-├── lib/                   # 依赖库 (git submodules)
+├── lib/                   # 已纳入公开源码的依赖与许可证
 │   ├── forge-std/
 │   └── openzeppelin-contracts/
 └── foundry.toml           # Foundry 配置
@@ -46,10 +46,14 @@ contracts-foundry/
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
 
-# 安装依赖
+# 公开镜像已包含编译所需的依赖源码与许可证
 cd contracts-foundry
-forge install
+forge build
 ```
+
+## 部署配置
+
+Launchpad 毕业流程需要支持 `addLiquidityETH` 的 V2 Router。设置 `LAUNCHPAD_DEX_ROUTER` 后，部署脚本会先检查其代码、方法及 WETH/factory 元数据。项目的 ERC20 Router 不能替代它。`PRIVATE_KEY` 始终从环境读取；本导览的只读演示无需部署或签名。
 
 ## 常用命令
 

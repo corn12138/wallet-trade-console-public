@@ -1,32 +1,5 @@
-// Package indexeradmin is the Go port of legacy NestJS indexer/indexer.controller.ts
-// — the 5 admin/control endpoints over the on-chain event indexer:
-//
-//	GET  /api/indexer/status      checkpoints + running state (fully ported, DB read)
-//	POST /api/indexer/start       mark indexing enabled  -> { message }
-//	POST /api/indexer/stop        mark indexing disabled -> { message }
-//	POST /api/indexer/backfill    trigger a backfill     (needs chain RPC)
-//	POST /api/indexer/resync-tx   re-index one tx by hash (needs chain RPC)
-//
-// PARITY + WIRING NOTES
-//
-//   - `status` reads web3_indexer_state — the SAME table the Go indexer worker
-//     (internal/indexer) writes its per-(chain,contract) checkpoints to — and
-//     reports chainId / watchTransport / tracked contracts from config. This is
-//     the monitoring-critical read and is fully functional.
-//   - `start`/`stop` flip a thread-safe "indexing enabled" flag that `status`
-//     reports as isRunning, mirroring the NestJS controller's observable
-//     contract (it just toggles `this.isRunning` and calls the worker). When an
-//     optional WorkerControl is wired the flag also drives the real worker; the
-//     prod Go indexer otherwise runs at the app process level.
-//   - `backfill` / `resync-tx` require live chain RPC (SEPOLIA_RPC_URL / WSS) and
-//     the event-persist pipeline. They are wired through optional Backfiller /
-//     Resyncer hooks; when those are not injected (the default, to avoid coupling
-//     the admin HTTP path to the worker's RPC client) the handlers return a
-//     documented 503 naming the missing external dependency rather than pretend
-//     success. This is the sanctioned "blocked by external service" degradation,
-//     surfaced honestly at call time.
-//
-// All five routes carry @Public() in NestJS, so no auth guard is applied here.
+// Package indexeradmin exposes only the read-only indexer status surface. Worker
+// lifecycle and repair hooks remain internal and are never mounted on HTTP.
 package indexeradmin
 
 import (
@@ -183,14 +156,10 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	}, nil
 }
 
-// Router mounts the 5 routes (caller mounts at /api/indexer). All @Public.
+// Router exposes monitoring state without publishing worker control operations.
 func Router(s *Service) chi.Router {
 	r := chi.NewRouter()
 	r.Get("/status", s.handleStatus)
-	r.Post("/start", s.handleStart)
-	r.Post("/stop", s.handleStop)
-	r.Post("/backfill", s.handleBackfill)
-	r.Post("/resync-tx", s.handleResync)
 	return r
 }
 

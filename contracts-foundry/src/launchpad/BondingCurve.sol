@@ -14,24 +14,21 @@ interface IUniswapV2Router02 {
 
     function addLiquidityETH(
         address token,
-        uint amountTokenDesired,
-        uint amountTokenMin,
-        uint amountETHMin,
+        uint256 amountTokenDesired,
+        uint256 amountTokenMin,
+        uint256 amountEthMin,
         address to,
-        uint deadline
+        uint256 deadline
     )
         external
         payable
-        returns (uint amountToken, uint amountETH, uint liquidity);
+        returns (uint256 amountToken, uint256 amountEth, uint256 liquidity);
 
     function factory() external pure returns (address);
 }
 
 interface IUniswapV2Factory {
-    function getPair(
-        address tokenA,
-        address tokenB
-    ) external view returns (address pair);
+    function getPair(address tokenA, address tokenB) external view returns (address pair);
 }
 
 /**
@@ -85,45 +82,20 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
     address public creatorAddress;
 
     // Events
-    event Buy(
-        address indexed buyer,
-        uint256 ethIn,
-        uint256 tokensOut,
-        uint256 newPrice
-    );
-    event Sell(
-        address indexed seller,
-        uint256 tokensIn,
-        uint256 ethOut,
-        uint256 newPrice
-    );
+    event Buy(address indexed buyer, uint256 ethIn, uint256 tokensOut, uint256 newPrice);
+    event Sell(address indexed seller, uint256 tokensIn, uint256 ethOut, uint256 newPrice);
     event FeesCollected(address indexed recipient, uint256 amount);
-    event Graduated(
-        uint256 marketCap,
-        uint256 timestamp,
-        address lpToken,
-        uint256 lpAmount
-    );
+    event Graduated(uint256 marketCap, uint256 timestamp, address lpToken, uint256 lpAmount);
     event LPWithdrawn(address indexed recipient, uint256 amount);
     /// @notice Emitted when graduation queues an ETH payout for later claim.
     event PaymentQueued(address indexed recipient, uint256 amount, string tag);
     /// @notice Emitted when a queued ETH payout is claimed by its recipient.
     event PaymentClaimed(address indexed recipient, uint256 amount);
 
-    /**
-     * @notice Pull-payment ledger for graduation payouts.
-     *
-     * Graduation used to push ETH directly to `creatorAddress` and
-     * `feeRecipient`. That made graduation either unrecoverable (a creator
-     * contract whose `receive()` reverts permanently bricks `_graduate`) or
-     * lossy (a reverting fee recipient stranded leftover ETH because the
-     * fallback path swallowed the failure with a comment instructing it to
-     * "not revert"). Both addresses now receive a credit they can pull at
-     * any time via {claimPayment}; failed transfers no longer block or
-     * lose funds, and recipients that change their on-chain logic later
-     * can still recover.
-     */
+    /// @notice Pull-payment ledger for trade fees and graduation allocations.
     mapping(address => uint256) public pendingPayments;
+    /// @notice Aggregate liability used to keep every queued payment fully backed by ETH.
+    uint256 public totalPendingPayments;
 
     constructor(
         address token_,
@@ -135,7 +107,9 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         uint256 graduationThreshold_,
         address dexRouter_,
         address creatorAddress_
-    ) Ownable(msg.sender) {
+    )
+        Ownable(msg.sender)
+    {
         token = LaunchToken(token_);
         basePrice = basePrice_;
         slope = slope_;
@@ -170,36 +144,30 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
      * @dev Calculate price for buying a specific amount of tokens
      * Uses the average price over the supply range
      */
-    function getBuyPrice(
-        uint256 tokenAmount
-    ) public view returns (uint256 cost) {
+    function getBuyPrice(uint256 tokenAmount) public view returns (uint256 cost) {
         uint256 currentSupply = token.totalSupply();
 
         // Average price = basePrice + slope * (currentSupply + newSupply/2)
-        uint256 avgPrice = basePrice +
-            ((slope * (currentSupply + tokenAmount / 2)) / 1e18);
+        uint256 avgPrice = basePrice + ((slope * (currentSupply + tokenAmount / 2)) / 1e18);
         cost = (avgPrice * tokenAmount) / 1e18;
 
         // Add trading fee
-        cost = cost + ((cost * tradeFee) / 10000);
+        cost = cost + ((cost * tradeFee) / 10_000);
     }
 
     /**
      * @dev Calculate return for selling a specific amount of tokens
      */
-    function getSellPrice(
-        uint256 tokenAmount
-    ) public view returns (uint256 payout) {
+    function getSellPrice(uint256 tokenAmount) public view returns (uint256 payout) {
         uint256 currentSupply = token.totalSupply();
         require(tokenAmount <= currentSupply, "Insufficient supply");
 
         // Average price = basePrice + slope * (currentSupply - tokenAmount/2)
-        uint256 avgPrice = basePrice +
-            ((slope * (currentSupply - tokenAmount / 2)) / 1e18);
+        uint256 avgPrice = basePrice + ((slope * (currentSupply - tokenAmount / 2)) / 1e18);
         payout = (avgPrice * tokenAmount) / 1e18;
 
         // Deduct trading fee
-        payout = payout - ((payout * tradeFee) / 10000);
+        payout = payout - ((payout * tradeFee) / 10_000);
 
         // Limit payout to available reserve
         if (payout > reserveBalance) {
@@ -217,7 +185,50 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         uint256 minTokens,
         uint256 deadline,
         uint256 maxPrice
-    ) external payable nonReentrant whenNotPaused {
+    )
+        external
+        payable
+        nonReentrant
+        whenNotPaused
+    {
+        _buy(msg.sender, minTokens, deadline, maxPrice);
+    }
+
+    /**
+     * @dev Backwards-compatible buy with only minTokens
+     */
+    function buy(uint256 minTokens) external payable nonReentrant whenNotPaused {
+        _buy(msg.sender, minTokens, 0, 0);
+    }
+
+    /**
+     * @notice Buy tokens for a recipient when another contract supplies the ETH.
+     * @dev The recipient owns the minted tokens and is the buyer recorded by the event and trade
+     * limit. Only the curve owner may delegate so arbitrary payers cannot consume another user's
+     * per-block allowance.
+     */
+    function buyFor(
+        address recipient,
+        uint256 minTokens
+    )
+        external
+        payable
+        onlyOwner
+        nonReentrant
+        whenNotPaused
+    {
+        require(recipient != address(0), "Invalid recipient");
+        _buy(recipient, minTokens, 0, 0);
+    }
+
+    function _buy(
+        address recipient,
+        uint256 minTokens,
+        uint256 deadline,
+        uint256 maxPrice
+    )
+        internal
+    {
         require(!graduated, "Token has graduated to DEX");
         require(msg.value > 0, "Must send ETH");
 
@@ -232,10 +243,10 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         }
 
         // Sandwich attack protection: limit trades per block
-        _enforceTradeLimits(msg.sender);
+        _enforceTradeLimits(recipient);
 
         // Calculate tokens based on ETH sent
-        uint256 ethAfterFee = msg.value - ((msg.value * tradeFee) / 10000);
+        uint256 ethAfterFee = msg.value - ((msg.value * tradeFee) / 10_000);
         uint256 fee = msg.value - ethAfterFee;
 
         // Calculate tokens to mint
@@ -246,52 +257,17 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         reserveBalance += ethAfterFee;
 
         // Mint tokens to buyer
-        token.mint(msg.sender, tokenAmount);
+        token.mint(recipient, tokenAmount);
 
         // Transfer fee
         if (fee > 0 && feeRecipient != address(0)) {
-            // Pull-payment: a fee recipient that reverts in `receive()`
-            // would otherwise brick every buy/sell. Credit the ledger and
-            // let the recipient pull via {claimPayment}.
-            pendingPayments[feeRecipient] += fee;
+            _queuePayment(feeRecipient, fee);
             emit FeesCollected(feeRecipient, fee);
         }
 
-        emit Buy(msg.sender, msg.value, tokenAmount, currentPrice());
+        emit Buy(recipient, msg.value, tokenAmount, currentPrice());
 
         // Check graduation
-        _checkGraduation();
-    }
-
-    /**
-     * @dev Backwards-compatible buy with only minTokens
-     */
-    function buy(
-        uint256 minTokens
-    ) external payable nonReentrant whenNotPaused {
-        require(!graduated, "Token has graduated to DEX");
-        require(msg.value > 0, "Must send ETH");
-
-        _enforceTradeLimits(msg.sender);
-
-        uint256 ethAfterFee = msg.value - ((msg.value * tradeFee) / 10000);
-        uint256 fee = msg.value - ethAfterFee;
-
-        uint256 tokenAmount = estimateTokensForEth(ethAfterFee);
-        require(tokenAmount >= minTokens, "Slippage exceeded");
-
-        reserveBalance += ethAfterFee;
-        token.mint(msg.sender, tokenAmount);
-
-        if (fee > 0 && feeRecipient != address(0)) {
-            // Pull-payment: a fee recipient that reverts in `receive()`
-            // would otherwise brick every buy/sell. Credit the ledger and
-            // let the recipient pull via {claimPayment}.
-            pendingPayments[feeRecipient] += fee;
-            emit FeesCollected(feeRecipient, fee);
-        }
-
-        emit Buy(msg.sender, msg.value, tokenAmount, currentPrice());
         _checkGraduation();
     }
 
@@ -305,13 +281,14 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         uint256 tokenAmount,
         uint256 minEth,
         uint256 deadline
-    ) external nonReentrant whenNotPaused {
+    )
+        external
+        nonReentrant
+        whenNotPaused
+    {
         require(!graduated, "Token has graduated to DEX");
         require(tokenAmount > 0, "Must sell tokens");
-        require(
-            token.balanceOf(msg.sender) >= tokenAmount,
-            "Insufficient balance"
-        );
+        require(token.balanceOf(msg.sender) >= tokenAmount, "Insufficient balance");
 
         // Deadline protection
         if (deadline > 0) {
@@ -325,13 +302,13 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
 
         // Calculate ETH payout
         uint256 grossPayout = _calculateSellGross(tokenAmount);
-        uint256 fee = (grossPayout * tradeFee) / 10000;
+        uint256 fee = (grossPayout * tradeFee) / 10_000;
         uint256 netPayout = grossPayout - fee;
 
         // Cap total outflow to available reserve
         if (grossPayout > reserveBalance) {
             grossPayout = reserveBalance;
-            fee = (grossPayout * tradeFee) / 10000;
+            fee = (grossPayout * tradeFee) / 10_000;
             netPayout = grossPayout - fee;
         }
         require(netPayout >= minEth, "Slippage exceeded");
@@ -343,15 +320,12 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         token.burn(msg.sender, tokenAmount);
 
         // Transfer ETH to seller
-        (bool success, ) = msg.sender.call{value: netPayout}("");
+        (bool success,) = msg.sender.call{ value: netPayout }("");
         require(success, "ETH transfer failed");
 
         // Transfer fee
         if (fee > 0 && feeRecipient != address(0)) {
-            // Pull-payment: a fee recipient that reverts in `receive()`
-            // would otherwise brick every buy/sell. Credit the ledger and
-            // let the recipient pull via {claimPayment}.
-            pendingPayments[feeRecipient] += fee;
+            _queuePayment(feeRecipient, fee);
             emit FeesCollected(feeRecipient, fee);
         }
 
@@ -361,27 +335,21 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
     /**
      * @dev Backwards-compatible sell with only minEth
      */
-    function sell(
-        uint256 tokenAmount,
-        uint256 minEth
-    ) external nonReentrant whenNotPaused {
+    function sell(uint256 tokenAmount, uint256 minEth) external nonReentrant whenNotPaused {
         require(!graduated, "Token has graduated to DEX");
         require(tokenAmount > 0, "Must sell tokens");
-        require(
-            token.balanceOf(msg.sender) >= tokenAmount,
-            "Insufficient balance"
-        );
+        require(token.balanceOf(msg.sender) >= tokenAmount, "Insufficient balance");
         require(tokenAmount <= token.totalSupply(), "Exceeds supply");
 
         _enforceTradeLimits(msg.sender);
 
         uint256 grossPayout = _calculateSellGross(tokenAmount);
-        uint256 fee = (grossPayout * tradeFee) / 10000;
+        uint256 fee = (grossPayout * tradeFee) / 10_000;
         uint256 netPayout = grossPayout - fee;
 
         if (grossPayout > reserveBalance) {
             grossPayout = reserveBalance;
-            fee = (grossPayout * tradeFee) / 10000;
+            fee = (grossPayout * tradeFee) / 10_000;
             netPayout = grossPayout - fee;
         }
         require(netPayout >= minEth, "Slippage exceeded");
@@ -390,14 +358,11 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
 
         token.burn(msg.sender, tokenAmount);
 
-        (bool success, ) = msg.sender.call{value: netPayout}("");
+        (bool success,) = msg.sender.call{ value: netPayout }("");
         require(success, "ETH transfer failed");
 
         if (fee > 0 && feeRecipient != address(0)) {
-            // Pull-payment: a fee recipient that reverts in `receive()`
-            // would otherwise brick every buy/sell. Credit the ledger and
-            // let the recipient pull via {claimPayment}.
-            pendingPayments[feeRecipient] += fee;
+            _queuePayment(feeRecipient, fee);
             emit FeesCollected(feeRecipient, fee);
         }
 
@@ -410,9 +375,7 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
      * ETH = basePrice * deltaTokens + slope * (S1^2 - S0^2) / (2 * 1e18)
      * Solving for deltaTokens via quadratic formula
      */
-    function estimateTokensForEth(
-        uint256 ethAmount
-    ) public view returns (uint256) {
+    function estimateTokensForEth(uint256 ethAmount) public view returns (uint256) {
         uint256 currentSupply = token.totalSupply();
 
         if (slope == 0) {
@@ -458,8 +421,7 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
      */
     function _calculateSellGross(uint256 tokenAmount) internal view returns (uint256) {
         uint256 currentSupply = token.totalSupply();
-        uint256 avgPrice = basePrice +
-            ((slope * (currentSupply - tokenAmount / 2)) / 1e18);
+        uint256 avgPrice = basePrice + ((slope * (currentSupply - tokenAmount / 2)) / 1e18);
         return (avgPrice * tokenAmount) / 1e18;
     }
 
@@ -471,10 +433,7 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
 
         if (_lastTradeBlock[trader] == block.number) {
             _tradesInBlock[trader]++;
-            require(
-                _tradesInBlock[trader] <= maxTradesPerBlock,
-                "Too many trades this block"
-            );
+            require(_tradesInBlock[trader] <= maxTradesPerBlock, "Too many trades this block");
         } else {
             _lastTradeBlock[trader] = block.number;
             _tradesInBlock[trader] = 1;
@@ -493,8 +452,8 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
      */
     function progress() public view returns (uint256) {
         uint256 mc = marketCap();
-        if (mc >= graduationThreshold) return 10000;
-        return (mc * 10000) / graduationThreshold;
+        if (mc >= graduationThreshold) return 10_000;
+        return (mc * 10_000) / graduationThreshold;
     }
 
     /**
@@ -513,8 +472,10 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         graduated = true;
 
         // Calculate amounts for liquidity
-        uint256 ethForLiquidity = (reserveBalance * liquidityPercent) / 10000;
-        uint256 ethForCreator = (reserveBalance * creatorPercent) / 10000;
+        uint256 curveReserve = reserveBalance;
+        uint256 ethForLiquidity = (curveReserve * liquidityPercent) / 10_000;
+        uint256 ethForCreator =
+            creatorAddress == address(0) ? 0 : (curveReserve * creatorPercent) / 10_000;
 
         // Mint tokens for liquidity pool (equal value to ETH)
         uint256 tokenPrice = currentPrice();
@@ -526,9 +487,13 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         // Approve router to spend tokens
         token.approve(address(dexRouter), tokensForLiquidity);
 
-        // Add liquidity to DEX
-        (uint256 amountToken, uint256 amountETH, uint256 liquidity) = dexRouter
-            .addLiquidityETH{value: ethForLiquidity}(
+        // Balance deltas are authoritative because a router can return unused ETH or tokens while
+        // reporting requested amounts in its return tuple.
+        uint256 balanceBeforeLiquidity = address(this).balance;
+        uint256 tokenBalanceBeforeLiquidity = token.balanceOf(address(this));
+        (uint256 amountToken, uint256 amountEth, uint256 liquidity) = dexRouter.addLiquidityETH{
+            value: ethForLiquidity
+        }(
             address(token),
             tokensForLiquidity,
             (tokensForLiquidity * 95) / 100, // 5% slippage for tokens
@@ -536,38 +501,59 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
             address(this), // LP tokens to this contract (for locking)
             block.timestamp + 300 // 5 min deadline
         );
+        uint256 balanceAfterLiquidity = address(this).balance;
+        require(balanceAfterLiquidity <= balanceBeforeLiquidity, "Invalid router refund");
+        uint256 ethSpent = balanceBeforeLiquidity - balanceAfterLiquidity;
+        require(ethSpent == amountEth && ethSpent <= ethForLiquidity, "Invalid router accounting");
+
+        uint256 tokenBalanceAfterLiquidity = token.balanceOf(address(this));
+        require(tokenBalanceAfterLiquidity <= tokenBalanceBeforeLiquidity, "Invalid token refund");
+        uint256 tokensSpent = tokenBalanceBeforeLiquidity - tokenBalanceAfterLiquidity;
+        require(
+            tokensSpent == amountToken && tokensSpent <= tokensForLiquidity,
+            "Invalid token accounting"
+        );
+
+        // Graduation is terminal, so no router allowance or newly minted inventory should survive
+        // the one liquidity call.
+        token.approve(address(dexRouter), 0);
+        uint256 unusedLiquidityTokens = tokensForLiquidity - tokensSpent;
+        if (unusedLiquidityTokens > 0) {
+            token.burn(address(this), unusedLiquidityTokens);
+        }
 
         // Get LP token address
         address factory = dexRouter.factory();
-        lpToken = IUniswapV2Factory(factory).getPair(
-            address(token),
-            dexRouter.WETH()
-        );
+        lpToken = IUniswapV2Factory(factory).getPair(address(token), dexRouter.WETH());
 
         // Set LP unlock time
         lpUnlockTime = block.timestamp + lpLockDuration;
 
-        // Queue creator share for pull-payment instead of pushing it.
-        // A creator address that reverts in `receive()` previously bricked
-        // graduation forever; with pull-payment the creator can switch to
-        // a different receiving contract and call {claimPayment}.
-        if (ethForCreator > 0 && creatorAddress != address(0)) {
-            pendingPayments[creatorAddress] += ethForCreator;
+        // Graduation allocates only the curve reserve; pre-existing fee credits remain separately
+        // backed.
+        reserveBalance = 0;
+
+        if (ethForCreator > 0) {
+            _queuePayment(creatorAddress, ethForCreator);
             emit PaymentQueued(creatorAddress, ethForCreator, "creator");
         }
 
-        // Whatever ETH is left after liquidity + creator credit is queued
-        // for the fee recipient. The previous code attempted a push and
-        // explicitly ignored failures, which silently stranded funds.
-        // Crediting the ledger preserves the funds and lets a future fee
-        // recipient (rotated via {setFeeRecipient}) collect them.
-        uint256 remaining = address(this).balance;
-        if (remaining > 0 && feeRecipient != address(0)) {
-            pendingPayments[feeRecipient] += remaining;
-            emit PaymentQueued(feeRecipient, remaining, "graduation_residual");
+        uint256 protocolAllocation = curveReserve - ethSpent - ethForCreator;
+        if (protocolAllocation > 0 && feeRecipient != address(0)) {
+            _queuePayment(feeRecipient, protocolAllocation);
+            emit PaymentQueued(feeRecipient, protocolAllocation, "graduation_residual");
         }
 
         emit Graduated(marketCap(), block.timestamp, lpToken, liquidity);
+    }
+
+    /**
+     * @dev Every ledger credit must remain backed before control returns to an external caller.
+     */
+    function _queuePayment(address recipient, uint256 amount) internal {
+        pendingPayments[recipient] += amount;
+        totalPendingPayments += amount;
+        require(totalPendingPayments <= address(this).balance, "Payment ledger underfunded");
     }
 
     /**
@@ -581,8 +567,9 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         require(amount > 0, "Nothing to claim");
 
         pendingPayments[msg.sender] = 0;
+        totalPendingPayments -= amount;
 
-        (bool success, ) = msg.sender.call{value: amount}("");
+        (bool success,) = msg.sender.call{ value: amount }("");
         require(success, "ETH transfer failed");
 
         emit PaymentClaimed(msg.sender, amount);
@@ -645,12 +632,12 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
         uint256 _creatorPercent,
         address _lpRecipient,
         uint256 _lpLockDuration
-    ) external onlyOwner {
+    )
+        external
+        onlyOwner
+    {
         require(!graduated, "Cannot change after graduation");
-        require(
-            _liquidityPercent + _creatorPercent <= 10000,
-            "Invalid percentages"
-        );
+        require(_liquidityPercent + _creatorPercent <= 10_000, "Invalid percentages");
 
         liquidityPercent = _liquidityPercent;
         creatorPercent = _creatorPercent;
@@ -682,13 +669,14 @@ contract BondingCurve is ReentrancyGuard, Ownable, Pausable {
     /**
      * @dev Emergency withdraw (owner only) - only when paused
      */
-    function emergencyWithdraw(
-        address recipient
-    ) external onlyOwner whenPaused {
+    function emergencyWithdraw(address recipient) external onlyOwner whenPaused {
         uint256 balance = address(this).balance;
-        require(balance > 0, "No ETH to withdraw");
+        // Reserve and pull-payment balances are obligations, not emergency surplus.
+        uint256 protectedBalance = reserveBalance + totalPendingPayments;
+        require(balance > protectedBalance, "No excess ETH to withdraw");
+        uint256 amount = balance - protectedBalance;
 
-        (bool success, ) = recipient.call{value: balance}("");
+        (bool success,) = recipient.call{ value: amount }("");
         require(success, "Withdraw failed");
     }
 

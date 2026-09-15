@@ -147,7 +147,7 @@ func TestRecoverAddress_RejectsBadSig(t *testing.T) {
 
 func TestService_NonceLifecycle(t *testing.T) {
 	svc := NewService("secret", 0, 0, nil)
-	resp, err := svc.GenerateNonceFor("")
+	resp, err := svc.GenerateNonceFor(context.Background(), "")
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
@@ -167,7 +167,7 @@ func TestService_VerifySiwe_FullRoundtrip(t *testing.T) {
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 
-	resp, err := svc.GenerateNonceFor(addr)
+	resp, err := svc.GenerateNonceFor(context.Background(), addr)
 	if err != nil {
 		t.Fatalf("nonce err = %v", err)
 	}
@@ -197,7 +197,7 @@ func TestService_VerifySiwe_NonceReused(t *testing.T) {
 	svc := NewService("secret", 0, 0, nil)
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
-	resp, _ := svc.GenerateNonceFor(addr)
+	resp, _ := svc.GenerateNonceFor(context.Background(), addr)
 	message := buildMessage(addr, 1, resp)
 	sig := signEthMessage(t, priv, message)
 	if _, err := svc.VerifySiwe(context.Background(), VerifyInput{Message: message, Signature: sig}); err != nil {
@@ -212,7 +212,7 @@ func TestService_VerifySiwe_AddressMismatchRejected(t *testing.T) {
 	svc := NewService("secret", 0, 0, nil)
 	priv, _ := secp256k1.GeneratePrivateKey()
 	otherAddr := "0x" + strings.Repeat("1", 40)
-	resp, _ := svc.GenerateNonceFor(otherAddr)
+	resp, _ := svc.GenerateNonceFor(context.Background(), otherAddr)
 	message := buildMessage(otherAddr, 1, resp)
 	// Sign with a DIFFERENT key so the recovered address won't match.
 	sig := signEthMessage(t, priv, message)
@@ -225,7 +225,7 @@ func TestService_VerifySiwe_DomainMismatchRejected(t *testing.T) {
 	svc := NewService("secret", 0, 0, nil)
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
-	resp, _ := svc.GenerateNonceFor(addr)
+	resp, _ := svc.GenerateNonceFor(context.Background(), addr)
 	message := "evil.example wants you to sign in with your Ethereum account:\n" +
 		addr + "\n\n" +
 		resp.Statement + "\n\n" +

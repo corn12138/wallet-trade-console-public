@@ -46,7 +46,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	w, cleanup := buildWorker(ctx, cfg)
+	w, cleanup, err := buildWorker(ctx, cfg)
+	if err != nil {
+		slog.Error("indexer startup repair failed", "err", err)
+		os.Exit(1)
+	}
 	defer cleanup()
 	if err := w.Start(ctx); err != nil {
 		slog.Error("indexer worker failed to start", "err", err)
@@ -72,35 +76,47 @@ func main() {
 // the new bonding curve to the live watch set. Without a database it runs the
 // heartbeat so the binary still starts and reports RPC connectivity. The
 // returned cleanup closes the pool.
-func buildWorker(ctx context.Context, cfg indexer.Config) (*indexer.Worker, func()) {
+func buildWorker(ctx context.Context, cfg indexer.Config) (*indexer.Worker, func(), error) {
 	noop := func() {}
 
 	databaseURL, err := runtimeenv.Resolve()
 	if err != nil {
 		slog.Warn("indexer: database env invalid; running heartbeat only", "err", err)
-		return indexer.NewWorker(cfg), noop
+		return indexer.NewWorker(cfg), noop, nil
 	}
 	if databaseURL == "" {
 		slog.Warn("indexer: no database env; running heartbeat only (no indexing/checkpointing)",
 			"hint", "set DATABASE_URL or DATABASE_HOST/PORT/NAME/USER/PASSWORD to index")
-		return indexer.NewWorker(cfg), noop
+		return indexer.NewWorker(cfg), noop, nil
 	}
 	pool, err := db.Open(ctx, databaseURL)
 	if err != nil {
 		slog.Error("indexer: database connect failed; running heartbeat only", "err", err)
-		return indexer.NewWorker(cfg), noop
+		return indexer.NewWorker(cfg), noop, nil
 	}
 
 	reader := rpc.NewClient(cfg.RPCURL, 0)
 	checkpoints := indexer.NewCheckpointStore(pool)
 	sink := indexer.NewDBSink(pool) // web3_events upsert + token/trade/holder projection
-	// Production realtime producer: committed projections notify the API's
-	// /token-events tier over Postgres (eventbus) — cross-process safe.
-	sink.SetEventPublisher(eventbus.NewPgPublisher(pool))
 	// Perp events carry index-token ADDRESSES; perp tables store market
 	// SYMBOLS. The resolver comes from the same markets catalog ×
 	// deployments registry the API serves.
 	sink.SetSymbolResolver(buildSymbolResolver(cfg.DeploymentsDir))
+	// Repair precedes live checkpoint movement and realtime publication. If any
+	// legacy raw event still lacks a complete business projection, startup fails
+	// closed so the worker cannot move farther past it.
+	repair, err := sink.RepairIncomplete(ctx, indexer.DefaultProjectionRepairBatchSize)
+	if err != nil {
+		pool.Close()
+		return nil, noop, err
+	}
+	if repair.Attempted > 0 {
+		slog.Info("indexer: startup projection repair complete",
+			"attempted", repair.Attempted, "repaired", repair.Repaired)
+	}
+	// Production realtime producer: committed live projections notify the API's
+	// /token-events tier over Postgres; historical repair deliberately ran first.
+	sink.SetEventPublisher(eventbus.NewPgPublisher(pool))
 	backfiller := indexer.NewBackfiller(cfg, reader, checkpoints, sink)
 	// Watch set: launchpad factory + DEX router (existing) + the perp market
 	// and staking pool so their lifecycle events are projected. Bonding
@@ -141,7 +157,7 @@ func buildWorker(ctx context.Context, cfg indexer.Config) (*indexer.Worker, func
 	slog.Info("indexer: live mode — backfiller driving the poll loop, persisting to web3_events",
 		"factory", cfg.Contracts.Factory, "router", cfg.Contracts.Router,
 		"perp_market", cfg.Contracts.PerpMarket, "staking_pool", cfg.Contracts.StakingPool)
-	return worker, func() { pool.Close() }
+	return worker, func() { pool.Close() }, nil
 }
 
 // registrySymbolResolver maps (chainID, index-token address) → market symbol,

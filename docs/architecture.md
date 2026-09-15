@@ -1,5 +1,7 @@
 # Architecture
 
+[中文项目导览](project-guide.zh-CN.md) · [演示路径](demo-walkthrough.zh-CN.md)
+
 Wallet Trade Console separates user-facing rendering, API orchestration,
 on-chain projection, realtime delivery, and contract execution.
 
@@ -16,7 +18,7 @@ on-chain projection, realtime delivery, and contract execution.
 - `services/api-go/cmd/pricefeed`: reference-price ingestion.
 - `services/api-go/cmd/bridgerelayer`: optional bridge delivery worker; it runs
   observe-only when signer material is absent.
-- `packages/database`: Prisma schema and migrations.
+- `packages/database`: portable Prisma schema; fresh public databases use `db:push` (private migrations are excluded).
 - `contracts` and `contracts-foundry`: protocol implementation, deployment
   metadata, and independent TypeScript/Solidity test surfaces.
 
@@ -35,6 +37,4 @@ on-chain projection, realtime delivery, and contract execution.
 
 ## Local topology
 
-The smallest useful local setup is the web app, Go API, and PostgreSQL. Redis,
-RPC access, indexer workers, media storage, bridge signing, and AI explanations
-are optional and can be enabled independently.
+The smallest useful local setup is the web app, Go API, and PostgreSQL. Local SIWE can use memory; production requires Redis with atomic GETDEL support (6.2+), and refuses an unavailable shared nonce store. RPC access, indexer workers, media storage, bridge signing, and AI explanations are configured independently.

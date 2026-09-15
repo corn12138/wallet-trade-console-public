@@ -17,8 +17,20 @@ import { SwapPage } from './SwapPage';
  */
 
 const mockGetSwapQuote = vi.fn();
-const mockExecute = vi.fn();
 const mockOpenConnect = vi.fn();
+const mockSetModal = vi.fn();
+
+// The shared engine is mocked wholesale, the way useTxFlow was: the wagmi stub
+// below has no write hooks. `capturedBuild` is the page's freeze function, so
+// a spec can call it and assert the exact frozen bytes without a wallet.
+const mockReviewIntent = vi.fn<() => string | null>(() => null);
+const mockSendIntent = vi.fn(async () => undefined);
+const intentState = {
+    state: 'DRAFT' as string,
+    phase: 'review' as string,
+    busy: false,
+};
+let capturedBuild: ((now: number) => unknown) | null = null;
 
 const mockReview = vi.fn();
 
@@ -59,7 +71,7 @@ vi.mock('../AppContext', () => ({
         walletState: 'connected',
         openConnect: mockOpenConnect,
         toast: vi.fn(),
-        setModal: vi.fn(),
+        setModal: mockSetModal,
         switchChain: vi.fn(),
     }),
 }));
@@ -69,16 +81,35 @@ const mockGetOptionalContractAddress = vi.fn(
 );
 vi.mock('@/lib/web3/contracts', () => ({
     getOptionalContractAddress: (...args: unknown[]) => mockGetOptionalContractAddress(...(args as [])),
-    routerAbi: [],
+    // Just enough of the real router ABI for the page to freeze a real
+    // swapExactTokensForTokens call, so a spec can assert the frozen bytes.
+    routerAbi: [
+        {
+            type: 'function',
+            name: 'swapExactTokensForTokens',
+            stateMutability: 'nonpayable',
+            inputs: [
+                { type: 'uint256', name: 'amountIn' },
+                { type: 'uint256', name: 'amountOutMin' },
+                { type: 'address[]', name: 'path' },
+                { type: 'address', name: 'to' },
+                { type: 'uint256', name: 'deadline' },
+            ],
+            outputs: [{ type: 'uint256[]', name: 'amounts' }],
+        },
+    ],
 }));
 
 vi.mock('@/hooks/useDisplayChainId', () => ({
     useDisplayChainId: () => ({ chainId: 11155111, isFallback: false }),
 }));
 
+// Mutable so a spec can start from a wallet that has NOT approved the router.
+const approvalState = { approved: true };
 vi.mock('@/hooks/web3/useTokenApproval', () => ({
     useTokenApproval: () => ({
-        isApproved: () => true,
+        allowance: approvalState.approved ? 10n ** 30n : 0n,
+        isApproved: () => approvalState.approved,
         approve: vi.fn(),
         isPending: false,
         isConfirming: false,
@@ -104,12 +135,32 @@ vi.mock('@/hooks/web3/useTokenBalance', () => ({
     }),
 }));
 
-vi.mock('@/hooks/web3/useTxFlow', () => ({
-    useTxFlow: () => ({
-        execute: mockExecute,
-        stage: 'idle',
-        isWorking: false,
-    }),
+vi.mock('@/hooks/web3/txIntent/useTxIntent', () => ({
+    useTxIntent: (options: { build: (now: number) => unknown }) => {
+        capturedBuild = options.build;
+        return {
+            state: intentState.state,
+            phase: intentState.phase,
+            steps: [],
+            activeStepIndex: 0,
+            activeStep: null,
+            hash: null,
+            replacedByHash: null,
+            confirmations: 0,
+            errorCode: null,
+            invalidationReason: null,
+            complete: false,
+            review: mockReviewIntent,
+            send: mockSendIntent,
+            reset: vi.fn(),
+            busy: intentState.busy,
+            wrongChain: false,
+            receipt: undefined,
+            rawError: null,
+            indexing: 'not-expected',
+            now: Date.now,
+        };
+    },
 }));
 
 vi.mock('@/lib/trading-defaults', () => ({
@@ -144,6 +195,12 @@ function renderSwap({ amountIn = '100' }: { amountIn?: string } = {}) {
 describe('SwapPage quote gating', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        intentState.state = 'DRAFT';
+        intentState.phase = 'review';
+        intentState.busy = false;
+        capturedBuild = null;
+        approvalState.approved = true;
+        mockReviewIntent.mockReturnValue(null);
         // A review that never resolves keeps the strip in its pending state, so
         // these specs observe the CTA gating without the strip's own rendering.
         mockReview.mockReturnValue(new Promise(() => {}));
@@ -171,9 +228,12 @@ describe('SwapPage quote gating', () => {
             name: /Live quote unavailable — swap disabled/,
         });
         expect(cta).toBeDisabled();
+        expect(screen.queryByDisplayValue('99.7')).not.toBeInTheDocument();
+        expect(screen.queryByText(/99.2 USDC/)).not.toBeInTheDocument();
 
         fireEvent.click(cta);
-        expect(mockExecute).not.toHaveBeenCalled();
+        expect(mockReviewIntent).not.toHaveBeenCalled();
+        expect(mockSendIntent).not.toHaveBeenCalled();
         expect(screen.queryByRole('button', { name: /^Swap 100/ })).not.toBeInTheDocument();
     });
 
@@ -198,7 +258,8 @@ describe('SwapPage quote gating', () => {
         });
         expect(cta).toBeDisabled();
         fireEvent.click(cta);
-        expect(mockExecute).not.toHaveBeenCalled();
+        expect(mockReviewIntent).not.toHaveBeenCalled();
+        expect(mockSendIntent).not.toHaveBeenCalled();
         expect(screen.queryByRole('button', { name: /^Swap 100/ })).not.toBeInTheDocument();
     });
 
@@ -223,7 +284,7 @@ describe('SwapPage quote gating', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('submits swapExactTokensForTokens from an executable live quote', async () => {
+    it('freezes a real swapExactTokensForTokens step from an executable live quote, and only reviews on click', async () => {
         mockGetSwapQuote.mockResolvedValue({
             ...baseQuote,
             routeSource: 'router',
@@ -238,10 +299,85 @@ describe('SwapPage quote gating', () => {
         const cta = await screen.findByRole('button', { name: /^Swap 100 USDC/ });
         fireEvent.click(cta);
 
-        await waitFor(() => expect(mockExecute).toHaveBeenCalledTimes(1));
-        const call = mockExecute.mock.calls[0][0];
-        expect(call.functionName).toBe('swapExactTokensForTokens');
-        expect(call.address).toBe('0xe0c55ff91ece0acc7ddafa9069ba5b0cdbbc3b00');
+        // One click reviews. The wallet is only asked from the modal's Sign.
+        await waitFor(() => expect(mockReviewIntent).toHaveBeenCalledTimes(1));
+        expect(mockSendIntent).not.toHaveBeenCalled();
+
+        // The page's freeze function produces the exact bytes the wallet will
+        // get: the router as target, the swap selector, an exact (not
+        // unlimited) input amount, and a frozen deadline.
+        expect(capturedBuild).toBeTypeOf('function');
+        const steps = capturedBuild!(Date.now()) as Array<{
+            kind: string; actionType: string; target: string; calldata: string; expectsIndexing: boolean;
+            review: { token?: { amount: bigint }; guard?: { deadline?: bigint; minAmountOut?: bigint } };
+        }>;
+        expect(steps).toHaveLength(1);
+        const swap = steps[0];
+        expect(swap.kind).toBe('action');
+        expect(swap.actionType).toBe('swap');
+        expect(swap.target).toBe('0xe0c55ff91ece0acc7ddafa9069ba5b0cdbbc3b00');
+        expect(swap.calldata.startsWith('0x38ed1739')).toBe(true); // swapExactTokensForTokens selector
+        expect(swap.review.token?.amount).toBe(100n * 10n ** 18n);
+        expect(swap.review.guard?.minAmountOut).toBe(992n * 10n ** 17n);
+        expect(swap.review.guard?.deadline).toBeTypeOf('bigint');
+        expect(swap.expectsIndexing).toBe(true);
+    });
+
+    it('with no allowance, the first step is an approve for EXACTLY the input amount — never unlimited — followed by the swap', async () => {
+        approvalState.approved = false;
+        mockGetSwapQuote.mockResolvedValue({
+            ...baseQuote,
+            routeSource: 'router',
+            quoteStatus: 'live',
+            executable: true,
+            routerAddress: '0xe0c55ff91ece0acc7ddafa9069ba5b0cdbbc3b00',
+            warnings: [],
+        });
+
+        renderSwap();
+
+        // The approve CTA is visible while the quote is still loading, and a
+        // click then is a no-op (the page never freezes without a live quote).
+        // Wait for the live quote so the click is the real one.
+        await waitFor(() => expect(screen.getByTestId('swap-quote-status').textContent).toBe('live · executable'));
+        const cta = await screen.findByTestId('swap-cta-approve');
+        fireEvent.click(cta);
+        await waitFor(() => expect(mockReviewIntent).toHaveBeenCalledTimes(1));
+
+        const steps = capturedBuild!(Date.now()) as Array<{
+            kind: string; target: string; calldata: string; expectsIndexing: boolean;
+            review: { token?: { amount: bigint } };
+        }>;
+        expect(steps.map((s) => s.kind)).toEqual(['approve', 'action']);
+        const approve = steps[0];
+        expect(approve.target).toBe('0x57e554d795a18f3ca0a0e9e03a17ac3c509c3bf8'); // the token, not the router
+        expect(approve.calldata.startsWith('0x095ea7b3')).toBe(true); // approve(address,uint256)
+        // The encoded amount is the exact input: 100e18, not 2^256-1.
+        const encodedAmount = BigInt('0x' + approve.calldata.slice(10 + 64, 10 + 128));
+        expect(encodedAmount).toBe(100n * 10n ** 18n);
+        expect(approve.expectsIndexing).toBe(false);
+    });
+
+    it('a busy engine disables the CTA so a second prompt cannot become a second transaction', async () => {
+        mockGetSwapQuote.mockResolvedValue({
+            ...baseQuote,
+            routeSource: 'router',
+            quoteStatus: 'live',
+            executable: true,
+            routerAddress: '0xe0c55ff91ece0acc7ddafa9069ba5b0cdbbc3b00',
+            warnings: [],
+        });
+        intentState.state = 'AWAITING_WALLET';
+        intentState.phase = 'wallet';
+        intentState.busy = true;
+
+        renderSwap();
+
+        const busy = await screen.findByTestId('swap-cta-busy');
+        expect(busy).toBeDisabled();
+        fireEvent.click(busy);
+        expect(mockReviewIntent).not.toHaveBeenCalled();
+        expect(mockSendIntent).not.toHaveBeenCalled();
     });
 
     it('shows the live diagnostics status for an executable router quote', async () => {
@@ -280,7 +416,8 @@ describe('SwapPage quote gating', () => {
         });
         expect(cta).toBeDisabled();
         expect(screen.getByTestId('swap-quote-status').textContent).toBe('router not configured');
-        expect(mockExecute).not.toHaveBeenCalled();
+        expect(mockReviewIntent).not.toHaveBeenCalled();
+        expect(mockSendIntent).not.toHaveBeenCalled();
     });
 
     it('explains the fallback state with API reasons and a retry action', async () => {
@@ -298,7 +435,7 @@ describe('SwapPage quote gating', () => {
         const panel = await screen.findByTestId('swap-fallback-panel');
         expect(panel.textContent).toContain('Why is swap disabled?');
         expect(panel.textContent).toContain('Live quote unavailable, using fallback estimate');
-        expect(screen.getByTestId('swap-quote-status').textContent).toBe('fallback · display-only');
+        expect(screen.getByTestId('swap-quote-status').textContent).toBe('fallback · unavailable');
 
         const before = mockGetSwapQuote.mock.calls.length;
         fireEvent.click(screen.getByTestId('swap-retry-quote'));
@@ -353,7 +490,8 @@ describe('SwapPage quote gating', () => {
         expect(cta).toBeDisabled();
         expect(cta.textContent).toContain('Insufficient USDC balance');
         expect(screen.queryByTestId('swap-cta-submit')).not.toBeInTheDocument();
-        expect(mockExecute).not.toHaveBeenCalled();
+        expect(mockReviewIntent).not.toHaveBeenCalled();
+        expect(mockSendIntent).not.toHaveBeenCalled();
     });
 
     it('fills the amount from the balance Max button', async () => {
@@ -393,7 +531,10 @@ describe('SwapPage quote gating', () => {
 
         const cta = await screen.findByTestId('swap-cta-submit');
         fireEvent.click(cta);
-        await waitFor(() => expect(mockExecute).toHaveBeenCalledTimes(1));
+        // Acknowledged impact lets the click reach the engine's review — and
+        // only review; the wallet is asked from the modal, never from the CTA.
+        await waitFor(() => expect(mockReviewIntent).toHaveBeenCalledTimes(1));
+        expect(mockSendIntent).not.toHaveBeenCalled();
     });
 
     it('classifies a failed quote request and offers retry', async () => {

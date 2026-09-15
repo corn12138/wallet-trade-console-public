@@ -35,10 +35,11 @@ func TestRouter_GuardParity(t *testing.T) {
 	t.Setenv("NODE_ENV", "production")
 
 	txReviewSvc := &txreview.Service{}
+	userVerifier := auth.NewUserVerifier("test-access-secret", "test-refresh-secret", time.Hour, time.Hour)
 	r := NewRouter(Deps{
 		MarketsLoader:  emptyLoader{},
 		AuthVerifier:   auth.NewVerifier(testWeb3Secret),
-		UserVerifier:   auth.NewUserVerifier("test-access-secret", "test-refresh-secret", time.Hour, time.Hour),
+		UserVerifier:   userVerifier,
 		CsrfSigner:     &auth.CsrfSigner{},
 		ContractConfig: &contractconfig.Service{},
 		TxReview:       txReviewSvc,
@@ -196,6 +197,26 @@ func TestRouter_GuardParity(t *testing.T) {
 	}
 
 	web3Token := signWeb3Token(t)
+	userToken, _, err := userVerifier.IssueTokens("user-1", "alice", "alice@example.com", []string{"user"})
+	if err != nil {
+		t.Fatalf("issue user token: %v", err)
+	}
+	adminToken, _, err := userVerifier.IssueTokens("admin-1", "admin", "admin@example.com", []string{"admin"})
+	if err != nil {
+		t.Fatalf("issue admin token: %v", err)
+	}
+	if got := codeWithBearer("POST", "/api/staking/pools", userToken); got != http.StatusForbidden {
+		t.Errorf("POST staking pool as ordinary user = %d, want 403", got)
+	}
+	if got := codeWithBearer("POST", "/api/staking/pools", adminToken); got != http.StatusBadRequest {
+		t.Errorf("POST staking pool as admin = %d, want handler validation 400", got)
+	}
+	if got := codeWithBearer("GET", "/api/staking/user/0x000000000000000000000000000000000000dEaD", web3Token); got != http.StatusOK {
+		t.Errorf("GET own staking state with SIWE = %d, want 200", got)
+	}
+	if got := codeWithBearer("GET", "/api/staking/user/0x000000000000000000000000000000000000bEEF", web3Token); got != http.StatusForbidden {
+		t.Errorf("GET another wallet's staking state = %d, want 403", got)
+	}
 	for _, p := range []string{
 		"/api/trading/positions/0x000000000000000000000000000000000000dEaD",
 		"/api/trading/orders/0x000000000000000000000000000000000000dEaD?symbol=ETH-USD",
@@ -296,6 +317,25 @@ func TestRouter_GuardParity(t *testing.T) {
 		if got := code("GET", p); got == http.StatusUnauthorized {
 			t.Errorf("GET %s = 401, want public (unguarded)", p)
 		}
+	}
+
+	for _, tc := range []struct{ method, path string }{
+		{"GET", "/api/livekit/token"},
+		{"GET", "/api/livekit/url"},
+		{"GET", "/api/mobile/docs"},
+		{"GET", "/api/mobile/v1/docs"},
+		{"GET", "/api/web/v1/docs"},
+		{"POST", "/api/indexer/start"},
+		{"POST", "/api/indexer/stop"},
+		{"POST", "/api/indexer/backfill"},
+		{"POST", "/api/indexer/resync-tx"},
+	} {
+		if got := code(tc.method, tc.path); got != http.StatusNotFound {
+			t.Errorf("%s %s = %d, want retired route 404", tc.method, tc.path, got)
+		}
+	}
+	if got := code("GET", "/api/indexer/status"); got != http.StatusOK {
+		t.Errorf("GET /api/indexer/status = %d, want read-only monitoring 200", got)
 	}
 
 	// Bridge POST /routes is public too (pure simulator, non-user-private): an

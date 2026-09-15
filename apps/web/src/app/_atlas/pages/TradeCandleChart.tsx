@@ -351,7 +351,7 @@ export function TradeCandleChart({
         </div>
       )}
 
-      <div className="chartw" style={{ position: 'relative' }}>
+      <div className="chart-controls">
         <div className="chart-overlay">
           {TRADING_CHART_RESOLUTIONS.map((option) => (
             <button
@@ -367,8 +367,8 @@ export function TradeCandleChart({
           ))}
         </div>
 
-        {/* Last-candle legend (when data exists and nothing is hovered) */}
-        {state === 'data' && lastChart && !hover && (
+        {/* Keep the legend in flow so changing hover state cannot shift the chart. */}
+        {state === 'data' && lastChart && (
           <div className="chart-legend" data-testid="trade-chart-legend">
             <span className="src-chip">{sourceLabel}</span>
             <span className="src-chip">
@@ -388,6 +388,9 @@ export function TradeCandleChart({
           </div>
         )}
 
+      </div>
+
+      <div className="chartw" style={{ position: 'relative' }}>
         {/* Crosshair tooltip */}
         {hover && (
           <div className="chart-tip" style={tipStyle} data-testid="trade-chart-tooltip">
@@ -463,9 +466,6 @@ export function TradeCandleChart({
           </div>
         )}
 
-        {/* zIndex 0 gives the chart its own stacking context so the library's
-            internal z-indexed canvases can't sit above (and swallow clicks
-            meant for) the timeframe buttons in .chart-overlay. */}
         <div ref={containerRef} data-testid="trade-candle-chart" style={{ position: 'absolute', inset: 0, zIndex: 0 }} />
       </div>
 

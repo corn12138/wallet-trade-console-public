@@ -215,3 +215,30 @@ func TestHandler_AddressMismatch403(t *testing.T) {
 		t.Fatalf("status = %d, want 403; body=%q", rec.Code, rec.Body.String())
 	}
 }
+
+// Once a transaction can be reorged, the "indexed" alias must not outrank it.
+// The metadata records that we once indexed the transaction, not that it is
+// still on the canonical chain — reporting "indexed" would tell the user the
+// opposite of what happened.
+func TestATerminallyNegativeStatusOutranksTheIndexedAlias(t *testing.T) {
+	indexed := []byte(`{"indexing":{"indexedAt":"2026-08-28T00:00:00Z"}}`)
+
+	for _, status := range []string{"reorged", "replaced", "dropped", "failed"} {
+		if got := deriveTxDisplayStatus(status, indexed); got != status {
+			t.Errorf("deriveTxDisplayStatus(%q, indexed) = %q, want %q", status, got, status)
+		}
+	}
+	// A good transaction keeps the alias.
+	if got := deriveTxDisplayStatus("confirmed", indexed); got != "indexed" {
+		t.Errorf("confirmed + indexed metadata = %q, want indexed", got)
+	}
+	if got := deriveTxDisplayStatus("pending", indexed); got != "indexed" {
+		t.Errorf("pending + indexed metadata = %q, want indexed", got)
+	}
+	if got := deriveTxDisplayStatus("", nil); got != "pending" {
+		t.Errorf("empty status = %q, want pending", got)
+	}
+	if got := deriveTxDisplayStatus("CONFIRMED", nil); got != "confirmed" {
+		t.Errorf("status casing = %q, want confirmed", got)
+	}
+}

@@ -262,12 +262,94 @@ func (c *Client) SendRawTransaction(ctx context.Context, rawHex string) (string,
 	return hash, nil
 }
 
-// Receipt is the subset of eth_getTransactionReceipt the relayer needs to know
-// whether a send actually succeeded on-chain.
+// Transaction is the authoritative sender/destination/value projection returned
+// by eth_getTransactionByHash.
+//
+// Nonce and BlockHash are what make a replacement observable: a speed-up or
+// cancel reuses the sender's nonce under a new hash, so two attempts sharing
+// (from, nonce) where one is mined identifies the other as replaced. BlockHash
+// is nil while the transaction is still in the mempool.
+//
+// Nonce is a POINTER because zero is a real nonce (a wallet's first
+// transaction) and parseHexQuantity maps "" to 0. A node that omits the field
+// must leave this nil so the caller declines to compare, rather than silently
+// treating every first transaction as sharing nonce 0.
+type Transaction struct {
+	TxHash    string
+	From      string
+	To        *string
+	Value     *big.Int
+	Nonce     *uint64
+	BlockHash *string
+}
+
+// GetTransactionByHash returns ok=false until the configured node knows the
+// transaction.
+func (c *Client) GetTransactionByHash(ctx context.Context, txHash string) (Transaction, bool, error) {
+	raw, err := c.callRaw(ctx, "eth_getTransactionByHash", []any{txHash})
+	if err != nil {
+		return Transaction{}, false, err
+	}
+	var body *struct {
+		Hash      string  `json:"hash"`
+		From      string  `json:"from"`
+		To        *string `json:"to"`
+		Value     string  `json:"value"`
+		Nonce     string  `json:"nonce"`
+		BlockHash *string `json:"blockHash"`
+	}
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return Transaction{}, false, fmt.Errorf("rpc: transaction decode: %w", err)
+	}
+	if body == nil {
+		return Transaction{}, false, nil
+	}
+	value, err := parseHexBigQuantity(body.Value)
+	if err != nil {
+		return Transaction{}, false, fmt.Errorf("rpc: transaction value: %w", err)
+	}
+	// A malformed nonce is an error; an absent one is left nil. Only the first
+	// is evidence of a broken response — omission just means this node did not
+	// tell us, and the caller must not infer nonce 0 from silence.
+	var nonce *uint64
+	if strings.TrimSpace(body.Nonce) != "" {
+		parsed, err := parseHexQuantity(body.Nonce)
+		if err != nil {
+			return Transaction{}, false, fmt.Errorf("rpc: transaction nonce: %w", err)
+		}
+		nonce = &parsed
+	}
+	return Transaction{
+		TxHash:    body.Hash,
+		From:      body.From,
+		To:        body.To,
+		Value:     value,
+		Nonce:     nonce,
+		BlockHash: emptyToNil(body.BlockHash),
+	}, true, nil
+}
+
+// emptyToNil normalises a JSON field that a node may send as null, as "" or as
+// a real value. A pending transaction's blockHash is null on some nodes and an
+// empty string on others; both mean "not mined".
+func emptyToNil(value *string) *string {
+	if value == nil || strings.TrimSpace(*value) == "" {
+		return nil
+	}
+	return value
+}
+
+// Receipt is the mined result needed by the relayer and transaction reporter.
 type Receipt struct {
-	TxHash      string
-	BlockNumber uint64
-	Success     bool
+	TxHash            string
+	From              string
+	To                *string
+	ContractAddress   *string
+	BlockNumber       uint64
+	BlockHash         *string
+	GasUsed           *big.Int
+	EffectiveGasPrice *big.Int
+	Success           bool
 }
 
 // GetTransactionReceipt returns the receipt, or ok=false when the transaction
@@ -279,9 +361,15 @@ func (c *Client) GetTransactionReceipt(ctx context.Context, txHash string) (Rece
 		return Receipt{}, false, err
 	}
 	var body *struct {
-		TransactionHash string `json:"transactionHash"`
-		BlockNumber     string `json:"blockNumber"`
-		Status          string `json:"status"`
+		TransactionHash   string  `json:"transactionHash"`
+		From              string  `json:"from"`
+		To                *string `json:"to"`
+		ContractAddress   *string `json:"contractAddress"`
+		BlockNumber       string  `json:"blockNumber"`
+		BlockHash         *string `json:"blockHash"`
+		GasUsed           string  `json:"gasUsed"`
+		EffectiveGasPrice string  `json:"effectiveGasPrice"`
+		Status            string  `json:"status"`
 	}
 	if err := json.Unmarshal(raw, &body); err != nil {
 		return Receipt{}, false, fmt.Errorf("rpc: receipt decode: %w", err)
@@ -289,15 +377,58 @@ func (c *Client) GetTransactionReceipt(ctx context.Context, txHash string) (Rece
 	if body == nil {
 		return Receipt{}, false, nil
 	}
+	if strings.TrimSpace(body.BlockNumber) == "" {
+		return Receipt{}, false, errors.New("rpc: receipt blockNumber missing")
+	}
 	blockNumber, err := parseHexQuantity(body.BlockNumber)
 	if err != nil {
 		return Receipt{}, false, fmt.Errorf("rpc: receipt blockNumber: %w", err)
 	}
+	if strings.TrimSpace(body.Status) == "" {
+		return Receipt{}, false, errors.New("rpc: receipt status missing")
+	}
+	status, err := parseHexQuantity(body.Status)
+	if err != nil || status > 1 {
+		return Receipt{}, false, fmt.Errorf("rpc: receipt status invalid: %q", body.Status)
+	}
+	gasUsed, err := parseOptionalHexBigQuantity(body.GasUsed)
+	if err != nil {
+		return Receipt{}, false, fmt.Errorf("rpc: receipt gasUsed: %w", err)
+	}
+	gasPrice, err := parseOptionalHexBigQuantity(body.EffectiveGasPrice)
+	if err != nil {
+		return Receipt{}, false, fmt.Errorf("rpc: receipt effectiveGasPrice: %w", err)
+	}
 	return Receipt{
-		TxHash:      body.TransactionHash,
-		BlockNumber: blockNumber,
-		Success:     body.Status == "0x1",
+		TxHash:            body.TransactionHash,
+		From:              body.From,
+		To:                body.To,
+		ContractAddress:   body.ContractAddress,
+		BlockNumber:       blockNumber,
+		BlockHash:         emptyToNil(body.BlockHash),
+		GasUsed:           gasUsed,
+		EffectiveGasPrice: gasPrice,
+		Success:           status == 1,
 	}, true, nil
+}
+
+func parseHexBigQuantity(raw string) (*big.Int, error) {
+	value := strings.TrimPrefix(strings.TrimSpace(raw), "0x")
+	if value == "" {
+		return big.NewInt(0), nil
+	}
+	out, ok := new(big.Int).SetString(value, 16)
+	if !ok || out.Sign() < 0 {
+		return nil, fmt.Errorf("invalid hex quantity %q", raw)
+	}
+	return out, nil
+}
+
+func parseOptionalHexBigQuantity(raw string) (*big.Int, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nil
+	}
+	return parseHexBigQuantity(raw)
 }
 
 // LogFilter is the eth_getLogs query the indexer's backfill loop issues.

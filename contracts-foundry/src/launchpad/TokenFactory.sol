@@ -18,8 +18,8 @@ contract TokenFactory is Ownable, ReentrancyGuard {
     address public dexRouter; // Uniswap V2 / PancakeSwap router
 
     // Default bonding curve parameters
-    uint256 public defaultBasePrice = 0.00001 ether;
-    uint256 public defaultSlope = 0.000000001 ether;
+    uint256 public defaultBasePrice = 0.000_01 ether;
+    uint256 public defaultSlope = 0.000_000_001 ether;
     uint256 public defaultReserveRatio = 5000; // 50%
     uint256 public defaultTradeFee = 300; // 3%
     uint256 public defaultGraduationThreshold = 100 ether; // 100 ETH market cap
@@ -44,7 +44,9 @@ contract TokenFactory is Ownable, ReentrancyGuard {
         uint256 creationFee_,
         address feeRecipient_,
         address dexRouter_
-    ) Ownable(msg.sender) {
+    )
+        Ownable(msg.sender)
+    {
         creationFee = creationFee_;
         feeRecipient = feeRecipient_;
         dexRouter = dexRouter_;
@@ -73,9 +75,7 @@ contract TokenFactory is Ownable, ReentrancyGuard {
 
         // Refund excess ETH
         if (msg.value > creationFee) {
-            (bool refundSuccess, ) = msg.sender.call{
-                value: msg.value - creationFee
-            }("");
+            (bool refundSuccess,) = msg.sender.call{ value: msg.value - creationFee }("");
             require(refundSuccess, "Refund failed");
         }
     }
@@ -110,7 +110,8 @@ contract TokenFactory is Ownable, ReentrancyGuard {
         // Initial buy with remaining ETH
         uint256 buyAmount = msg.value - creationFee;
         if (buyAmount > 0) {
-            BondingCurve(payable(bondingCurve)).buy{value: buyAmount}(0);
+            // The factory supplies ETH, but the creator remains the economic buyer and event owner.
+            BondingCurve(payable(bondingCurve)).buyFor{ value: buyAmount }(msg.sender, 0);
         }
     }
 
@@ -124,18 +125,15 @@ contract TokenFactory is Ownable, ReentrancyGuard {
         string memory image,
         string memory banner,
         address creator
-    ) internal returns (address token, address bondingCurve) {
+    )
+        internal
+        returns (address token, address bondingCurve)
+    {
         require(dexRouter != address(0), "DEX router not set");
 
         // Create token — factory is the initial owner so createAndLaunch can call launch()
-        LaunchToken newToken = new LaunchToken(
-            name,
-            symbol,
-            description,
-            image,
-            banner,
-            address(this)
-        );
+        LaunchToken newToken =
+            new LaunchToken(name, symbol, description, image, banner, address(this));
         token = address(newToken);
 
         // Create bonding curve with DEX integration
@@ -162,7 +160,7 @@ contract TokenFactory is Ownable, ReentrancyGuard {
 
         // Transfer creation fee
         if (creationFee > 0 && feeRecipient != address(0)) {
-            (bool success, ) = feeRecipient.call{value: creationFee}("");
+            (bool success,) = feeRecipient.call{ value: creationFee }("");
             require(success, "Fee transfer failed");
         }
 
@@ -179,9 +177,7 @@ contract TokenFactory is Ownable, ReentrancyGuard {
     /**
      * @dev Get tokens by creator
      */
-    function getTokensByCreator(
-        address creator
-    ) external view returns (address[] memory) {
+    function getTokensByCreator(address creator) external view returns (address[] memory) {
         return creatorTokens[creator];
     }
 
@@ -191,7 +187,11 @@ contract TokenFactory is Ownable, ReentrancyGuard {
     function getTokens(
         uint256 offset,
         uint256 limit
-    ) external view returns (address[] memory tokens) {
+    )
+        external
+        view
+        returns (address[] memory tokens)
+    {
         uint256 total = allTokens.length;
         if (offset >= total) return new address[](0);
 
@@ -207,9 +207,7 @@ contract TokenFactory is Ownable, ReentrancyGuard {
     /**
      * @dev Get bonding curve info for UI display
      */
-    function getBondingCurveInfo(
-        address token_
-    )
+    function getBondingCurveInfo(address token_)
         external
         view
         returns (
@@ -264,9 +262,7 @@ contract TokenFactory is Ownable, ReentrancyGuard {
         emit ConfigUpdated("defaultTradeFee", fee);
     }
 
-    function setDefaultGraduationThreshold(
-        uint256 threshold
-    ) external onlyOwner {
+    function setDefaultGraduationThreshold(uint256 threshold) external onlyOwner {
         defaultGraduationThreshold = threshold;
         emit ConfigUpdated("defaultGraduationThreshold", threshold);
     }

@@ -4,6 +4,7 @@ import {
     getContractsDeploymentsDir,
     persistDeploymentRecord,
 } from "./deployment-artifacts.js";
+import { assertV2CompatibleRouter } from "./router-compatibility.js";
 
 /**
  * Deploy Launchpad contracts to Sepolia
@@ -30,6 +31,11 @@ async function main() {
     if (!resolvedDexRouter) {
         throw new Error("Missing LAUNCHPAD_DEX_ROUTER. Deploy AMM first or set the env var.");
     }
+    const dexRouter = await assertV2CompatibleRouter(
+        ethers.provider,
+        resolvedDexRouter,
+        "LAUNCHPAD_DEX_ROUTER"
+    );
 
     // Deploy TokenFactory
     console.log("📦 Deploying TokenFactory...");
@@ -37,7 +43,7 @@ async function main() {
     const tokenFactory = await TokenFactory.deploy(
         CREATION_FEE,
         FEE_RECIPIENT,
-        resolvedDexRouter
+        dexRouter
     );
     await tokenFactory.waitForDeployment();
 
@@ -48,7 +54,7 @@ async function main() {
     console.log("\n📋 TokenFactory Configuration:");
     console.log("  - Creation Fee:", ethers.formatEther(CREATION_FEE), "ETH");
     console.log("  - Fee Recipient:", FEE_RECIPIENT);
-    console.log("  - DEX Router:", resolvedDexRouter);
+    console.log("  - DEX Router:", dexRouter);
     console.log("  - Default Base Price:", ethers.formatEther(await tokenFactory.defaultBasePrice()), "ETH");
     console.log("  - Default Trade Fee:", (await tokenFactory.defaultTradeFee()).toString(), "basis points");
 
@@ -62,7 +68,7 @@ async function main() {
                 address: factoryAddress,
                 creationFee: CREATION_FEE.toString(),
                 feeRecipient: FEE_RECIPIENT,
-                dexRouter: resolvedDexRouter,
+                dexRouter,
             },
         },
         timestamp: new Date().toISOString(),

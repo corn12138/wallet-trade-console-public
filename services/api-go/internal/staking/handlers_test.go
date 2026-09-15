@@ -8,7 +8,11 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
 )
+
+const stakingTestOwner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 type stubStore struct {
 	listFn    func(context.Context, PoolFilters) ([]PoolView, error)
@@ -18,7 +22,7 @@ type stubStore struct {
 	statsFn   func(context.Context) (PoolStats, error)
 	stakesFn  func(context.Context, string) ([]UserStake, error)
 	stakeFn   func(context.Context, RecordStakeInput) (UserStake, error)
-	unstakeFn func(context.Context, string) (UserStake, error)
+	unstakeFn func(context.Context, string, string) (UserStake, error)
 }
 
 func (s stubStore) ListAllPools(ctx context.Context, f PoolFilters) ([]PoolView, error) {
@@ -63,11 +67,21 @@ func (s stubStore) RecordStake(ctx context.Context, in RecordStakeInput) (UserSt
 	}
 	return UserStake{ID: "stake-1", UserAddress: in.UserAddress, PoolID: in.PoolID, Amount: "100"}, nil
 }
-func (s stubStore) RecordUnstake(ctx context.Context, id string) (UserStake, error) {
+func (s stubStore) RecordUnstake(ctx context.Context, id, owner string) (UserStake, error) {
 	if s.unstakeFn != nil {
-		return s.unstakeFn(ctx, id)
+		return s.unstakeFn(ctx, id, owner)
 	}
-	return UserStake{ID: id}, nil
+	return UserStake{ID: id, UserAddress: owner}, nil
+}
+
+func passGuard(next http.Handler) http.Handler { return next }
+
+func walletGuard(address string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r.WithContext(auth.WithAddress(r.Context(), address)))
+		})
+	}
 }
 
 func TestRepository_NilPoolReturnsErr(t *testing.T) {
@@ -85,7 +99,7 @@ func TestRepository_NilPoolReturnsErr(t *testing.T) {
 		{"ListUserStakes", func() error { _, e := r.ListUserStakes(context.Background(), "0xabc"); return e }},
 		{"ListActiveUserStakes", func() error { _, e := r.ListActiveUserStakes(context.Background(), "0xabc"); return e }},
 		{"RecordStake", func() error { _, e := r.RecordStake(context.Background(), RecordStakeInput{}); return e }},
-		{"RecordUnstake", func() error { _, e := r.RecordUnstake(context.Background(), "id"); return e }},
+		{"RecordUnstake", func() error { _, e := r.RecordUnstake(context.Background(), "id", stakingTestOwner); return e }},
 	}
 	for _, c := range checks {
 		if err := c.fn(); !errors.Is(err, ErrPoolUnavailable) {
@@ -95,7 +109,7 @@ func TestRepository_NilPoolReturnsErr(t *testing.T) {
 }
 
 func TestHandler_ListPoolsDegraded200Empty(t *testing.T) {
-	mux := Router(NewService(nil), nil)
+	mux := Router(NewService(nil), nil, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/pools", nil))
 	if rec.Code != http.StatusOK {
@@ -116,7 +130,7 @@ func TestHandler_ListPoolsPassesFilters(t *testing.T) {
 			return []PoolView{}, nil
 		},
 	}
-	mux := Router(NewService(stub), nil)
+	mux := Router(NewService(stub), nil, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/pools?poolType=staking&status=active&chainId=31337", nil))
 	if rec.Code != http.StatusOK {
@@ -137,7 +151,7 @@ func TestHandler_FindPoolNotFound(t *testing.T) {
 	stub := stubStore{findFn: func(context.Context, string) (PoolView, error) {
 		return PoolView{}, ErrPoolNotFound
 	}}
-	mux := Router(NewService(stub), nil)
+	mux := Router(NewService(stub), nil, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/pools/missing", nil))
 	if rec.Code != http.StatusNotFound {
@@ -146,7 +160,7 @@ func TestHandler_FindPoolNotFound(t *testing.T) {
 }
 
 func TestHandler_FindPoolDegraded503(t *testing.T) {
-	mux := Router(NewService(nil), nil)
+	mux := Router(NewService(nil), nil, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/pools/abc", nil))
 	if rec.Code != http.StatusServiceUnavailable {
@@ -155,7 +169,7 @@ func TestHandler_FindPoolDegraded503(t *testing.T) {
 }
 
 func TestHandler_CreatePoolValidation(t *testing.T) {
-	mux := Router(NewService(stubStore{}), nil)
+	mux := Router(NewService(stubStore{}), passGuard, nil)
 	cases := []struct {
 		name string
 		body string
@@ -180,7 +194,7 @@ func TestHandler_CreatePoolValidation(t *testing.T) {
 }
 
 func TestHandler_CreatePoolHappyPath(t *testing.T) {
-	mux := Router(NewService(stubStore{}), nil)
+	mux := Router(NewService(stubStore{}), passGuard, nil)
 	body := `{"name":"P","chainId":31337,"poolType":"staking","tokenAddress":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/pools", strings.NewReader(body)))
@@ -193,7 +207,7 @@ func TestHandler_UpdatePoolNotFound(t *testing.T) {
 	stub := stubStore{updateFn: func(context.Context, string, UpdatePoolInput) (PoolView, error) {
 		return PoolView{}, ErrPoolNotFound
 	}}
-	mux := Router(NewService(stub), nil)
+	mux := Router(NewService(stub), passGuard, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/pools/missing", strings.NewReader(`{"status":"ended"}`)))
 	if rec.Code != http.StatusNotFound {
@@ -202,7 +216,7 @@ func TestHandler_UpdatePoolNotFound(t *testing.T) {
 }
 
 func TestHandler_UserStakesAddressValidation(t *testing.T) {
-	mux := Router(NewService(stubStore{}), nil)
+	mux := Router(NewService(stubStore{}), nil, walletGuard(stakingTestOwner))
 
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/user/0xnot", nil))
@@ -211,15 +225,21 @@ func TestHandler_UserStakesAddressValidation(t *testing.T) {
 	}
 
 	rec = httptest.NewRecorder()
-	good := "/user/0x" + strings.Repeat("a", 40)
+	good := "/user/" + stakingTestOwner
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, good, nil))
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", rec.Code)
 	}
+
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/user/0x"+strings.Repeat("b", 40), nil))
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want 403 for another wallet", rec.Code)
+	}
 }
 
 func TestHandler_RecordStakeValidation(t *testing.T) {
-	mux := Router(NewService(stubStore{}), nil)
+	mux := Router(NewService(stubStore{}), nil, walletGuard(stakingTestOwner))
 	cases := []struct {
 		name string
 		body string
@@ -246,7 +266,7 @@ func TestHandler_RecordStakeHappyPath(t *testing.T) {
 		captured = in
 		return UserStake{ID: "s1", UserAddress: in.UserAddress, PoolID: in.PoolID, Amount: "1"}, nil
 	}}
-	mux := Router(NewService(stub), nil)
+	mux := Router(NewService(stub), nil, walletGuard(stakingTestOwner))
 	body := `{"userAddress":"0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","poolId":"p1","amount":1.5}`
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/stake", strings.NewReader(body)))
@@ -259,13 +279,46 @@ func TestHandler_RecordStakeHappyPath(t *testing.T) {
 }
 
 func TestHandler_RecordUnstakeNotFound(t *testing.T) {
-	stub := stubStore{unstakeFn: func(context.Context, string) (UserStake, error) {
+	stub := stubStore{unstakeFn: func(context.Context, string, string) (UserStake, error) {
 		return UserStake{}, ErrPoolNotFound
 	}}
-	mux := Router(NewService(stub), nil)
+	mux := Router(NewService(stub), nil, walletGuard(stakingTestOwner))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/unstake/missing", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", rec.Code)
+	}
+}
+
+func TestHandler_MutationsFailClosedWithoutGuards(t *testing.T) {
+	mux := Router(NewService(stubStore{}), nil, nil)
+
+	adminRec := httptest.NewRecorder()
+	mux.ServeHTTP(adminRec, httptest.NewRequest(http.MethodPost, "/pools", strings.NewReader(`{}`)))
+	if adminRec.Code != http.StatusServiceUnavailable {
+		t.Errorf("admin route status = %d, want 503", adminRec.Code)
+	}
+
+	walletRec := httptest.NewRecorder()
+	mux.ServeHTTP(walletRec, httptest.NewRequest(http.MethodPost, "/stake", strings.NewReader(`{}`)))
+	if walletRec.Code != http.StatusServiceUnavailable {
+		t.Errorf("wallet route status = %d, want 503", walletRec.Code)
+	}
+}
+
+func TestHandler_RecordUnstakePinsOwner(t *testing.T) {
+	var capturedOwner string
+	stub := stubStore{unstakeFn: func(_ context.Context, _ string, owner string) (UserStake, error) {
+		capturedOwner = owner
+		return UserStake{ID: "stake-1", UserAddress: owner}, nil
+	}}
+	mux := Router(NewService(stub), nil, walletGuard(stakingTestOwner))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/unstake/stake-1", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if capturedOwner != stakingTestOwner {
+		t.Errorf("owner = %q, want %q", capturedOwner, stakingTestOwner)
 	}
 }
