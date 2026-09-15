@@ -85,6 +85,8 @@ jobs:
       WEB3TX_TEST_DATABASE_URL: postgresql://wallet:wallet@127.0.0.1:5432/wallet_trade_ci
       BRIDGE_TEST_DATABASE_URL: postgresql://wallet:wallet@127.0.0.1:5432/wallet_trade_ci
       WEB3AUTH_TEST_REDIS_URL: redis://127.0.0.1:6379
+      # Replica tests require an isolated namespace even on disposable Redis.
+      WEB3AUTH_TEST_REDIS_PREFIX: "public-ci:${{ github.run_id }}:${{ github.run_attempt }}:"
     defaults:
       run:
         working-directory: services/api-go
