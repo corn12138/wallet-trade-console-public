@@ -103,9 +103,10 @@ CLOUD_RPC_FIXTURE_PATHS = {
     "contracts-foundry/lib/openzeppelin-contracts/lib/forge-std/test/StdChains.t.sol",
 }
 
-# The application bundles four reviewed font assets. Unknown binary content is
-# rejected, and replacing a font requires an explicit checksum review.
+# Only these reviewed application assets may contain binary data. A replacement
+# at the same path still requires a checksum review; extensions are not trusted.
 ALLOWED_BINARY_SHA256 = {
+    "apps/web/public/campaign-media/trading-week-banner-v1.png": "db4e7b0b612f4fd2d961bd290b86a36978a7ade9bb76aa6c597029dfd3f88212",
     "apps/web/src/app/fonts/geist-mono.woff2": "b7ac144b394cbd81052d6397ec0c33397977b1d7e9bc095e744e652a378c6fb3",
     "apps/web/src/app/fonts/geist-sans.woff2": "1b5ebfb3a01a97343ac96873e6d59a8cb285c66012b6a1ac509cb2765e995ba8",
     "apps/web/src/app/fonts/inter-400.woff2": "27ae72daf88c7431896929273087c99910d019ae82dc0af7d86505c0f5ef5dbf",
@@ -255,7 +256,8 @@ def main(root: Path) -> int:
             continue
         if not is_allowed_env(relative):
             findings.add((relative, "filled-env-file"))
-        if file_path.suffix.lower() in FORBIDDEN_BINARY_SUFFIXES:
+        expected_hash = ALLOWED_BINARY_SHA256.get(relative)
+        if file_path.suffix.lower() in FORBIDDEN_BINARY_SUFFIXES and expected_hash is None:
             findings.add((relative, "binary-or-secret-file"))
         if relative in TEXT_SKIP:
             continue
@@ -264,12 +266,12 @@ def main(root: Path) -> int:
             continue
 
         data = file_path.read_bytes()
-        if b"\0" in data:
-            expected_hash = ALLOWED_BINARY_SHA256.get(relative)
-            if expected_hash is None:
-                findings.add((relative, "binary-content"))
-            elif hashlib.sha256(data).hexdigest() != expected_hash:
+        if expected_hash is not None:
+            if hashlib.sha256(data).hexdigest() != expected_hash:
                 findings.add((relative, "binary-hash-mismatch"))
+            continue
+        if b"\0" in data:
+            findings.add((relative, "binary-content"))
             continue
         if relative == "services/api-go/go.mod" and not re.search(
             rb"^module github\.com/corn12138/wallet-trade-console-public/services/api-go$",

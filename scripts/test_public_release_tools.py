@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import importlib.util
+import contextlib
+import hashlib
+import io
 import subprocess
 import tempfile
 import unittest
@@ -23,6 +26,27 @@ def load_module(name: str, path: Path):
 
 
 class PublicReleaseToolsTest(unittest.TestCase):
+    def test_binary_admission_requires_exact_path_and_bytes(self) -> None:
+        audit = load_module("audit_binary_admission_test", SCRIPT_DIR / "public_release_audit.py")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            relative = "apps/web/public/reviewed.png"
+            asset = root / relative
+            asset.parent.mkdir(parents=True)
+            reviewed = b"reviewed binary fixture\0"
+            audit.ALLOWED_BINARY_SHA256 = {relative: hashlib.sha256(reviewed).hexdigest()}
+            asset.write_bytes(reviewed)
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(audit.main(root), 0)
+                asset.rename(asset.with_name("unknown.png"))
+                self.assertEqual(audit.main(root), 1)
+                self.assertIn("binary-or-secret-file", errors.getvalue())
+                asset.with_name("unknown.png").rename(asset)
+                # Text replacement must fail too, even without a NUL byte.
+                asset.write_text("unreviewed replacement")
+                self.assertEqual(audit.main(root), 1)
+                self.assertIn("binary-hash-mismatch", errors.getvalue())
+
     def run_git(self, root: Path, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["git", *args],
