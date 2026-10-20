@@ -28,10 +28,11 @@ func storedNonce(value *uint64) (*int64, error) {
 	if value == nil {
 		return nil, nil
 	}
-	if *value > math.MaxInt64 {
+	raw := *value
+	if raw > math.MaxInt64 {
 		return nil, fmt.Errorf("%w: nonce exceeds PostgreSQL bigint", ErrRPCEvidenceMismatch)
 	}
-	converted := int64(*value)
+	converted := int64(raw)
 	return &converted, nil
 }
 
