@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/abi"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
@@ -118,13 +119,15 @@ type KnownSpendersLookup interface {
 // nil collapses the corresponding code path into a sensible default
 // (e.g., no known-spenders means every spender flags as "unknown").
 type Service struct {
-	rpc      RPCCaller
-	swapPrep SwapPreparer
-	earnPrep EarnPreparer
-	tokens   TokenIntelLookup
-	sites    ConnectedSiteLookup
-	known    KnownSpendersLookup
-	bridge   BridgeStateReader
+	rpc       RPCCaller
+	swapPrep  SwapPreparer
+	earnPrep  EarnPreparer
+	tokens    TokenIntelLookup
+	sites     ConnectedSiteLookup
+	known     KnownSpendersLookup
+	bridge    BridgeStateReader
+	execution ExecutionContextResolver
+	now       func() time.Time
 }
 
 // NewService builds the orchestrator. Nil deps are tolerated.
@@ -137,7 +140,7 @@ func NewService(
 	known KnownSpendersLookup,
 	bridgeReader BridgeStateReader,
 ) *Service {
-	return &Service{rpc: rpc, swapPrep: swap, earnPrep: earn, tokens: tokens, sites: sites, known: known, bridge: bridgeReader}
+	return &Service{rpc: rpc, swapPrep: swap, earnPrep: earn, tokens: tokens, sites: sites, known: known, bridge: bridgeReader, now: time.Now}
 }
 
 const DefaultChainID = 11155111
@@ -148,9 +151,18 @@ func (s *Service) ReviewTransaction(ctx context.Context, in ReviewInput) (Result
 	if s == nil {
 		return Result{}, errors.New("txreview: service nil")
 	}
+	validUntil, err := reviewValidUntil(in.ValidUntil)
+	if err != nil {
+		return Result{}, err
+	}
 	op := in.OperationType
 	if op == "" {
 		op = OpCustom
+	}
+	switch op {
+	case OpCustom, OpApprove, OpRevokeApproval, OpSwap, OpEarnDeposit, OpEarnWithdraw, OpBridgeDeposit:
+	default:
+		return Result{}, fmt.Errorf("%w: unsupported operationType", ErrInvalidInput)
 	}
 	chainID := DefaultChainID
 	if in.ChainID != nil && *in.ChainID > 0 {
@@ -173,13 +185,16 @@ func (s *Service) ReviewTransaction(ctx context.Context, in ReviewInput) (Result
 		}
 		ctxBase.SiteOrigin = origin
 	}
-	if in.NativeBalanceWei != nil {
-		ctxBase.NativeBalanceHex = NormalizeBigIntString(*in.NativeBalanceWei)
+	if op == OpCustom && in.NativeBalanceWei != nil {
+		return Result{}, fmt.Errorf("%w: frozen transaction balance must come from RPC", ErrInvalidInput)
 	}
 
 	prepared, err := s.prepare(ctx, in, ctxBase)
 	if err != nil {
 		return Result{}, err
+	}
+	if prepared.GeneratedTx.ChainID != chainID {
+		return Result{}, fmt.Errorf("%w: generated transaction chain does not match review chain", ErrInvalidInput)
 	}
 
 	var site *ConnectedSiteDetail
@@ -187,16 +202,39 @@ func (s *Service) ReviewTransaction(ctx context.Context, in ReviewInput) (Result
 		site, _ = s.sites.FindConnectedSite(ctx, prepared.FromAddress, chainID, prepared.SiteOrigin)
 	}
 
-	sim := Simulate(ctx, s.rpc, prepared.FromAddress, prepared.GeneratedTx, prepared.NativeBalanceHex)
+	verifiedRPC, chainCheck := rpcForReviewChain(ctx, s.rpc, chainID)
+	sim := simulateReview(ctx, verifiedRPC, prepared.FromAddress, prepared.GeneratedTx, prepared.AllowanceRequest)
 
-	allowanceChange := s.allowanceChange(ctx, prepared)
+	allowanceChange := s.allowanceChange(prepared, sim.CurrentAllowance)
 
 	tokenIntel := s.lookupTokenIntel(ctx, chainID, prepared.TokenAddresses, prepared.TokenWarnings)
 
+	now := time.Now()
+	if s.now != nil {
+		now = s.now()
+	}
+	var executionContext *ReviewExecutionContext
+	var registry ContractAddressLookup
+	knownSpenders := s.knownSpenders(chainID)
+	if op == OpCustom {
+		registry, _ = s.known.(ContractAddressLookup)
+		if s.execution != nil {
+			resolved := s.execution.ResolveReview(ctx, chainID, prepared.GeneratedTx.To, prepared.GeneratedTx.Data)
+			if resolved.State == "bound" {
+				resolved.ValidUntil = validUntil
+			}
+			executionContext, registry = &resolved, resolved.Lookup
+			knownSpenders = nil
+			if lookup, ok := resolved.Lookup.(KnownSpendersLookup); ok {
+				knownSpenders = lookup.KnownSpenders(chainID)
+			}
+		}
+	}
 	rulesIn := RulesInput{
+		Now:              now,
 		OperationType:    op,
 		Spender:          prepared.Spender,
-		KnownSpenders:    s.knownSpenders(chainID),
+		KnownSpenders:    knownSpenders,
 		IsSupportedToken: tokenIntel.isSupportedToken,
 		TokenWarnings:    tokenIntel.warnings,
 		SlippageBps:      prepared.SlippageBps,
@@ -207,6 +245,13 @@ func (s *Service) ReviewTransaction(ctx context.Context, in ReviewInput) (Result
 		SimulationError:  ptrToString(sim.ErrorMessage),
 	}
 	checks := EvaluateRules(rulesIn)
+	if op == OpCustom {
+		checks = append(checks, contractSemanticChecks(prepared.GeneratedTx, registry, now)...)
+	}
+	if chainCheck != nil {
+		checks = append(checks, *chainCheck)
+	}
+	checks = append(checks, simulationChecks(sim)...)
 
 	// Bridge-deposit reviews carry deterministic bridge checks on top of the
 	// generic rules — appended (not replacing) so gas/token/spender rules
@@ -227,6 +272,9 @@ func (s *Service) ReviewTransaction(ctx context.Context, in ReviewInput) (Result
 
 	checks = DedupeChecks(checks)
 	status := DeriveReviewStatus(checks, sim.Mode)
+	if (chainCheck != nil || (sim.SimulationScope == "full-envelope" && !sim.ConsistentSnapshot)) && status != ReviewBlocked {
+		status = ReviewSimulationUnavailable
+	}
 	connectedSummary := connectedSiteSummary(site)
 	permissions := []string{}
 	if site != nil {
@@ -244,6 +292,7 @@ func (s *Service) ReviewTransaction(ctx context.Context, in ReviewInput) (Result
 		ConnectedSite:      connectedSummary,
 		RecommendedActions: BuildRecommendedActions(checks, connectedSummary, sim.Mode, permissions),
 		Checks:             checks,
+		ExecutionContext:   executionContext,
 	}, nil
 }
 
@@ -266,9 +315,7 @@ func (s *Service) prepare(ctx context.Context, in ReviewInput, base ReviewContex
 	case OpBridgeDeposit:
 		return s.prepareBridgeDeposit(ctx, in, base)
 	default:
-		// Unknown op type → treat as custom (matches NestJS default).
-		base.OperationType = OpCustom
-		return s.prepareCustom(in, base)
+		return ReviewContext{}, fmt.Errorf("%w: unsupported operationType", ErrInvalidInput)
 	}
 }
 
@@ -280,16 +327,27 @@ func (s *Service) prepareCustom(in ReviewInput, base ReviewContext) (ReviewConte
 	if err != nil {
 		return ReviewContext{}, err
 	}
-	value := NormalizeBigIntString(in.Tx.Value)
+	if in.Tx.ChainID != 0 && in.Tx.ChainID != base.ChainID {
+		return ReviewContext{}, fmt.Errorf("%w: custom transaction chain does not match review chain", ErrInvalidInput)
+	}
+	if err := validateCalldata(in.Tx.Data); err != nil {
+		return ReviewContext{}, err
+	}
+	value := in.Tx.Value
 	if value == "" {
 		value = "0"
+	}
+	if parsed := ParseOptionalBigInt(value); parsed == nil || parsed.BitLen() > 256 {
+		return ReviewContext{}, fmt.Errorf("%w: tx.value must be a decimal uint256", ErrInvalidInput)
 	}
 	if in.QuoteExpiresAt != nil {
 		base.QuoteExpiresAt = *in.QuoteExpiresAt
 	}
 	base.SlippageBps = in.SlippageBps
 	base.Spender = to
-	base.GeneratedTx = TxShape{ChainID: base.ChainID, To: to, Value: value, Data: in.Tx.Data}
+	// Only the omitted value gets its EVM default; a supplied frozen transaction
+	// keeps its target, amount representation and calldata exactly as reviewed.
+	base.GeneratedTx = TxShape{ChainID: base.ChainID, To: in.Tx.To, Value: value, Data: in.Tx.Data}
 	return base, nil
 }
 
@@ -488,12 +546,11 @@ func (s *Service) prepareEarn(ctx context.Context, in ReviewInput, base ReviewCo
 	return base, nil
 }
 
-func (s *Service) allowanceChange(ctx context.Context, prepared ReviewContext) *AllowanceChange {
+func (s *Service) allowanceChange(prepared ReviewContext, current *big.Int) *AllowanceChange {
 	req := prepared.AllowanceRequest
 	if req == nil {
 		return nil
 	}
-	current := FetchAllowance(ctx, s.rpc, req.TokenAddress, prepared.FromAddress, req.Spender)
 	out := &AllowanceChange{
 		TokenAddress: req.TokenAddress,
 		Spender:      req.Spender,
@@ -637,9 +694,11 @@ func RegisterGuarded(svc *Service) func(r chi.Router) {
 
 func makeReviewHandler(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var in ReviewInput
-		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-			writeJSONError(w, http.StatusBadRequest, "invalid JSON body")
+		ctx, cancel := context.WithTimeout(r.Context(), reviewTimeout)
+		defer cancel()
+		r = r.WithContext(ctx)
+		in, ok := decodeReviewInput(w, r)
+		if !ok {
 			return
 		}
 		// Owner-pin fromAddress to the authenticated wallet, mirroring NestJS
@@ -654,6 +713,10 @@ func makeReviewHandler(svc *Service) http.HandlerFunc {
 		}
 		in.FromAddress = owner
 		out, err := svc.ReviewTransaction(r.Context(), in)
+		if errors.Is(r.Context().Err(), context.DeadlineExceeded) {
+			writeJSONError(w, http.StatusRequestTimeout, "transaction review timed out")
+			return
+		}
 		if errors.Is(err, ErrInvalidInput) {
 			writeJSONError(w, http.StatusBadRequest, err.Error())
 			return

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "termsCanonicalVersion": 1,
+  "templateId": "campaignCardV1",
+  "displayContent": {
+    "layout": "compact",
+    "sortOrder": 10
+  },
+  "materialTerms": {
+    "copy": {
+      "en": {
+        "title": "Test activity",
+        "description": "A testnet demonstration.",
+        "rules": "Wallet participation only.",
+        "rewardDescription": "Information only. No reward distribution is implemented."
+      },
+      "zh": {
+        "title": "测试活动",
+        "description": "测试网演示。",
+        "rules": "仅保存钱包参加记录。",
+        "rewardDescription": "仅展示说明，尚未实现奖励发放。"
+      }
+    },
+    "startAt": "2026-10-09T00:00:00Z",
+    "endAt": "2026-10-10T00:00:00Z",
+    "rules": {
+      "join": {
+        "kind": "walletJoinV1",
+        "version": 1,
+        "params": {}
+      },
+      "reminder": {
+        "kind": "reminderIntentV1",
+        "version": 1,
+        "params": {}
+      }
+    },
+    "rewardDelivery": "display-only"
+  },
+  "cta": {
+    "actionKind": "none"
+  }
+}

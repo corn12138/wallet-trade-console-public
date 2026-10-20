@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -22,6 +23,18 @@ type attemptTx interface {
 
 // uniqueViolation is the SQLSTATE for a lost insert race.
 const uniqueViolation = "23505"
+
+func storedNonce(value *uint64) (*int64, error) {
+	if value == nil {
+		return nil, nil
+	}
+	raw := *value
+	if raw > math.MaxInt64 {
+		return nil, fmt.Errorf("%w: nonce exceeds PostgreSQL bigint", ErrRPCEvidenceMismatch)
+	}
+	converted := int64(raw)
+	return &converted, nil
+}
 
 func isUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
@@ -113,17 +126,24 @@ type existingAttempt struct {
 	actionID      *string
 	fromAddress   string
 	attemptNumber int
+	contextPrior  contextPreimage
 }
 
 // lockAttempt reads and locks the attempt row for this chain/hash.
-func lockAttempt(ctx context.Context, tx attemptTx, chainID int, txHash string) (existingAttempt, error) {
+func lockAttempt(ctx context.Context, tx attemptTx, chainID int, txHash string, contextColumns bool) (existingAttempt, error) {
 	var out existingAttempt
+	columns := "action_id, from_address, attempt_number"
+	dest := []any{&out.actionID, &out.fromAddress, &out.attemptNumber}
+	if contextColumns {
+		columns += ", execution_context_state, execution_context_claim_digest"
+		dest = append(dest, &out.contextPrior.state, &out.contextPrior.digest)
+	}
 	err := tx.QueryRow(ctx, `
-		SELECT action_id, from_address, attempt_number
+		SELECT `+columns+`
 		FROM web3_transactions
 		WHERE chain_id = $1 AND tx_hash = $2
 		FOR UPDATE
-	`, chainID, txHash).Scan(&out.actionID, &out.fromAddress, &out.attemptNumber)
+	`, chainID, txHash).Scan(dest...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return existingAttempt{}, nil
 	}
@@ -134,8 +154,8 @@ func lockAttempt(ctx context.Context, tx attemptTx, chainID int, txHash string) 
 	return out, nil
 }
 
-// claimAttemptNumber allocates the number for a new attempt, or returns the one
-// the row already has.
+// claimAttemptNumber preserves a bound ordinal or allocates one for a new or
+// action-less row. An old writer's default ordinal has no action-relative meaning.
 //
 // The re-check matters: lockAttempt's SELECT ... FOR UPDATE locks nothing when
 // the row does not exist, so two concurrent reports of one hash can both believe
@@ -143,16 +163,20 @@ func lockAttempt(ctx context.Context, tx attemptTx, chainID int, txHash string) 
 // second look settles it and the counter is bumped once per real attempt. The
 // frontend fires its submit and receipt POSTs as two un-awaited promises, so
 // that overlap is reachable in normal use, not just under load.
-func claimAttemptNumber(ctx context.Context, tx attemptTx, actionID string, chainID int, txHash string) (int, error) {
-	var existingNumber int
-	err := tx.QueryRow(ctx, `
-		SELECT attempt_number FROM web3_transactions WHERE chain_id = $1 AND tx_hash = $2
-	`, chainID, txHash).Scan(&existingNumber)
-	if err == nil {
-		return existingNumber, nil
+func claimAttemptNumber(ctx context.Context, tx attemptTx, actionID string, chainID int, txHash string, prior *contextPreimage) (int, error) {
+	// An existing-row reporter can update without the action lock. Keep its
+	// binding and diagnostic preimage stable until the upsert, in either schema.
+	existing, err := lockAttempt(ctx, tx, chainID, txHash, prior != nil)
+	if err != nil {
+		return 0, err
 	}
-	if !errors.Is(err, pgx.ErrNoRows) {
-		return 0, fmt.Errorf("web3events: re-check attempt: %w", err)
+	if existing.found {
+		if prior != nil {
+			*prior = existing.contextPrior
+		}
+		if existing.actionID != nil {
+			return existing.attemptNumber, nil
+		}
 	}
 	return nextAttemptNumber(ctx, tx, actionID)
 }
@@ -223,6 +247,10 @@ func markReplacedSiblings(
 		// intent, so it declines to guess rather than replacing the wrong row.
 		return nil, nil
 	}
+	nonce, err := storedNonce(senderNonce)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := tx.Query(ctx, `
 		UPDATE web3_transactions
 		SET status = $4, replaced_by_hash = $3, last_checked_at = now()
@@ -232,7 +260,7 @@ func markReplacedSiblings(
 		  AND tx_hash <> $3
 		  AND status = $6
 		RETURNING action_id
-	`, chainID, owner, winnerHash, StatusReplaced, int64(*senderNonce), StatusPending)
+	`, chainID, owner, winnerHash, StatusReplaced, *nonce, StatusPending)
 	if err != nil {
 		return nil, fmt.Errorf("web3events: mark replaced siblings: %w", err)
 	}
@@ -339,17 +367,15 @@ func (r *Repository) ApplyAttemptOutcome(ctx context.Context, outcome AttemptOut
 	if r.pool == nil {
 		return ErrPoolUnavailable
 	}
+	nonce, err := storedNonce(outcome.SenderNonce)
+	if err != nil {
+		return err
+	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("web3events: begin outcome write: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-
-	var nonce *int64
-	if outcome.SenderNonce != nil {
-		converted := int64(*outcome.SenderNonce)
-		nonce = &converted
-	}
 
 	var actionID *string
 	if err := tx.QueryRow(ctx, `

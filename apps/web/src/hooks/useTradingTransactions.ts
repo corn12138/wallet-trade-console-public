@@ -1,246 +1,123 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
-import { parseUnits } from 'viem';
-import { CONTRACT_ABIS } from '@/lib/web3/contracts';
+import { useRef } from 'react';
+import { useReadContract } from 'wagmi';
+import { erc20Abi } from 'viem';
+import { useQueryClient } from '@tanstack/react-query';
 import type { TradingChainId } from '@/lib/web3/trading-chain';
-import { useTokenApproval } from './web3/useTokenApproval';
-import { usePersistTransactionLifecycle } from './web3/usePersistTransactionLifecycle';
-import { buildCloseExecutionParams, buildOpenExecutionParams } from './trading-execution.utils';
-import type {
-  CloseTradingPositionParams,
-  OpenTradingPositionParams,
-  TradingMarketView,
-} from './trading.types';
+import { useTxIntent } from './web3/txIntent/useTxIntent';
+import type { TxErrorCode } from './web3/txIntent/types';
+import type { AggregatedPosition } from './web3/usePerpPositions';
+import { buildTradingSteps, type TradeIntentRequest } from './trading-intent';
+import { canonicalize } from './web3/txIntent/intent';
+import type { OpenTradingPositionParams, TradingMarketView } from './trading.types';
 
-interface UseTradingTransactionsParams {
+export interface UseTradingTransactionsParams {
   address?: `0x${string}`;
-  addrs: {
-    positionManager?: `0x${string}`;
-    usdc?: `0x${string}`;
-  };
+  addrs: { positionManager?: `0x${string}`; usdc?: `0x${string}` };
   chainId: TradingChainId;
   currentPrice?: bigint;
   selectedMarket: TradingMarketView | null;
+  positions: AggregatedPosition[];
+  openParams: OpenTradingPositionParams;
+  viewerKey?: string | null;
   refetchAll: () => void;
   refetchActivity: () => void;
 }
 
-export function useTradingTransactions({
-  address,
-  addrs,
-  chainId,
-  currentPrice,
-  selectedMarket,
-  refetchAll,
-  refetchActivity,
-}: UseTradingTransactionsParams) {
-  const emptyAddress = '0x0000000000000000000000000000000000000000';
-  const [openTrackingMetadata, setOpenTrackingMetadata] = useState<Record<string, unknown> | null>(null);
-  const [closeTrackingMetadata, setCloseTrackingMetadata] = useState<Record<string, unknown> | null>(null);
-  const {
-    isApproved,
-    approve: approveUsdc,
-    isPending: isApproving,
-    isSuccess: isApproveSuccess,
-  } = useTokenApproval(
-    addrs.usdc || emptyAddress,
-    addrs.positionManager || emptyAddress,
-    { chainId },
-  );
-
-  const {
-    writeContract: writeOpen,
-    data: openHash,
-    isPending: isOpenPending,
-    error: openError,
-    reset: resetOpen,
-  } = useWriteContract();
-  const {
-    isLoading: isOpenConfirming,
-    isSuccess: isOpenSuccess,
-    data: openReceipt,
-  } = useWaitForTransactionReceipt({ chainId, hash: openHash });
-
-  const {
-    writeContract: writeClose,
-    data: closeHash,
-    isPending: isClosePending,
-    error: closeError,
-    reset: resetClose,
-  } = useWriteContract();
-  const {
-    isLoading: isCloseConfirming,
-    isSuccess: isCloseSuccess,
-    data: closeReceipt,
-  } = useWaitForTransactionReceipt({ chainId, hash: closeHash });
-
-  usePersistTransactionLifecycle({
+/** A single operation owns the wallet prompt; market reads remain in useTrading. */
+export function useTradingTransactions(options: UseTradingTransactionsParams) {
+  const { address, addrs, chainId, currentPrice, selectedMarket, positions, openParams, viewerKey } = options;
+  const queryClient = useQueryClient();
+  const selection = useRef<TradeIntentRequest | null>(null);
+  const referencePrice = useRef<bigint | undefined>(undefined);
+  const allowanceRead = useReadContract({
     chainId,
-    hash: openHash,
-    fromAddress: address,
-    toAddress: addrs.positionManager,
-    contractAddress: addrs.positionManager,
-    value: '0',
-    txType: 'open-position',
-    metadata: openTrackingMetadata,
-    receipt: openReceipt,
-    enabled: Boolean(address && addrs.positionManager && openHash),
+    address: selectedMarket?.collateralToken,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: address && addrs.positionManager ? [address, addrs.positionManager] : undefined,
+    query: { enabled: Boolean(address && selectedMarket && addrs.positionManager), refetchInterval: 5_000 },
+  });
+  const allowance = allowanceRead.isError ? undefined : allowanceRead.data;
+
+  const build = (now: number) => {
+    const requested = selection.current;
+    if (!requested) return null;
+    let request: TradeIntentRequest;
+    if (requested.kind === 'open') {
+      // Read the live ticket again at send; retaining only click-time params
+      // would make the drift check incapable of noticing an edited order.
+      request = { kind: 'open', params: openParams };
+    } else {
+      const frozen = requested.params.position;
+      const live = positions.find((position) =>
+        position.isLong === frozen.isLong &&
+        position.market.indexToken.toLowerCase() === frozen.market.indexToken.toLowerCase() &&
+        position.market.collateralToken.toLowerCase() === frozen.market.collateralToken.toLowerCase());
+      // Closing an old size after another transaction changed the position
+      // requires a fresh review, even if the contract would accept it.
+      if (!live || positionSnapshot(live) !== positionSnapshot(frozen) || !live.hasPosition) return null;
+      request = { kind: 'close', params: {
+        position: live,
+        slippagePercent: openParams.slippagePercent,
+        deadlineMinutes: openParams.deadlineMinutes,
+      } };
+    }
+    return buildTradingSteps({ owner: address, chainId, positionManager: addrs.positionManager,
+      market: selectedMarket, currentPrice, referencePrice: referencePrice.current,
+      allowance, request, now });
+  };
+
+  const intent = useTxIntent({
+    build,
+    targetChainId: chainId,
+    viewerKey,
+    liveAllowance: selection.current?.kind === 'open' ? allowance : undefined,
+    onFinalized: () => {
+      void queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'readContract' || query.queryKey[0] === 'balance',
+      });
+      options.refetchAll();
+      options.refetchActivity();
+    },
   });
 
-  usePersistTransactionLifecycle({
-    chainId,
-    hash: closeHash,
-    fromAddress: address,
-    toAddress: addrs.positionManager,
-    contractAddress: addrs.positionManager,
-    value: '0',
-    txType: 'close-position',
-    metadata: closeTrackingMetadata,
-    receipt: closeReceipt,
-    enabled: Boolean(address && addrs.positionManager && closeHash),
-  });
-
-  // After a position open/close confirms, the indexer needs a beat to pick
-  // up the on-chain event and the API needs another to materialize it for
-  // the listing endpoints. The previous implementation fired a single
-  // refetch 2s after success — short enough to miss a slow indexer or a
-  // congested chain, with no retry. Instead we walk a short ladder so the
-  // UI converges as soon as the data lands, regardless of which side is
-  // slow today. Keying the effect off the receipt hash (rather than the
-  // boolean `isSuccess`) ensures back-to-back trades each get a fresh
-  // ladder; the cleanup cancels still-pending timers when the user
-  // navigates away or kicks off the next trade.
-  const openConfirmedHash = openReceipt?.transactionHash;
-  const closeConfirmedHash = closeReceipt?.transactionHash;
-  useEffect(() => {
-    if (!openConfirmedHash && !closeConfirmedHash) return;
-
-    const REFETCH_LADDER_MS = [1_000, 2_500, 5_000, 10_000];
-    let cancelled = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-
-    for (const delay of REFETCH_LADDER_MS) {
-      const timer = setTimeout(() => {
-        if (cancelled) return;
-        refetchAll();
-        refetchActivity();
-      }, delay);
-      timers.push(timer);
-    }
-
-    return () => {
-      cancelled = true;
-      for (const t of timers) clearTimeout(t);
-    };
-  }, [openConfirmedHash, closeConfirmedHash, refetchAll, refetchActivity]);
-
-  const openPosition = useCallback((params: OpenTradingPositionParams) => {
-    if (!address || !selectedMarket || !addrs.positionManager) {
-      return;
-    }
-
-    const collateralWei = parseUnits(params.collateralAmount, 18);
-    const sizeUsd = parseUnits(
-      (parseFloat(params.collateralAmount) * params.leverage).toString(),
-      30,
-    );
-    const executionParams = buildOpenExecutionParams({
-      currentPrice,
-      explicitAcceptablePrice: params.acceptablePrice,
-      slippagePercent: params.slippagePercent ?? 0.5,
-      deadlineMinutes: params.deadlineMinutes ?? 20,
-      isLong: params.isLong,
-    });
-
-    if (!isApproved(collateralWei)) {
-      approveUsdc(collateralWei);
-      return;
-    }
-
-    setOpenTrackingMetadata({
-      market: selectedMarket.symbol,
-      indexToken: selectedMarket.indexToken,
-      collateralToken: selectedMarket.collateralToken,
-      collateralAmount: params.collateralAmount,
-      leverage: params.leverage,
-      isLong: params.isLong,
-    });
-
-    writeOpen({
-      chainId,
-      address: addrs.positionManager,
-      abi: CONTRACT_ABIS.PositionManager,
-      functionName: 'openPosition',
-      args: [
-        selectedMarket.indexToken,
-        selectedMarket.collateralToken,
-        collateralWei,
-        sizeUsd,
-        params.isLong,
-        executionParams.acceptablePrice,
-        executionParams.deadline,
-      ],
-    });
-  }, [address, selectedMarket, addrs, chainId, currentPrice, isApproved, approveUsdc, writeOpen]);
-
-  const closePosition = useCallback((params: CloseTradingPositionParams) => {
-    if (!address || !addrs.positionManager) {
-      return;
-    }
-
-    const executionParams = buildCloseExecutionParams({
-      currentPrice,
-      slippagePercent: params.slippagePercent ?? 0.5,
-      deadlineMinutes: params.deadlineMinutes ?? 20,
-      isLong: params.position.isLong,
-    });
-
-    setCloseTrackingMetadata({
-      market: params.position.market.symbol,
-      indexToken: params.position.market.indexToken,
-      collateralToken: params.position.market.collateralToken,
-      size: params.position.size.toString(),
-      isLong: params.position.isLong,
-    });
-
-    writeClose({
-      chainId,
-      address: addrs.positionManager,
-      abi: CONTRACT_ABIS.PositionManager,
-      functionName: 'closePosition',
-      args: [
-        params.position.market.indexToken,
-        params.position.market.collateralToken,
-        0n,
-        params.position.size,
-        params.position.isLong,
-        executionParams.acceptablePrice,
-        executionParams.deadline,
-      ],
-    });
-  }, [address, addrs, chainId, currentPrice, writeClose]);
+  const locked = intent.busy || Boolean(intent.hash && intent.state === 'FAILED');
+  const review = (request: TradeIntentRequest): TxErrorCode | null => {
+    if (locked) return 'UNKNOWN';
+    if (!currentPrice || currentPrice <= 0n) return 'PRICE_UNAVAILABLE';
+    if ((openParams.deadlineMinutes ?? 20) < 2) return 'DEADLINE_EXPIRED';
+    selection.current = request.kind === 'close' ? { kind: 'close', params: { ...request.params,
+      position: { ...request.params.position, market: { ...request.params.position.market } },
+    } } : request;
+    referencePrice.current = currentPrice;
+    return intent.review();
+  };
 
   return {
-    openPosition,
-    closePosition,
-    // Exposed so the page can tell WHICH transaction the next submit sends.
-    // `openPosition` silently diverts to an approve when the allowance is
-    // short, and a pre-sign review that could not see that would describe the
-    // position open while the wallet was handed an ERC20 approval.
-    isApproved,
-    isApproving,
-    isApproveSuccess,
-    isOpenPending,
-    isOpenConfirming,
-    isOpenSuccess,
-    openError,
-    resetOpen,
-    isClosePending,
-    isCloseConfirming,
-    isCloseSuccess,
-    closeError,
-    resetClose,
+    intent,
+    locked,
+    reviewOpen: () => review({ kind: 'open', params: openParams }),
+    reviewClose: (position: AggregatedPosition) => review({ kind: 'close', params: {
+      position, slippagePercent: openParams.slippagePercent, deadlineMinutes: openParams.deadlineMinutes,
+    } }),
+    // A retry only rebuilds a review. No retry path can send another transaction.
+    retry: (): TxErrorCode | null => {
+      const requested = selection.current;
+      if (!requested) return 'UNKNOWN';
+      if (requested.kind === 'open') return review(requested);
+      const old = requested.params.position;
+      const current = positions.find((position) => position.isLong === old.isLong &&
+        position.market.indexToken.toLowerCase() === old.market.indexToken.toLowerCase() &&
+        position.market.collateralToken.toLowerCase() === old.market.collateralToken.toLowerCase());
+      return current ? review({ kind: 'close', params: { ...requested.params, position: current } }) : 'UNKNOWN';
+    },
   };
+}
+
+function positionSnapshot(position: AggregatedPosition): string {
+  // Market ticker metadata can refresh without changing the position. Only
+  // chain position fields identify whether the reviewed position still exists.
+  return canonicalize({ ...position, market: undefined });
 }

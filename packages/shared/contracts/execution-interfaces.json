@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "description": "Execution interface manifest (docs/claude-web3-lg03b-task-2026-10-14.md \u00a73.1). An interface ID names semantics, not only a selector; a consumer supports exactly the IDs of the manifest it was built with.",
+  "interfaces": {
+    "erc20.approve.v1": {
+      "signature": "approve(address,uint256)",
+      "argRoles": [
+        "spender",
+        "amount"
+      ]
+    },
+    "perp.positionManager.open.v1": {
+      "signature": "openPosition(address,address,uint256,uint256,bool,uint256,uint256)",
+      "argRoles": [
+        "indexToken",
+        "collateralToken",
+        "collateralAmount",
+        "sizeUsd30",
+        "isLong",
+        "acceptablePriceUsd30",
+        "deadline"
+      ]
+    },
+    "perp.positionManager.close.v1": {
+      "signature": "closePosition(address,address,uint256,uint256,bool,uint256,uint256)",
+      "argRoles": [
+        "indexToken",
+        "collateralToken",
+        "ignoredCollateralDelta",
+        "sizeUsd30",
+        "isLong",
+        "acceptablePriceUsd30",
+        "deadline"
+      ]
+    }
+  }
+}

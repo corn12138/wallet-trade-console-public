@@ -345,3 +345,8 @@ describe('BridgePage', () => {
         expect(screen.queryByTestId('bridge-cta-deposit')).toBeNull();
     });
 });
+
+// Page tests fix the session scope; provider restoration has its own integration gate.
+vi.mock('@/lib/web3/auth-provider', () => ({
+  useAuth: () => ({ sessionGeneration: 1, isRestoring: false }),
+}));

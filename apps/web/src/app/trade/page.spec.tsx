@@ -1,34 +1,50 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithIntl } from '@/test/renderWithIntl';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TradePage } from '../_atlas/pages/TradePage';
 
 /**
  * Regression guards for the /trade real-data closure:
  *  - the chart must be driven by the candle hook (no MiniChart / random SVG)
  *  - timeframe buttons must actually change the candle resolution
- *  - "limit" is an acceptable-price guard and MUST be passed to openPosition
+ *  - "limit" is an acceptable-price guard and MUST be passed into the review
  *  - unsupported STOP orders and pending-order Cancel must not render
  */
 
 const mockUseTrading = vi.fn();
 const mockUseTradingCandles = vi.fn();
 const mockUsePriceCandles = vi.fn();
+const mockUseTradingTransactions = vi.fn();
+const transaction = {
+    locked: false,
+    reviewOpen: vi.fn(),
+    reviewClose: vi.fn(),
+    retry: vi.fn(),
+    intent: { activeStep: null, hash: null, state: 'DRAFT', send: vi.fn(), reset: vi.fn() },
+};
 
 vi.mock('@/hooks/useTrading', () => ({
     useTrading: () => mockUseTrading(),
+}));
+
+vi.mock('@/hooks/useTradingTransactions', () => ({
+    useTradingTransactions: (options: unknown) => mockUseTradingTransactions(options),
+}));
+
+// The hook integration and dialog suites cover signing. These page tests keep
+// the review boundary visible while isolating it from wallet and RPC clients.
+vi.mock('@/app/_atlas/pages/TradeIntentDialog', () => ({
+    TradeIntentDialog: () => <div role="dialog" aria-label="Trade review" />,
 }));
 
 vi.mock('@/hooks/useTradingCandles', () => ({
     useTradingCandles: (options: unknown) => mockUseTradingCandles(options),
 }));
 
-// The ticket's pre-sign review strip asks the Go service whether the AI
-// explanation layer is live. Stubbed to "off" — its default and a supported
-// production state — so these specs stay hermetic instead of reaching for
-// localhost:8090.
+// Keep optional product-status reads hermetic; disabled AI explanations are
+// a supported production state.
 vi.mock('@/lib/api/atlas', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     getProductStatus: vi.fn(async () => ({ aiExplain: { status: 'disabled' }, warnings: [] })),
@@ -155,23 +171,9 @@ function tradingState(overrides: Record<string, unknown> = {}) {
             usdc: '0x00000000000000000000000000000000000000aa',
             positionManager: '0x00000000000000000000000000000000000000bb',
         },
-        // Allowance already covers the collateral, so these specs exercise the
-        // position-open branch and the approval preflight stays out of the way.
-        isCollateralApproved: () => true,
-        openPosition: vi.fn(),
-        closePosition: vi.fn(),
-        isApproving: false,
-        isApproveSuccess: false,
-        isOpenPending: false,
-        isOpenConfirming: false,
-        isOpenSuccess: false,
-        openError: null,
-        resetOpen: vi.fn(),
-        isClosePending: false,
-        isCloseConfirming: false,
-        isCloseSuccess: false,
-        closeError: null,
-        resetClose: vi.fn(),
+        viewerKey: '0x1111111111111111111111111111111111111111',
+        refetchAll: vi.fn(),
+        refetchActivity: vi.fn(),
         ...overrides,
     };
 }
@@ -179,9 +181,6 @@ function tradingState(overrides: Record<string, unknown> = {}) {
 function renderTradePage(overrides: Record<string, unknown> = {}) {
     const state = tradingState(overrides);
     mockUseTrading.mockReturnValue(state);
-    // The ticket now carries a pre-sign review strip, which polls the Go
-    // product-status endpoint through react-query — so the page needs a client
-    // even though useTrading itself is mocked here.
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     renderWithIntl(
         <QueryClientProvider client={client}>
@@ -194,6 +193,10 @@ function renderTradePage(overrides: Record<string, unknown> = {}) {
 describe('/trade real-data closure', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockUseTradingTransactions.mockReturnValue(transaction);
+        transaction.reviewOpen.mockReturnValue(null);
+        transaction.reviewClose.mockReturnValue(null);
+        transaction.locked = false;
         window.localStorage.clear();
         mockUseTradingCandles.mockReturnValue({ candles: [], error: null, isLoading: false, isFetching: false, dataUpdatedAt: Date.now(), refetch: vi.fn() });
         mockUsePriceCandles.mockReturnValue({ candles: [], seriesStatus: 'empty', provider: 'gateio', error: null, isLoading: false, isFetching: false, dataUpdatedAt: Date.now(), refetch: vi.fn() });
@@ -240,45 +243,50 @@ describe('/trade real-data closure', () => {
         expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
     });
 
-    it('market submit opens a position without an acceptable-price override', async () => {
+    it('market CTA opens a review without an acceptable-price override or wallet prompt', async () => {
         const user = userEvent.setup();
-        const state = renderTradePage();
+        renderTradePage();
 
         await user.type(screen.getByLabelText('Collateral (USDC)'), '100');
         await user.click(screen.getByRole('button', { name: /Open Long · 10×/ }));
 
-        expect(state.openPosition).toHaveBeenCalledWith({
+        expect(mockUseTradingTransactions).toHaveBeenLastCalledWith(expect.objectContaining({ openParams: {
             collateralAmount: '100',
             leverage: 10,
             isLong: true,
             acceptablePrice: undefined,
             slippagePercent: 0.5,
             deadlineMinutes: 20,
-        });
+        } }));
+        expect(transaction.reviewOpen).toHaveBeenCalledTimes(1);
+        expect(screen.getByRole('dialog', { name: 'Trade review' })).toBeInTheDocument();
+        expect(transaction.intent.send).not.toHaveBeenCalled();
     });
 
-    it('limit guard submit passes the acceptable price to the write hook', async () => {
+    it('limit guard CTA passes the acceptable price to the review hook without signing', async () => {
         const user = userEvent.setup();
-        const state = renderTradePage();
+        renderTradePage();
 
         await user.click(screen.getByRole('button', { name: 'LIMIT GUARD' }));
         await user.type(screen.getByLabelText('Collateral (USDC)'), '100');
         await user.type(screen.getByLabelText('Acceptable price'), '2050');
         await user.click(screen.getByRole('button', { name: /Open Long · 10×/ }));
 
-        expect(state.openPosition).toHaveBeenCalledWith({
+        expect(mockUseTradingTransactions).toHaveBeenLastCalledWith(expect.objectContaining({ openParams: {
             collateralAmount: '100',
             leverage: 10,
             isLong: true,
             acceptablePrice: '2050',
             slippagePercent: 0.5,
             deadlineMinutes: 20,
-        });
+        } }));
+        expect(transaction.reviewOpen).toHaveBeenCalledTimes(1);
+        expect(transaction.intent.send).not.toHaveBeenCalled();
     });
 
     it('blocks a long limit guard below mark price (would revert on-chain)', async () => {
         const user = userEvent.setup();
-        const state = renderTradePage();
+        renderTradePage();
 
         await user.click(screen.getByRole('button', { name: 'LIMIT GUARD' }));
         await user.type(screen.getByLabelText('Collateral (USDC)'), '100');
@@ -289,7 +297,8 @@ describe('/trade real-data closure', () => {
         expect(screen.getByText(/Current price is above your long limit/)).toBeInTheDocument();
 
         await user.click(submit);
-        expect(state.openPosition).not.toHaveBeenCalled();
+        expect(transaction.reviewOpen).not.toHaveBeenCalled();
+        expect(transaction.intent.send).not.toHaveBeenCalled();
     });
 
     it('blocks submit and close while execution settings are invalid', async () => {
@@ -403,14 +412,178 @@ describe('/trade real-data closure', () => {
         // Indexed rows get 5.0× leverage (2000/400) and the stored pnl.
         expect(indexedRow.textContent).toContain('5.0×');
 
-        // The chain row closes for real; the indexed row must NOT offer close —
-        // it switches the terminal to its market instead.
+        // Only an authoritative chain row can request a close review; indexed
+        // rows must first switch to their market and load the on-chain position.
         await user.click(screen.getByRole('button', { name: 'Close' }));
-        expect(state.closePosition).toHaveBeenCalledWith(
-            expect.objectContaining({ position: chainPosition }),
-        );
+        expect(transaction.reviewClose).toHaveBeenCalledWith(chainPosition);
+        expect(transaction.intent.send).not.toHaveBeenCalled();
 
         await user.click(screen.getByRole('button', { name: /Switch the terminal to BTC-USD/ }));
         expect(state.setSelectedMarketSymbol).toHaveBeenCalledWith('BTC-USD');
+    });
+});
+
+describe('/trade chain-bound deep links', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockUseTradingTransactions.mockReturnValue(transaction);
+        transaction.reviewOpen.mockReturnValue(null);
+        transaction.reviewClose.mockReturnValue(null);
+        transaction.locked = false;
+        mockUseTradingCandles.mockReturnValue({ candles: [], error: null, isLoading: false, isFetching: false, dataUpdatedAt: Date.now(), refetch: vi.fn() });
+        mockUsePriceCandles.mockReturnValue({ candles: [], seriesStatus: 'empty', provider: 'gateio', error: null, isLoading: false, isFetching: false, dataUpdatedAt: Date.now(), refetch: vi.fn() });
+    });
+    const connectedWallet = mockApp.wallet;
+    afterEach(() => { Object.assign(mockApp, { wallet: connectedWallet, walletState: 'connected' }); });
+    // The connected wallet's chain is the terminal's chain unless a case says
+    // the visitor is disconnected.
+    const open = (search: string, chainId: number, overrides: Record<string, unknown> = {}) => {
+        window.history.replaceState(null, '', '/trade' + search);
+        Object.assign(mockApp, 'address' in overrides && overrides.address === undefined
+            ? { wallet: null, walletState: 'disconnected' } : { wallet: { ...connectedWallet, chainId }, walletState: 'connected' });
+        const eth = market({ chainId }), btc = market({ symbol: 'BTC-USD', chainId });
+        return renderTradePage({ chainId, markets: [eth, btc], selectedMarket: eth, selectedMarketSymbol: 'ETH-USD', ...overrides });
+    };
+    const noSigning = () => {
+        expect(transaction.reviewOpen).not.toHaveBeenCalled();
+        expect(transaction.reviewClose).not.toHaveBeenCalled();
+    };
+
+    it.each([[31337, 11155111], [11155111, 31337]])('asks to switch to chain %s instead of selecting the same symbol on chain %s', async (target, active) => {
+        const state = open(`?symbol=BTC-USD&chainId=${target}`, active);
+        expect(await screen.findByText(`This link opens BTC-USD on chain ${target}. Your wallet is on chain ${active}, so nothing from the link is selected until you switch.`)).toBeInTheDocument();
+        expect(state.setSelectedMarketSymbol).not.toHaveBeenCalledWith('BTC-USD');
+        fireEvent.click(screen.getByRole('button', { name: 'Switch network' }));
+        expect(mockApp.switchChain).toHaveBeenCalledWith(expect.objectContaining({ id: target }));
+        noSigning();
+    });
+
+    it('asks a disconnected visitor to connect rather than picking a chain', async () => {
+        const state = open('?symbol=BTC-USD&chainId=31337', 11155111, { address: undefined });
+        fireEvent.click(await screen.findByRole('button', { name: 'Connect a wallet' }));
+        expect(mockApp.openConnect).toHaveBeenCalled();
+        expect(mockApp.switchChain).not.toHaveBeenCalled();
+        expect(state.setSelectedMarketSymbol).not.toHaveBeenCalledWith('BTC-USD');
+        noSigning();
+    });
+
+    it.each(['?symbol=BTC-USD&chainId=1', '?symbol=DOGE-USD&chainId=11155111', '?symbol=BTC-USD&chainId=0x1'])('refuses an unsupported target %s', async (search) => {
+        const state = open(search, 11155111);
+        expect(await screen.findByText(/This link names a market this app cannot trade/)).toBeInTheDocument();
+        expect(state.setSelectedMarketSymbol).not.toHaveBeenCalledWith('BTC-USD');
+        expect(screen.queryByRole('button', { name: 'Switch network' })).toBeNull();
+        noSigning();
+    });
+
+    it('selects the market when the link names the terminal chain, and keeps symbol-only links', async () => {
+        let state = open('?symbol=BTC-USD&chainId=11155111', 11155111);
+        await waitFor(() => expect(state.setSelectedMarketSymbol).toHaveBeenCalledWith('BTC-USD'));
+        expect(screen.queryByRole('button', { name: 'Switch network' })).toBeNull();
+        cleanup();
+        state = open('?symbol=BTC-USD', 31337);
+        await waitFor(() => expect(state.setSelectedMarketSymbol).toHaveBeenCalledWith('BTC-USD'));
+        noSigning();
+    });
+});
+
+// A chain-bound link survives the wallet's connection lifecycle: it is
+// resolved only by a connected wallet on its chain or replaced by a manual
+// choice, and the URL keeps it meanwhile (Codex LG-02c1 review, R2 follow-up).
+describe('/trade deep link across wallet connection', () => {
+    const SEPOLIA = 11155111, LOCAL = 31337;
+    const wallet = mockApp.wallet;
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockUseTradingTransactions.mockReturnValue(transaction);
+        transaction.reviewOpen.mockReturnValue(null);
+        transaction.reviewClose.mockReturnValue(null);
+        transaction.locked = false;
+        mockUseTradingCandles.mockReturnValue({ candles: [], error: null, isLoading: false, isFetching: false, dataUpdatedAt: Date.now(), refetch: vi.fn() });
+        mockUsePriceCandles.mockReturnValue({ candles: [], seriesStatus: 'empty', provider: 'gateio', error: null, isLoading: false, isFetching: false, dataUpdatedAt: Date.now(), refetch: vi.fn() });
+    });
+    afterEach(() => { Object.assign(mockApp, { wallet, walletState: 'connected' }); });
+    // walletChain: the connected wallet's real chain, or null while disconnected
+    // or restoring; display: the chain the terminal reads (default Sepolia).
+    const at = (display: number, walletChain: number | null, selected: string | null, setSelected = vi.fn()) => {
+        Object.assign(mockApp, walletChain === null ? { wallet: null, walletState: 'disconnected' } : { wallet: { ...wallet, chainId: walletChain }, walletState: 'connected' });
+        const markets = [market({ chainId: display }), market({ chainId: display, symbol: 'BTC-USD' })];
+        const state = tradingState({ chainId: display, address: walletChain === null ? undefined : wallet!.address, markets, selectedMarketSymbol: selected,
+            selectedMarket: markets.find((m) => m.symbol === selected) ?? markets[0], setSelectedMarketSymbol: setSelected });
+        mockUseTrading.mockReturnValue(state);
+        return state;
+    };
+    const page = () => <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><TradePage /></QueryClientProvider>;
+    const urlChain = () => new URLSearchParams(window.location.search).get('chainId');
+    const noSigning = () => {
+        expect(transaction.reviewOpen).not.toHaveBeenCalled();
+        expect(transaction.reviewClose).not.toHaveBeenCalled();
+        expect(mockApp.switchChain).not.toHaveBeenCalled();
+    };
+
+    it('keeps a Sepolia target when a disconnected visitor connects on another chain', async () => {
+        window.history.replaceState(null, '', '/trade?symbol=BTC-USD&chainId=' + SEPOLIA);
+        const setSelected = vi.fn();
+        at(SEPOLIA, null, null, setSelected);
+        const view = renderWithIntl(page());
+        expect(await screen.findByText(`Connect a wallet on chain ${SEPOLIA} to trade BTC-USD from this link.`)).toBeInTheDocument();
+        at(LOCAL, LOCAL, 'BTC-USD', setSelected);
+        view.rerender(page());
+        expect(await screen.findByText(`This link opens BTC-USD on chain ${SEPOLIA}. Your wallet is on chain ${LOCAL}, so nothing from the link is selected until you switch.`)).toBeInTheDocument();
+        await waitFor(() => expect(urlChain()).toBe(String(SEPOLIA)));
+        expect(new URLSearchParams(window.location.search).get('symbol')).toBe('BTC-USD');
+        noSigning();
+    });
+
+    it('resolves the target when the wallet connects on its chain', async () => {
+        window.history.replaceState(null, '', '/trade?symbol=BTC-USD&chainId=' + SEPOLIA);
+        const setSelected = vi.fn();
+        at(SEPOLIA, null, null, setSelected);
+        const view = renderWithIntl(page());
+        await screen.findByText(/Connect a wallet on chain/);
+        at(SEPOLIA, SEPOLIA, 'BTC-USD', setSelected);
+        view.rerender(page());
+        await waitFor(() => expect(screen.queryByText(/Connect a wallet on chain|This link opens/)).toBeNull());
+        expect(setSelected).toHaveBeenCalledWith('BTC-USD');
+        expect(urlChain()).toBe(String(SEPOLIA));
+        noSigning();
+    });
+
+    it('holds the target while the wallet session is restoring', async () => {
+        window.history.replaceState(null, '', '/trade?symbol=BTC-USD&chainId=' + LOCAL);
+        const setSelected = vi.fn();
+        at(SEPOLIA, null, 'ETH-USD', setSelected);
+        const view = renderWithIntl(page());
+        expect(await screen.findByText(`Connect a wallet on chain ${LOCAL} to trade BTC-USD from this link.`)).toBeInTheDocument();
+        expect(setSelected).not.toHaveBeenCalledWith('BTC-USD');
+        expect(urlChain()).toBe(String(LOCAL));
+        at(LOCAL, LOCAL, 'ETH-USD', setSelected);
+        view.rerender(page());
+        await waitFor(() => expect(setSelected).toHaveBeenCalledWith('BTC-USD'));
+        noSigning();
+    });
+
+    it('treats a wallet on an unsupported chain as off-target even though the terminal displays the default chain', async () => {
+        window.history.replaceState(null, '', '/trade?symbol=BTC-USD&chainId=' + SEPOLIA);
+        const setSelected = vi.fn();
+        at(SEPOLIA, 1, null, setSelected);
+        renderWithIntl(page());
+        expect(await screen.findByText(`This link opens BTC-USD on chain ${SEPOLIA}. Your wallet is on chain 1, so nothing from the link is selected until you switch.`)).toBeInTheDocument();
+        expect(setSelected).not.toHaveBeenCalledWith('BTC-USD');
+        expect(urlChain()).toBe(String(SEPOLIA));
+        noSigning();
+    });
+
+    it('lets a manual market choice replace the pending target', async () => {
+        window.history.replaceState(null, '', '/trade?symbol=BTC-USD&chainId=' + LOCAL);
+        const setSelected = vi.fn();
+        at(SEPOLIA, SEPOLIA, 'ETH-USD', setSelected);
+        renderWithIntl(page());
+        await screen.findByText(/This link opens BTC-USD on chain 31337/);
+        const rail = screen.getAllByText('ETH-USD').map((node) => node.closest('button')).find((button) => button?.parentElement?.querySelectorAll('button').length);
+        fireEvent.click(rail!);
+        await waitFor(() => expect(screen.queryByText(/This link opens/)).toBeNull());
+        expect(setSelected).toHaveBeenCalledWith('ETH-USD');
+        await waitFor(() => expect(urlChain()).toBe(String(SEPOLIA)));
+        noSigning();
     });
 });

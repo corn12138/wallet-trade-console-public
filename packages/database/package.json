@@ -19,7 +19,8 @@
     "type-check": "pnpm exec tsc --project tsconfig.json --noEmit --pretty false",
     "db:generate": "pnpm exec prisma generate --schema ./prisma/schema.prisma",
     "db:push": "pnpm exec prisma db push --schema ./prisma/schema.prisma",
-    "db:studio": "pnpm exec prisma studio --schema ./prisma/schema.prisma"
+    "db:studio": "pnpm exec prisma studio --schema ./prisma/schema.prisma",
+    "db:init": "python3 ../../scripts/public-db/bootstrap.py"
   },
   "devDependencies": {
     "@types/node": "^20.2.5",

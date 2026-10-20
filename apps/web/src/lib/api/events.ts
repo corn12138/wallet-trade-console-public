@@ -121,14 +121,15 @@ export async function getEventsByTxHash(txHash: string, chainId?: number): Promi
 export async function getUserEvents(
   address: string,
   chainId?: number,
-  limit?: number
+  limit?: number,
+  signal?: AbortSignal,
 ): Promise<Web3Event[]> {
   const searchParams = new URLSearchParams();
   if (chainId) searchParams.set('chainId', String(chainId));
   if (limit) searchParams.set('limit', String(limit));
 
   const path = `/web3-events/user/${address}?${searchParams.toString()}`;
-  const response = await fetchApi(path);
+  const response = await fetchApi(path, { signal });
   return parseResponse<Web3Event[]>(response);
 }
 

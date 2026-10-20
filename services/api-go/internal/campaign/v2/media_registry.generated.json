@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "assets": [
+    {
+      "id": "trading-week-banner-v1",
+      "path": "/campaign-media/trading-week-banner-v1.png",
+      "contentType": "image/png",
+      "width": 1200,
+      "height": 400,
+      "sha256": "db4e7b0b612f4fd2d961bd290b86a36978a7ade9bb76aa6c597029dfd3f88212",
+      "alt": {
+        "en": "Abstract amber and violet gradient banner",
+        "zh": "琥珀色到紫色的抽象渐变横幅"
+      }
+    }
+  ]
+}

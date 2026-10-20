@@ -34,7 +34,7 @@ export function usePerpPosition(params: UsePerpPositionParams) {
   const enabled = !!params.account && !!addrs.market;
 
   // Step 1: Compute position key on-chain
-  const { data: positionKey } = useReadContract({
+  const { data: positionKey, isError: keyFailed } = useReadContract({
     address: addrs.market || undefined,
     abi: CONTRACT_ABIS.PerpMarket,
     functionName: 'getPositionKey',
@@ -45,19 +45,21 @@ export function usePerpPosition(params: UsePerpPositionParams) {
   });
 
   // Step 2: Read position by key
-  const { data: positionData, isLoading, refetch } = useReadContract({
+  const { data: positionData, isLoading, isError: positionFailed, refetch } = useReadContract({
     address: addrs.market || undefined,
     abi: CONTRACT_ABIS.PerpMarket,
     functionName: 'positions',
     args: positionKey ? [positionKey as `0x${string}`] : undefined,
     query: {
-      enabled: !!positionKey,
+      enabled: !!positionKey && !keyFailed,
       refetchInterval: 10000,
     },
   });
 
   // Step 3: Parse tuple into typed object
-  const position: PerpPositionData | null = positionData
+  // React Query retains cached data after a failed refetch. A close review
+  // needs a valid chain observation, not a cached position with a read error.
+  const position: PerpPositionData | null = positionData && !keyFailed && !positionFailed
     ? {
         size: (positionData as any)[0] as bigint,
         collateral: (positionData as any)[1] as bigint,

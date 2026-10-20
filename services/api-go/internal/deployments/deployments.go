@@ -109,16 +109,32 @@ type deploymentRecord struct {
 // are silently skipped — matching the TS reader's tolerance for partial
 // deployments during dev.
 func LoadMerged(dir string) (map[int]ChainConfig, error) {
+	merged, _, err := LoadMergedWithSources(dir)
+	return merged, err
+}
+
+// ContractSource names the deployment record that supplied a merged contract:
+// the file and its timestamp exactly as written (timestamp, else deployedAt).
+type ContractSource struct {
+	File      string
+	Timestamp string
+}
+
+// LoadMergedWithSources is LoadMerged plus, per chain and contract name, the
+// record whose entry won the merge. The execution registry builder binds that
+// identity; sharing the merge keeps its addresses identical to the API's.
+func LoadMergedWithSources(dir string) (map[int]ChainConfig, map[int]map[string]ContractSource, error) {
+	sources := map[int]map[string]ContractSource{}
 	if dir == "" {
-		return map[int]ChainConfig{}, nil
+		return map[int]ChainConfig{}, sources, nil
 	}
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return map[int]ChainConfig{}, nil
+			return map[int]ChainConfig{}, sources, nil
 		}
-		return nil, fmt.Errorf("read deployments dir: %w", err)
+		return nil, nil, fmt.Errorf("read deployments dir: %w", err)
 	}
 
 	records := make([]deploymentRecord, 0, len(entries))
@@ -170,14 +186,22 @@ func LoadMerged(dir string) (map[int]ChainConfig, error) {
 		} else if record.data.DeployedAt != "" {
 			current.Timestamp = record.data.DeployedAt
 		}
+		stamp := record.data.Timestamp
+		if stamp == "" {
+			stamp = record.data.DeployedAt
+		}
+		if sources[record.chainID] == nil {
+			sources[record.chainID] = map[string]ContractSource{}
+		}
 		for name, contract := range record.data.Contracts {
 			current.Contracts[name] = contract
+			sources[record.chainID][name] = ContractSource{File: record.fileName, Timestamp: stamp}
 		}
 		current.Sources = append(current.Sources, record.fileName)
 		merged[record.chainID] = current
 	}
 
-	return merged, nil
+	return merged, sources, nil
 }
 
 // DiscoverDir resolves the deployments directory for every runtime

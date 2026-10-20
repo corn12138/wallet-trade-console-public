@@ -9,13 +9,9 @@ import { useTokenBalance } from '@/hooks/web3/useTokenBalance';
 import { getPerpAddresses } from '@/lib/web3/contracts';
 import { buildAddressExplorerUrl } from '@/lib/web3/explorer';
 import { supportedChains as web3SupportedChains } from '@/lib/web3';
-import type {
-  TxErrorCode,
-  TxInvalidationReason,
-  TxLifecycleState,
-  TxPhase,
-  TxReviewFacts,
-} from '@/hooks/web3/txIntent/types';
+import type { TxLifecycleState, TxPhase } from '@/hooks/web3/txIntent/types';
+import type { TokenPickerProps, TxIntentModalProps } from '@/lib/ui/shell-contract';
+export type { TxIntentModalProps } from '@/lib/ui/shell-contract';
 
 /* ─────────── helpers to map real chains → design palette ─────────── */
 function chainSwatch(id: number) {
@@ -223,9 +219,9 @@ function TokenPickerModal({
   onBg,
   close,
 }: {
-  tokens: Array<{ symbol: string; name: string; address?: string }>;
+  tokens: TokenPickerProps['tokens'];
   exclude?: string;
-  onPick?: (token: unknown) => void;
+  onPick: TokenPickerProps['onPick'];
   onBg: (e: React.MouseEvent) => void;
   close: () => void;
 }) {
@@ -436,7 +432,7 @@ Nonce: (signed at submission)`}</pre>
     );
   }
   if (app.modal.kind === 'tokenPicker') {
-    const { onPick, exclude, tokens: realTokens } = app.modal.props || {};
+    const { onPick, exclude, tokens: realTokens } = app.modal.props;
     return (
       <TokenPickerModal
         tokens={realTokens || []}
@@ -447,11 +443,12 @@ Nonce: (signed at submission)`}</pre>
       />
     );
   }
-  if (app.modal.kind === 'tx' && app.modal.props?.mode === 'intent') {
-    return <TxIntentModal props={app.modal.props as TxIntentModalProps} onBg={onBg} close={app.closeModal} />;
-  }
   if (app.modal.kind === 'tx') {
-    const { stage, title, summary, hash, explorerUrl, error } = app.modal.props || {};
+    const props = app.modal.props;
+    if (props.mode === 'intent') {
+      return <TxIntentModal props={props} onBg={onBg} close={app.closeModal} />;
+    }
+    const { stage, title, summary, hash, explorerUrl, error } = props;
     return (
       <div className="modal-bg" onClick={onBg}>
         <div className="modal-box">
@@ -740,34 +737,6 @@ export function PageShell({ children }: { children: React.ReactNode }) {
 
 /* ─────────── frozen-intent transaction modal (ADR 0008) ─────────── */
 
-/**
- * The modal for the shared transaction lifecycle. It renders a COLLAPSED phase
- * rather than the raw lifecycle state, and every failure branch has its own
- * rendering with a way out — no state can fall through to a spinner.
- *
- * Everything here is a code translated in this file; the engine never hands
- * over a string a user could see.
- */
-export interface TxIntentModalProps {
-  mode: 'intent';
-  phase: TxPhase;
-  state: TxLifecycleState;
-  title: string;
-  stepTitle?: string;
-  step?: { current: number; total: number };
-  review: TxReviewFacts | null;
-  expiresAt?: number;
-  expectsIndexing: boolean;
-  indexing: 'not-expected' | 'pending' | 'indexed' | 'timed-out';
-  hash?: string | null;
-  replacedByHash?: string | null;
-  explorerUrl?: string | null;
-  errorCode?: TxErrorCode | null;
-  invalidationReason?: TxInvalidationReason | null;
-  technicalHint?: string | null;
-  onSign?: () => void;
-  onRetry?: () => void;
-}
 
 function shortHex(value: string): string {
   return value.length > 14 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value;
@@ -790,6 +759,14 @@ function failedAtPhase(state: TxLifecycleState, hash: string | null | undefined)
   }
 }
 
+/**
+ * The modal for the shared transaction lifecycle. It renders a COLLAPSED phase
+ * rather than the raw lifecycle state, and every failure branch has its own
+ * rendering with a way out — no state can fall through to a spinner.
+ *
+ * Everything here is a code translated in this file; the engine never hands
+ * over a string a user could see.
+ */
 export function TxIntentModal({
   props,
   onBg,
@@ -906,6 +883,7 @@ export function TxIntentModal({
           }}
         >
           <div data-testid="tx-intent-lead" style={{ color: failed ? 'var(--neg)' : 'var(--ink)' }}>{lead}</div>
+          {props.summary && <div data-testid="tx-intent-summary">{props.summary}</div>}
           {facts.length > 0 && props.phase !== 'failed' && (
             <div style={{ marginTop: 10 }} data-testid="tx-intent-facts">
               {facts.map(([k, v]) => (
@@ -945,9 +923,10 @@ export function TxIntentModal({
             <Icon name="ext" size={14} /> {tModal('viewOnExplorer')}
           </a>
         )}
+        {props.phase === 'review' && props.preflight}
         {props.phase === 'review' && props.onSign && (
-          <button className="btn btn-sm btn-g" style={{ width: '100%', marginTop: 14 }} onClick={props.onSign} data-testid="tx-intent-sign">
-            {t('signCta')}
+          <button className="btn btn-sm btn-g" style={{ width: '100%', marginTop: 14 }} onClick={props.onSign} disabled={props.signDisabled} data-testid="tx-intent-sign">
+            {props.signLabel ?? t('signCta')}
           </button>
         )}
         {props.phase === 'done' && (

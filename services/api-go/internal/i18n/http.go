@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -31,10 +30,10 @@ func ParseAdminWallets(raw string) map[string]bool {
 }
 
 // Router mounts the public catalog endpoints and the SIWE-admin-guarded
-// management endpoints. guardedAuth is the shared web3 JWT middleware; nil
-// (no JWT secret configured) leaves the admin subtree answering 401.
-func Router(svc *Service, guardedAuth func(http.Handler) http.Handler) http.Handler {
-	admins := ParseAdminWallets(os.Getenv(AdminWalletsEnv))
+// management endpoints. guardedAuth is the shared web3 guard; nil leaves the
+// admin subtree answering 401. admins is the allowlist (see
+// ParseAdminWallets); nil or empty denies every admin route.
+func Router(svc *Service, guardedAuth func(http.Handler) http.Handler, admins map[string]bool) http.Handler {
 	r := chi.NewRouter()
 
 	// ── public, read-only ────────────────────────────────────────────────

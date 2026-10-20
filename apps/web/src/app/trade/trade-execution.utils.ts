@@ -31,7 +31,8 @@ function getExecutionValidationCode(input: {
         return 'invalid_slippage';
     }
 
-    if (!Number.isFinite(input.deadlineMinutesValue) || input.deadlineMinutesValue < 1 || input.deadlineMinutesValue > 120) {
+    // Reserve the shared engine's 60-second signing margin before the on-chain deadline.
+    if (!Number.isInteger(input.deadlineMinutesValue) || input.deadlineMinutesValue < 2 || input.deadlineMinutesValue > 120) {
         return 'invalid_deadline';
     }
 

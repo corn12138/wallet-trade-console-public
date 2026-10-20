@@ -704,11 +704,11 @@ func TestASecondWriterWithAStaleNotFoundDoesNotOverCountAttempts(t *testing.T) {
 	defer func() { _ = second.Rollback(ctx) }()
 
 	// Both writers look before either writes, and both see nothing.
-	firstView, err := lockAttempt(ctx, first, chainID, hash)
+	firstView, err := lockAttempt(ctx, first, chainID, hash, false)
 	if err != nil {
 		t.Fatalf("first lookup: %v", err)
 	}
-	secondView, err := lockAttempt(ctx, second, chainID, hash)
+	secondView, err := lockAttempt(ctx, second, chainID, hash, false)
 	if err != nil {
 		t.Fatalf("second lookup: %v", err)
 	}
@@ -724,7 +724,7 @@ func TestASecondWriterWithAStaleNotFoundDoesNotOverCountAttempts(t *testing.T) {
 		}
 		number := view.attemptNumber
 		if !view.found {
-			if number, err = claimAttemptNumber(ctx, tx, actionID, chainID, hash); err != nil {
+			if number, err = claimAttemptNumber(ctx, tx, actionID, chainID, hash, nil); err != nil {
 				t.Fatalf("claim: %v", err)
 			}
 		}

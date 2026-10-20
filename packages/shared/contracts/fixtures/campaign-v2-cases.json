@@ -1,0 +1,19 @@
+[
+  {"name":"future-schema","path":["schemaVersion"],"value":2,"reason":"unsupported"},
+  {"name":"future-template","path":["templateId"],"value":"remoteCardV9","reason":"unsupported"},
+  {"name":"display-copy-backdoor","path":["displayContent","title"],"value":"new promise","reason":"invalid"},
+  {"name":"remote-component","path":["displayContent","moduleUrl"],"value":"https://example.invalid/code.js","reason":"invalid"},
+  {"name":"executable-cta","path":["cta","calldata"],"value":"0x1234","reason":"invalid"},
+  {"name":"none-with-target","path":["cta","chainId"],"value":1,"reason":"invalid"},
+  {"name":"missing-target","path":["cta","actionKind"],"value":"openTrade","reason":"invalid"},
+  {"name":"fractional-order","path":["displayContent","sortOrder"],"value":0.5,"reason":"invalid"},
+  {"name":"missing-required-rule","path":["materialTerms","rules","join"],"remove":true,"reason":"invalid"},
+  {"name":"unknown-rule-parameter","path":["materialTerms","rules","join","params","rpc"],"value":"external","reason":"invalid"},
+  {"name":"future-rule","path":["materialTerms","rules","join","version"],"value":2,"reason":"unsupported"},
+  {"name":"invalid-calendar-day","path":["materialTerms","startAt"],"value":"2026-02-31T00:00:00Z","reason":"invalid"},
+  {"name":"end-before-start","path":["materialTerms","endAt"],"value":"2026-10-08T00:00:00Z","reason":"invalid"},
+  {"name":"no-offset-dates","path":["materialTerms","startAt"],"value":"2026-10-09T08:00:00+08:00","reason":"invalid"},
+  {"name":"blank-translated-terms","path":["materialTerms","copy","zh","rules"],"value":"  ","reason":"invalid"},
+  {"name":"html-copy","path":["materialTerms","copy","en","description"],"value":"<a href=x>reward</a>","reason":"invalid"},
+  {"name":"reward-execution","path":["materialTerms","rewardDelivery"],"value":"transfer","reason":"unsupported"}
+]

@@ -44,6 +44,9 @@ type VerifiedTransaction struct {
 	// attempt rather than wrong.
 	SenderNonce *uint64
 	BlockHash   *string
+	// Input is the RPC calldata (LG-03b report classification); nil when the
+	// node omitted it.
+	Input *string
 }
 
 type VerifiedReceipt struct {
@@ -59,6 +62,7 @@ type VerifiedReceipt struct {
 	Confirmations int
 	GasUsed       *int64
 	GasPrice      *int64
+	Input         *string
 }
 
 type TransactionVerifier interface {
@@ -94,6 +98,7 @@ func (v *RPCTransactionVerifier) VerifySubmitted(
 		Value:       decimalValue(tx.Value),
 		SenderNonce: tx.Nonce,
 		BlockHash:   normalizeRPCHash(tx.BlockHash),
+		Input:       tx.Input,
 	}, nil
 }
 
@@ -187,6 +192,7 @@ func (v *RPCTransactionVerifier) VerifyReceipt(
 		Confirmations:   confirmationsFor(ctx, client, receipt.BlockNumber),
 		GasUsed:         gasUsed,
 		GasPrice:        gasPrice,
+		Input:           tx.Input,
 	}, nil
 }
 

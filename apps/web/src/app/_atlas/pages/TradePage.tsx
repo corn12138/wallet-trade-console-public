@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useApp } from '../AppContext';
+import { parseTradeLink, tradeLinkState, type TradeLink } from '@/features/trade';
 import { useTrading } from '@/hooks/useTrading';
+import { useTradingTransactions } from '@/hooks/useTradingTransactions';
+import { TradeIntentDialog } from './TradeIntentDialog';
 import { useTradingDefaults } from '@/lib/trading-defaults';
 import {
   evaluateTradeOrder,
@@ -16,8 +19,6 @@ import { TradeMarketRail } from './TradeMarketRail';
 import { TradeOrderbook } from './TradeOrderbook';
 import { TradeTables } from './TradeTables';
 import { TradeTicket } from './TradeTicket';
-import { TxPreflight } from '../TxPreflight';
-import { buildPerpApprovalPreflightInput } from './tradePreflight';
 import type { TabKey, TradePosition, TradeSide } from './tradeTypes';
 import { formatBalanceDisplay, priceFlash } from './tradeUtils';
 
@@ -26,6 +27,8 @@ export function TradePage() {
   const t = useTranslations('trading');
   const tTerm = useTranslations('trade.terminal');
   const tTx = useTranslations('trade.tx');
+  const tIntent = useTranslations('trade.intent');
+  const tError = useTranslations('atlasShell.modals.intent.err');
   const trading = useTrading();
   const {
     markets,
@@ -50,26 +53,12 @@ export function TradePage() {
     history,
     isOrdersLoading,
     isHistoryLoading,
-    openPosition,
-    closePosition,
-    isApproving,
-    isApproveSuccess,
-    isOpenPending,
-    isOpenConfirming,
-    isOpenSuccess,
-    openError,
-    resetOpen,
-    isClosePending,
-    isCloseConfirming,
-    isCloseSuccess,
-    closeError,
-    resetClose,
     address,
     chainId,
     perpAddresses,
-    isCollateralApproved,
   } = trading;
 
+  const [showIntent, setShowIntent] = useState(false);
   const [side, setSide] = useState<TradeSide>('long');
   const [orderType, setOrderType] = useState<TradeOrderType>('market');
   const [size, setSize] = useState('');
@@ -78,28 +67,58 @@ export function TradePage() {
   const [tab, setTab] = useState<TabKey>('positions');
   const [marketSearch, setMarketSearch] = useState('');
 
-  // Deep link: /trade?symbol=ETH-USD selects that market once the list has it,
-  // and the current selection is written back so the terminal URL is shareable.
-  // Read via window.location (not useSearchParams) to keep this client-only —
-  // the markets list arrives async, so the wish is held until it can be honored.
-  const pendingSymbolRef = useRef<string | null>(null);
+  // Deep link: /trade?symbol=ETH-USD[&chainId=N] selects that market once the
+  // list has it, and the current selection is written back so the terminal URL
+  // is shareable. Read via window.location (not useSearchParams) to keep this
+  // client-only — the markets list arrives async, so the wish is held until it
+  // can be honored. A link naming a chain stays pending until a connected
+  // wallet on that chain resolves it or a manual choice replaces it: the
+  // chain the terminal merely displays (a default while disconnected) never
+  // resolves it, and the URL keeps it meanwhile. On another wallet chain the
+  // page asks for the explicit network switch and selects nothing, so a
+  // same-symbol market elsewhere is never substituted.
+  // undefined until the URL has been read: synchronization waits for it, so
+  // the first render cannot overwrite a target it has not seen yet.
+  const [link, setLink] = useState<TradeLink | null | undefined>(undefined);
   useEffect(() => {
-    pendingSymbolRef.current = new URLSearchParams(window.location.search).get('symbol');
+    setLink(parseTradeLink(window.location.search));
   }, []);
+  const linkState = tradeLinkState(link ?? null, chainId, app.wallet?.chainId ?? null);
+  const linkResolves = linkState.kind === 'ready' || linkState.kind === 'symbolOnly';
+  const linkWanted = linkResolves || (linkState.kind === 'connectRequired' && linkState.displayable) ? linkState.symbol : null;
+  const linkChain = linkState.kind === 'ready' || linkState.kind === 'connectRequired' ? linkState.chainId : null;
+  // A disconnected visitor may see the target read-only; that selection is
+  // withdrawn if the wallet then connects on another chain.
+  const shownFromLink = useRef<string | null>(null);
   useEffect(() => {
-    const wanted = pendingSymbolRef.current;
-    if (wanted && markets.some((m) => m.symbol === wanted)) {
-      pendingSymbolRef.current = null;
-      setSelectedMarketSymbol(wanted);
+    if (linkWanted && markets.some((m) => m.symbol === linkWanted && (linkChain === null || m.chainId === linkChain))) {
+      setSelectedMarketSymbol(linkWanted);
+      if (linkResolves) {
+        shownFromLink.current = null;
+        setLink(null);
+      } else shownFromLink.current = linkWanted;
     }
-  }, [markets, setSelectedMarketSymbol]);
+  }, [markets, linkWanted, linkChain, linkResolves, setSelectedMarketSymbol]);
   useEffect(() => {
-    if (!selectedMarketSymbol || pendingSymbolRef.current) return;
+    if (linkState.kind === 'switchRequired' && shownFromLink.current) {
+      shownFromLink.current = null;
+      setSelectedMarketSymbol(null);
+    }
+  }, [linkState.kind, setSelectedMarketSymbol]);
+  // Choosing a market by hand replaces the link's wish.
+  const selectMarket = (symbol: string | null) => {
+    shownFromLink.current = null;
+    setLink(null);
+    setSelectedMarketSymbol(symbol);
+  };
+  useEffect(() => {
+    if (!selectedMarketSymbol || link !== null) return;
     const url = new URL(window.location.href);
-    if (url.searchParams.get('symbol') === selectedMarketSymbol) return;
+    if (url.searchParams.get('symbol') === selectedMarketSymbol && url.searchParams.get('chainId') === String(chainId)) return;
     url.searchParams.set('symbol', selectedMarketSymbol);
+    url.searchParams.set('chainId', String(chainId));
     window.history.replaceState(null, '', url);
-  }, [selectedMarketSymbol]);
+  }, [selectedMarketSymbol, link, chainId]);
 
   // Slippage/deadline are shared with Settings → "Trading defaults" via a
   // browser-local store, and genuinely applied to every open/close below.
@@ -122,90 +141,6 @@ export function TradePage() {
       return () => clearTimeout(t);
     }
   }, [currentPrice]);
-
-  useEffect(() => {
-    if (isApproving) {
-      app.setModal({
-        kind: 'tx',
-        props: { stage: 'pending', title: tTx('approvingTitle'), summary: tTx('approvingSummary') },
-      });
-    }
-  }, [isApproving, app, tTx]);
-
-  useEffect(() => {
-    if (isOpenPending || isOpenConfirming) {
-      app.setModal({
-        kind: 'tx',
-        props: {
-          stage: 'pending',
-          title: tTx('openingTitle'),
-          summary: tTx('openSummary', {
-            side: side === 'long' ? tTx('long') : tTx('short'),
-            size: size || '0',
-            lev,
-            symbol: selectedMarket?.symbol ?? '—',
-          }),
-        },
-      });
-    }
-  }, [isOpenPending, isOpenConfirming, side, size, lev, selectedMarket, app, tTx]);
-
-  useEffect(() => {
-    if (isOpenSuccess && selectedMarket) {
-      const sideLabel = side === 'long' ? tTx('long') : tTx('short');
-      app.setModal({
-        kind: 'tx',
-        props: {
-          stage: 'confirmed',
-          title: tTx('openConfirmedTitle'),
-          summary: tTx('openSummary', { side: sideLabel, size: size || '0', lev, symbol: selectedMarket.symbol }),
-        },
-      });
-      app.toast(tTx('openConfirmedToast', { side: sideLabel, symbol: selectedMarket.symbol }), 'ok');
-      resetOpen();
-    }
-  }, [isOpenSuccess, side, size, lev, selectedMarket, app, resetOpen, tTx]);
-
-  useEffect(() => {
-    if (openError) {
-      app.toast(openError.message?.slice(0, 80) || tTx('openFailed'), 'err');
-      resetOpen();
-    }
-  }, [openError, app, resetOpen, tTx]);
-
-  // The approve is a separate transaction: openPosition sends it and returns.
-  // Tell the user the next submit will actually open the position, instead of
-  // leaving the confirmed approval as a silent dead end.
-  useEffect(() => {
-    if (isApproveSuccess) {
-      app.closeModal();
-      app.toast(tTx('approvedToast'), 'ok');
-    }
-  }, [isApproveSuccess, app, tTx]);
-
-  useEffect(() => {
-    if (isClosePending || isCloseConfirming) {
-      app.setModal({
-        kind: 'tx',
-        props: { stage: 'pending', title: tTx('closingTitle'), summary: tTx('closingSummary') },
-      });
-    }
-  }, [isClosePending, isCloseConfirming, app, tTx]);
-
-  useEffect(() => {
-    if (isCloseSuccess) {
-      app.setModal({ kind: 'tx', props: { stage: 'confirmed', title: tTx('closedTitle'), summary: tTx('closedSummary') } });
-      app.toast(tTx('closedToast'), 'ok');
-      resetClose();
-    }
-  }, [isCloseSuccess, app, resetClose, tTx]);
-
-  useEffect(() => {
-    if (closeError) {
-      app.toast(closeError.message?.slice(0, 80) || tTx('closeFailed'), 'err');
-      resetClose();
-    }
-  }, [closeError, app, resetClose, tTx]);
 
   const displayLast = formattedPrice && formattedPrice !== '—' ? formattedPrice : '—';
 
@@ -244,22 +179,22 @@ export function TradePage() {
 
   const canSubmit = tradeState.canSubmit && !executionState.validationCode;
 
-  // Only renders while the collateral allowance is short — that is when the
-  // submit below actually sends an approve. Once approved it returns null and
-  // the strip disappears, rather than describing a transaction that is no
-  // longer the next one.
-  const preflightInput = useMemo(
-    () =>
-      buildPerpApprovalPreflightInput({
-        userAddress: address,
-        usdc: perpAddresses.usdc,
-        positionManager: perpAddresses.positionManager,
-        chainId,
-        collateralAmount: size,
-        isCollateralApproved,
-      }),
-    [address, perpAddresses.usdc, perpAddresses.positionManager, chainId, size, isCollateralApproved],
-  );
+  const transaction = useTradingTransactions({
+    address, addrs: perpAddresses, chainId, currentPrice, selectedMarket,
+    positions: trading.positions,
+    viewerKey: trading.viewerKey,
+    openParams: { collateralAmount: size, leverage: lev, isLong: side === 'long',
+      acceptablePrice: orderType === 'limit' ? limitPrice : undefined,
+      slippagePercent: executionState.slippagePercentValue,
+      deadlineMinutes: executionState.deadlineMinutesValue },
+    refetchAll: trading.refetchAll,
+    refetchActivity: trading.refetchActivity,
+  });
+  const { intent } = transaction;
+  const closeIntent = () => {
+    setShowIntent(false);
+    if (!intent.hash && intent.state !== 'AWAITING_WALLET') intent.reset();
+  };
 
   // Fee/position figures come from evaluateTradeOrder — the same module the
   // validation reads — so the ticket can't show a different rate than the
@@ -281,14 +216,9 @@ export function TradePage() {
     if (!selectedMarket || !canSubmit) {
       return;
     }
-    openPosition({
-      collateralAmount: size,
-      leverage: lev,
-      isLong: side === 'long',
-      acceptablePrice: orderType === 'limit' ? limitPrice : undefined,
-      slippagePercent: executionState.slippagePercentValue,
-      deadlineMinutes: executionState.deadlineMinutesValue,
-    });
+    const error = transaction.reviewOpen();
+    if (error) app.toast(tError(error), 'err');
+    else setShowIntent(true);
   };
 
   const handleClosePosition = (position: TradePosition) => {
@@ -296,11 +226,9 @@ export function TradePage() {
       app.toast(tTx('fixSlippage'), 'warn');
       return;
     }
-    closePosition({
-      position,
-      slippagePercent: executionState.slippagePercentValue,
-      deadlineMinutes: executionState.deadlineMinutesValue,
-    });
+    const error = transaction.reviewClose(position);
+    if (error) app.toast(tError(error), 'err');
+    else setShowIntent(true);
   };
 
   const handleMax = () => {
@@ -329,6 +257,19 @@ export function TradePage() {
 
   return (
     <div className="terminal" style={{ minHeight: 'calc(100vh - 130px)' }}>
+      {showIntent && <TradeIntentDialog transaction={transaction} close={closeIntent} />}
+      {!showIntent && intent.activeStep && (
+        <button className="btn btn-sm" onClick={() => setShowIntent(true)}>{tIntent('viewTransaction')}</button>
+      )}
+      {linkState.kind === 'switchRequired' ? <div className="block row gap-10" role="status" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
+        <span>{tTerm('linkOtherChain', { symbol: linkState.symbol, target: linkState.chainId, current: linkState.walletChainId })}</span>
+        <button type="button" className="btn btn-sm" onClick={() => app.switchChain({ id: linkState.chainId, name: tTerm('chain', { chainId: linkState.chainId }) })}>{tTerm('linkSwitch')}</button>
+      </div> : null}
+      {linkState.kind === 'connectRequired' ? <div className="block row gap-10" role="status" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
+        <span>{tTerm('linkConnectTarget', { symbol: linkState.symbol, target: linkState.chainId })}</span>
+        <button type="button" className="btn btn-sm" onClick={app.openConnect}>{tTerm('linkConnect')}</button>
+      </div> : null}
+      {linkState.kind === 'unsupported' ? <div className="block" role="status">{tTerm('linkUnsupported', { symbol: linkState.symbol })}</div> : null}
       <div className="term-bar">
         <div className="lights">
           <b />
@@ -350,7 +291,7 @@ export function TradePage() {
           marketSearch={marketSearch}
           selectedMarketSymbol={selectedMarketSymbol}
           setMarketSearch={setMarketSearch}
-          setSelectedMarketSymbol={setSelectedMarketSymbol}
+          setSelectedMarketSymbol={selectMarket}
         />
 
         <div className="term-center">
@@ -372,13 +313,13 @@ export function TradePage() {
             isPositionsLoading={isPortfolioLoading}
             isOrdersLoading={isOrdersLoading}
             isHistoryLoading={isHistoryLoading}
-            isClosePending={isClosePending}
-            isCloseConfirming={isCloseConfirming}
+            isClosePending={transaction.locked}
+            isCloseConfirming={false}
             isMarketStreamConnected={isMarketStreamConnected}
             marketStreamStatus={marketStreamStatus}
             setTab={setTab}
             onClosePosition={handleClosePosition}
-            onSelectMarket={setSelectedMarketSymbol}
+            onSelectMarket={selectMarket}
             onConnect={app.openConnect}
           />
         </div>
@@ -414,11 +355,11 @@ export function TradePage() {
             slippagePercent={slippagePercent}
             deadlineMinutes={deadlineMinutes}
             notice={notice}
-            preflight={<TxPreflight input={preflightInput} />}
+            preflight={undefined}
             canSubmit={canSubmit}
-            isApproving={isApproving}
-            isOpenPending={isOpenPending}
-            isOpenConfirming={isOpenConfirming}
+            isApproving={false}
+            isOpenPending={transaction.locked}
+            isOpenConfirming={false}
             setSide={setSide}
             setOrderType={setOrderType}
             setSize={setSize}

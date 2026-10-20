@@ -68,6 +68,38 @@ describe('failure branches are distinct facts', () => {
   });
 });
 
+describe('receipt recovery after observation failure', () => {
+  const failed = run([...toAwaiting, { type: 'SUBMITTED', hash: HASH }, { type: 'FAIL', code: 'UNKNOWN' }]);
+
+  it.each([false, true])('resolves a broadcast failure from success with indexing=%s', (expectsIndexing) => {
+    const recovered = transition(failed, { type: 'RECEIPT_SUCCESS', confirmations: 1, expectsIndexing });
+    expect(recovered.state).toBe(expectsIndexing ? 'CONFIRMING' : 'FINALIZED');
+    expect(recovered.errorCode).toBeNull();
+    expect(recovered.hash).toBe(HASH);
+  });
+
+  it('resolves a broadcast failure from a reverted receipt', () => {
+    const recovered = transition(failed, { type: 'RECEIPT_REVERTED' });
+    expect(recovered.state).toBe('REVERTED');
+    expect(recovered.errorCode).toBe('REVERTED');
+  });
+
+  it('resolves a broadcast failure from a replacement observation', () => {
+    const recovered = transition(failed, { type: 'REPLACED', hash: HASH2 });
+    expect(recovered.state).toBe('REPLACED');
+    expect(recovered.hash).toBe(HASH);
+    expect(recovered.replacedByHash).toBe(HASH2);
+    expect(recovered.errorCode).toBeNull();
+  });
+
+  it('ignores receipts when failure occurred before a hash was returned', () => {
+    const unsubmitted = run([...toAwaiting, { type: 'FAIL', code: 'UNKNOWN' }]);
+    expect(transition(unsubmitted, { type: 'RECEIPT_SUCCESS', confirmations: 1, expectsIndexing: false })).toBe(unsubmitted);
+    expect(transition(unsubmitted, { type: 'RECEIPT_REVERTED' })).toBe(unsubmitted);
+    expect(transition(unsubmitted, { type: 'REPLACED', hash: HASH2 })).toBe(unsubmitted);
+  });
+});
+
 describe('invalidation and expiry are pre-broadcast only', () => {
   it('a draft under review is invalidated back to DRAFT with the reason', () => {
     const m = run([{ type: 'REVIEW' }, { type: 'REVIEW_OK' }, { type: 'INVALIDATE', reason: 'ACCOUNT_CHANGED' }]);

@@ -99,11 +99,11 @@ func TestSimulate_EstimateErrorSurfacesMessage(t *testing.T) {
 	}
 }
 
-func TestSimulate_RespectsPreSuppliedBalance(t *testing.T) {
-	rpc := &stubRPC{estimateGas: big.NewInt(21000)}
+func TestSimulate_DoesNotTrustPreSuppliedBalance(t *testing.T) {
+	rpc := &stubRPC{estimateGas: big.NewInt(21000), balance: big.NewInt(5)}
 	r := Simulate(context.Background(), rpc, "0xabc", TxShape{}, "777")
-	if r.NativeBalanceWei == nil || r.NativeBalanceWei.Cmp(big.NewInt(777)) != 0 {
-		t.Errorf("balance = %v, want 777 (pre-supplied)", r.NativeBalanceWei)
+	if r.NativeBalanceWei == nil || r.NativeBalanceWei.Cmp(big.NewInt(5)) != 0 {
+		t.Errorf("balance = %v, want 5 (RPC observation)", r.NativeBalanceWei)
 	}
 }
 

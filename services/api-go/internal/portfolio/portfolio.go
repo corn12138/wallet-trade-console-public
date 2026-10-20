@@ -1,12 +1,8 @@
 // Package portfolio is the Go port of legacy NestJS portfolio/
 // portfolio.service.ts.
 //
-// Phase 4h ported /assets/{address} (asset detail). Phase 4i adds
-// /assets — the inventory listing for a wallet, which depends on
-// staking user stakes, perp positions, created tokens, token holdings,
-// and the asset-visibility filter (settings preferences + hidden
-// assets). /summary is the next slice once those same sources are in
-// place.
+// Inventory and summary expose indexed protocol records, their coverage and
+// valuation availability. They are not a complete wallet balance service.
 package portfolio
 
 import (
@@ -18,7 +14,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/activity"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
@@ -91,12 +86,10 @@ type HoldingLister interface {
 	ListHoldingsByOwner(ctx context.Context, ownerAddress string, chainID *int) ([]token.HoldingForOwner, error)
 }
 
-// SettingsProvider abstracts the two settings reads the inventory
-// needs: spam-filter level (from preferences) and the configured
-// hidden-asset list.
+// SettingsProvider keeps visibility rules strict even when settings HTTP reads
+// deliberately degrade to defaults.
 type SettingsProvider interface {
-	GetPreferences(ctx context.Context, ownerAddress string) (settings.UserPreferences, error)
-	ListHiddenAssets(ctx context.Context, ownerAddress string, chainID *int) ([]settings.HiddenAsset, error)
+	GetPortfolioVisibility(ctx context.Context, ownerAddress string, chainID *int) (settings.UserPreferences, []settings.HiddenAsset, error)
 }
 
 // WalletCounter abstracts the web3_wallets row count. Used by
@@ -139,10 +132,7 @@ type TrendingTokenLister interface {
 // ErrNotFound is returned when the address doesn't resolve to a token.
 var ErrNotFound = errors.New("token not found")
 
-// Service composes the per-token reads with the approval counter,
-// the inventory sources, and the summary's count + alert + snapshot
-// providers. Any field may be nil — the corresponding contribution
-// degrades to an empty/zero value at call time.
+// Service composes token detail, strict asset inventory and summary reads.
 type Service struct {
 	tokens        TokenLookup
 	approvals     ApprovalCounter
@@ -159,8 +149,8 @@ type Service struct {
 	trending      TrendingTokenLister
 }
 
-// Deps groups the dependencies for the full Service. Fields may be
-// nil; each nil dep contributes an empty/zero value to the response.
+// Missing inventory sources are reported as unavailable; missing visibility
+// rules fail the inventory read closed.
 type Deps struct {
 	Tokens        TokenLookup
 	Approvals     ApprovalCounter
@@ -177,16 +167,12 @@ type Deps struct {
 	Trending      TrendingTokenLister
 }
 
-// NewService builds a Service with only the asset-detail dependencies
-// wired. Inventory and summary deps default to nil — calls fall
-// through to empty payloads. Use NewServiceFromDeps for the full set.
+// NewService wires asset-detail reads. Inventory requires NewServiceFromDeps.
 func NewService(tokens TokenLookup, approvals ApprovalCounter) *Service {
 	return &Service{tokens: tokens, approvals: approvals}
 }
 
-// NewServiceWithInventory wires the dependencies GetAssets needs. Any
-// of stakes / positions / createdTokens / holdings / settings can be
-// nil — that source contributes no rows (or default preferences).
+// NewServiceWithInventory wires the dependencies GetAssets needs.
 //
 // Deprecated: use NewServiceFromDeps so summary + inventory share one
 // wiring path. Retained for back-compat with older call sites.
@@ -210,9 +196,7 @@ func NewServiceWithInventory(
 	}
 }
 
-// NewServiceFromDeps builds a Service with every dependency a portfolio
-// endpoint might need. Pass Deps{} to spin a fully-degraded service
-// for tests; main.go wires the real concrete types.
+// NewServiceFromDeps wires the portfolio endpoints.
 func NewServiceFromDeps(d Deps) *Service {
 	return &Service{
 		tokens:        d.Tokens,
@@ -306,10 +290,12 @@ func derefFloat(p *float64) float64 {
 	return *p
 }
 
-// Summary is the GET /api/portfolio/summary response. Field shape
-// mirrors NestJS portfolioService.getSummary 1:1 — `portfolioValueUsd`
-// is nullable (null when the asset list is empty).
+// Summary retains portfolioValueUsd for compatibility; valuation describes
+// the returned inventory without implying complete wallet coverage.
 type Summary struct {
+	ValuationVersion    int                     `json:"valuationVersion"`
+	Valuation           Valuation               `json:"valuation"`
+	Coverage            Coverage                `json:"coverage"`
 	Address             *string                 `json:"address"`
 	PortfolioValueUSD   *float64                `json:"portfolioValueUsd"`
 	DayChangePct        float64                 `json:"dayChangePct"`
@@ -340,10 +326,8 @@ type TopMover struct {
 	PriceChange24h float64 `json:"priceChange24h"`
 }
 
-// GetSummary mirrors portfolioService.getSummary. No-address requests
-// surface the public scaffolding (wallet count, top movers, market
-// snapshot) but skip per-user counts. nil-pool errors from any source
-// degrade to zero — same UX principle as /assets.
+// Summary auxiliary counters can degrade independently. Inventory visibility
+// and source errors must propagate so they cannot become an apparent zero balance.
 func (s *Service) GetSummary(ctx context.Context, address string, chainID *int) (Summary, error) {
 	addr, ok := normalizeIfValid(address)
 	hasOwner := ok
@@ -358,6 +342,7 @@ func (s *Service) GetSummary(ctx context.Context, address string, chainID *int) 
 		snapshot       markets.SnapshotSummary
 		alerts         []security.Alert
 		inventory      AssetInventory
+		inventoryErr   error
 	)
 	inventory = emptyInventory()
 
@@ -458,41 +443,22 @@ func (s *Service) GetSummary(ctx context.Context, address string, chainID *int) 
 	}
 	if hasOwner {
 		g.Go(func() error {
-			prefs, hiddenKeys, err := s.loadSettings(gctx, addr, chainID)
-			if err != nil {
-				if isDegradable(err) {
-					return nil
-				}
-				return err
-			}
-			raw, err := s.collectRawAssets(gctx, addr, chainID)
-			if err != nil {
-				if isDegradable(err) {
-					return nil
-				}
-				return err
-			}
-			inventory = applyVisibility(raw, hiddenKeys, prefs.SpamFilterLevel)
-			return nil
+			inventory, inventoryErr = s.GetAssets(gctx, addr, chainID)
+			return inventoryErr
 		})
 	}
 
 	if err := g.Wait(); err != nil {
+		// Clients discard cached private rows when visibility is unavailable;
+		// an earlier auxiliary-counter failure must not hide that error code.
+		var visibilityErr *visibilityReadError
+		if errors.As(inventoryErr, &visibilityErr) {
+			return Summary{}, inventoryErr
+		}
 		return Summary{}, err
 	}
 
-	// Aggregate inventory-derived scalars.
-	var portfolioValue *float64
-	if len(inventory.Items) > 0 {
-		total := 0.0
-		for _, item := range inventory.Items {
-			total += item.ValueUSD
-		}
-		if total != 0 {
-			v := total
-			portfolioValue = &v
-		}
-	}
+	portfolioValue := inventory.compatibleValue()
 	var earnCount, perpCount int
 	for _, item := range inventory.Items {
 		switch item.AssetType {
@@ -521,12 +487,7 @@ func (s *Service) GetSummary(ctx context.Context, address string, chainID *int) 
 		recentActivity = int64(txCountTotal)
 	}
 
-	dataCompleteness := "syncing"
-	if inventory.FilterSummary.FilteredCount > 0 {
-		dataCompleteness = "partial-live-filtered"
-	} else if portfolioValue != nil || recentEvents > 0 {
-		dataCompleteness = "partial-live"
-	}
+	dataCompleteness := inventory.dataCompleteness()
 
 	var addrPtr *string
 	if hasOwner {
@@ -550,6 +511,9 @@ func (s *Service) GetSummary(ctx context.Context, address string, chainID *int) 
 	}
 
 	return Summary{
+		ValuationVersion:    ValuationVersion,
+		Valuation:           inventory.Valuation,
+		Coverage:            inventory.Coverage,
 		Address:             addrPtr,
 		PortfolioValueUSD:   portfolioValue,
 		DayChangePct:        dayChange,
@@ -576,379 +540,6 @@ func isDegradable(err error) bool {
 		errors.Is(err, settings.ErrPoolUnavailable) ||
 		errors.Is(err, wallets.ErrPoolUnavailable) ||
 		errors.Is(err, activity.ErrPoolUnavailable)
-}
-
-// GetAssets returns the {items, filterSummary} envelope NestJS
-// portfolioService.getAssets emits. Empty / invalid address surfaces
-// as the empty inventory (matches the no-address branch); nil-pool
-// errors from any source degrade to zero rows for that source rather
-// than failing the whole request — same UX principle as the
-// approval-counter degrade in /assets/{address}.
-func (s *Service) GetAssets(ctx context.Context, address string, chainID *int) (AssetInventory, error) {
-	addr, ok := normalizeIfValid(address)
-	if !ok {
-		return emptyInventory(), nil
-	}
-
-	prefs, hiddenKeys, err := s.loadSettings(ctx, addr, chainID)
-	if err != nil {
-		return AssetInventory{}, err
-	}
-
-	raw, err := s.collectRawAssets(ctx, addr, chainID)
-	if err != nil {
-		return AssetInventory{}, err
-	}
-
-	return applyVisibility(raw, hiddenKeys, prefs.SpamFilterLevel), nil
-}
-
-// loadSettings fetches preferences + hidden-asset keys. nil settings
-// dep → standard spam level + empty hidden set. Settings package
-// already returns defaults gracefully under pool failures.
-func (s *Service) loadSettings(ctx context.Context, ownerAddress string, chainID *int) (settings.UserPreferences, []string, error) {
-	if s.settings == nil {
-		return settings.UserPreferences{SpamFilterLevel: "standard"}, nil, nil
-	}
-	prefs, err := s.settings.GetPreferences(ctx, ownerAddress)
-	if err != nil {
-		return settings.UserPreferences{}, nil, err
-	}
-	hidden, err := s.settings.ListHiddenAssets(ctx, ownerAddress, chainID)
-	if err != nil {
-		return settings.UserPreferences{}, nil, err
-	}
-	keys := make([]string, 0, len(hidden))
-	for _, h := range hidden {
-		keys = append(keys, h.AssetKey)
-	}
-	return prefs, keys, nil
-}
-
-// collectRawAssets mirrors portfolio.service.ts collectRawAssets: four
-// parallel reads, then merge into a single list. created tokens are
-// reconciled against discovered holdings — when the owner both created
-// and holds a token, the created-asset row absorbs the holder balance
-// so the discovered entry doesn't duplicate.
-func (s *Service) collectRawAssets(ctx context.Context, ownerAddress string, chainID *int) ([]RawAsset, error) {
-	stakes, err := s.stakeRows(ctx, ownerAddress)
-	if err != nil {
-		return nil, err
-	}
-	positions, err := s.positionRows(ctx, ownerAddress, chainID)
-	if err != nil {
-		return nil, err
-	}
-	createdTokens, err := s.createdTokenRows(ctx, ownerAddress, chainID)
-	if err != nil {
-		return nil, err
-	}
-	holdings, err := s.holdingRows(ctx, ownerAddress, chainID)
-	if err != nil {
-		return nil, err
-	}
-
-	holderByTokenID := make(map[string]token.HoldingForOwner, len(holdings))
-	for _, h := range holdings {
-		holderByTokenID[h.TokenID] = h
-	}
-
-	out := make([]RawAsset, 0, len(stakes)+len(positions)+len(createdTokens)+len(holdings))
-
-	for _, st := range stakes {
-		// NestJS valueUsd is Number(stake.amount || 0). For BigInt-as-
-		// string amounts this is a lossy float cast; we keep the same
-		// approximate behavior for shape parity, taking 0 if the parse
-		// fails. The FE uses this only as a tiebreaker in sorting.
-		out = append(out, RawAsset{
-			ID:            "stake:" + st.ID,
-			AssetType:     "earn",
-			Symbol:        st.PoolName,
-			Name:          st.PoolName,
-			ChainID:       st.PoolChainID,
-			RawBalance:    st.Amount,
-			ValueUSD:      parseAmountFloat(st.Amount),
-			Status:        stakeStatus(st),
-			Source:        "Atlas earn",
-			Address:       optAddr(st.PoolTokenAddr),
-			WalletAddress: &ownerAddress,
-			UpdatedAt:     iso(st.StakedAt),
-			Metadata:      &RawAssetMeta{Origin: "protocol-position"},
-		})
-	}
-
-	for _, p := range positions {
-		out = append(out, RawAsset{
-			ID:            "perp:" + p.ID,
-			AssetType:     "perp",
-			Symbol:        p.Token,
-			Name:          p.Token,
-			ChainID:       p.ChainID,
-			RawBalance:    p.Size,
-			ValueUSD:      parseUSD30(p.Size),
-			Status:        strings.ToLower(p.Status),
-			Source:        perpSource(p.IsLong),
-			Address:       nil,
-			WalletAddress: &ownerAddress,
-			UpdatedAt:     iso(p.UpdatedAt),
-			Metadata:      &RawAssetMeta{Origin: "protocol-position"},
-		})
-	}
-
-	for _, t := range createdTokens {
-		linked, hasHolder := holderByTokenID[t.ID]
-		if hasHolder {
-			delete(holderByTokenID, t.ID)
-		}
-		rawBalance := "0"
-		holderUpdated := ""
-		if hasHolder {
-			rawBalance = linked.Balance
-			holderUpdated = iso(linked.HolderUpdated)
-		}
-		creator := t.CreatorAddress
-		var marketCapPtr *float64
-		if t.MarketCap != nil {
-			mc := parseDecimalDisplay(t.MarketCap)
-			marketCapPtr = &mc
-		}
-		out = append(out, RawAsset{
-			ID:            "token:" + t.ID,
-			AssetType:     "token",
-			Symbol:        t.Symbol,
-			Name:          t.Name,
-			ChainID:       t.ChainID,
-			RawBalance:    rawBalance,
-			ValueUSD:      parseDecimalDisplay(t.MarketCap),
-			Status:        strings.ToLower(t.Status),
-			Source:        createdTokenSource(hasHolder),
-			Address:       t.Address,
-			WalletAddress: &ownerAddress,
-			UpdatedAt:     maxIso(holderUpdated, iso(t.CreatedAt)),
-			Metadata: &RawAssetMeta{
-				Origin:         "created-by-owner",
-				IsOfficial:     t.IsOfficial,
-				CreatorAddress: &creator,
-				Tags:           tagsAsStrings(t.Tags),
-				MarketCap:      marketCapPtr,
-			},
-		})
-	}
-
-	// Remaining holdings (those not consumed by a created token above)
-	// surface as wallet-discovered rows. Iterate the leftover map
-	// values directly — matches `Array.from(holderByTokenId.values())`.
-	for _, h := range holderByTokenID {
-		creator := h.TokenCreator
-		var marketCapPtr *float64
-		if h.TokenMarketCap != nil {
-			mc := *h.TokenMarketCap
-			marketCapPtr = &mc
-		}
-		out = append(out, RawAsset{
-			ID:            "holding:" + h.TokenID + ":" + h.UserAddress,
-			AssetType:     "token",
-			Symbol:        h.TokenSymbol,
-			Name:          h.TokenName,
-			ChainID:       h.TokenChainID,
-			RawBalance:    h.Balance,
-			ValueUSD:      0,
-			Status:        strings.ToLower(h.TokenStatus),
-			Source:        discoveredSource(h.TokenIsOfficial),
-			Address:       h.TokenAddress,
-			WalletAddress: &ownerAddress,
-			UpdatedAt:     iso(h.HolderUpdated),
-			Metadata: &RawAssetMeta{
-				Origin:         "wallet-discovered",
-				IsOfficial:     h.TokenIsOfficial,
-				CreatorAddress: &creator,
-				Tags:           tagsAsStrings(h.TokenTags),
-				MarketCap:      marketCapPtr,
-			},
-		})
-	}
-
-	return out, nil
-}
-
-func (s *Service) stakeRows(ctx context.Context, ownerAddress string) ([]staking.UserStake, error) {
-	if s.stakes == nil {
-		return nil, nil
-	}
-	rows, err := s.stakes.ListUserStakes(ctx, ownerAddress)
-	if errors.Is(err, staking.ErrPoolUnavailable) {
-		return nil, nil
-	}
-	return rows, err
-}
-
-func (s *Service) positionRows(ctx context.Context, ownerAddress string, chainID *int) ([]trading.PerpPositionForAccount, error) {
-	if s.positions == nil {
-		return nil, nil
-	}
-	rows, err := s.positions.ListOpenPositionsForAccount(ctx, ownerAddress, chainID)
-	if errors.Is(err, trading.ErrPoolUnavailable) {
-		return nil, nil
-	}
-	return rows, err
-}
-
-func (s *Service) createdTokenRows(ctx context.Context, ownerAddress string, chainID *int) ([]token.Token, error) {
-	if s.createdTokens == nil {
-		return nil, nil
-	}
-	q := token.ListQuery{
-		CreatorAddress: ownerAddress,
-		ChainID:        chainID,
-		Limit:          20,
-		Page:           1,
-		SortBy:         "", // default created_at DESC
-	}
-	rows, _, err := s.createdTokens.ListAll(ctx, q)
-	if errors.Is(err, token.ErrPoolUnavailable) {
-		return nil, nil
-	}
-	return rows, err
-}
-
-func (s *Service) holdingRows(ctx context.Context, ownerAddress string, chainID *int) ([]token.HoldingForOwner, error) {
-	if s.holdings == nil {
-		return nil, nil
-	}
-	rows, err := s.holdings.ListHoldingsByOwner(ctx, ownerAddress, chainID)
-	if errors.Is(err, token.ErrPoolUnavailable) {
-		return nil, nil
-	}
-	return rows, err
-}
-
-func stakeStatus(s staking.UserStake) string {
-	if s.UnstakedAt != nil {
-		return "closed"
-	}
-	return "active"
-}
-
-func perpSource(isLong bool) string {
-	if isLong {
-		return "Perp long"
-	}
-	return "Perp short"
-}
-
-func createdTokenSource(hasHolder bool) string {
-	if hasHolder {
-		return "Created asset · wallet holding"
-	}
-	return "Created asset"
-}
-
-func discoveredSource(isOfficial bool) string {
-	if isOfficial {
-		return "Wallet token"
-	}
-	return "Discovered token"
-}
-
-// parseUSD30 mirrors the NestJS parseUsd30 helper: a USD-30-decimals
-// BigInt-as-string is normalized into a float by extracting the whole
-// part and the first 4 fractional digits. Non-digit input → 0.
-func parseUSD30(value string) float64 {
-	if value == "" {
-		return 0
-	}
-	for _, c := range value {
-		if c < '0' || c > '9' {
-			return 0
-		}
-	}
-	padded := value
-	for len(padded) < 31 {
-		padded = "0" + padded
-	}
-	whole := padded[:len(padded)-30]
-	fraction := padded[len(padded)-30 : len(padded)-26]
-	// Best-effort float parse; result is the FE-facing approximate
-	// USD value, not for accounting.
-	var w, f float64
-	for _, c := range whole {
-		w = w*10 + float64(c-'0')
-	}
-	for _, c := range fraction {
-		f = f*10 + float64(c-'0')
-	}
-	return w + f/10000
-}
-
-// parseAmountFloat is the lossy float cast for Decimal(36,18) amounts
-// in user_stakes. Matches the JS `Number(amount || 0)` semantics — the
-// FE only uses it as a sort tiebreaker.
-func parseAmountFloat(value string) float64 {
-	var n float64
-	dotSeen := false
-	frac := 0.0
-	div := 1.0
-	negative := false
-	for i, c := range value {
-		if i == 0 && c == '-' {
-			negative = true
-			continue
-		}
-		if c == '.' {
-			dotSeen = true
-			continue
-		}
-		if c < '0' || c > '9' {
-			return 0
-		}
-		if dotSeen {
-			div *= 10
-			frac = frac*10 + float64(c-'0')
-		} else {
-			n = n*10 + float64(c-'0')
-		}
-	}
-	v := n + frac/div
-	if negative {
-		v = -v
-	}
-	return v
-}
-
-func iso(t time.Time) string {
-	return t.UTC().Format(time.RFC3339Nano)
-}
-
-func maxIso(a, b string) string {
-	if a >= b {
-		return a
-	}
-	return b
-}
-
-func optAddr(addr string) *string {
-	if addr == "" {
-		return nil
-	}
-	v := addr
-	return &v
-}
-
-func tagsAsStrings(raw any) []string {
-	arr, ok := raw.([]any)
-	if !ok {
-		return nil
-	}
-	out := make([]string, 0, len(arr))
-	for _, v := range arr {
-		if s, ok := v.(string); ok {
-			s = strings.TrimSpace(s)
-			if s != "" {
-				out = append(out, s)
-			}
-		}
-	}
-	return out
 }
 
 func normalizeIfValid(addr string) (string, bool) {
@@ -1002,7 +593,7 @@ func makeSummaryHandler(svc *Service) http.HandlerFunc {
 		out, err := svc.GetSummary(r.Context(), address, chainID)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "portfolio summary failed", "err", err, "address", address)
-			http.Error(w, "failed to load summary", http.StatusInternalServerError)
+			writeInventoryError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, out)
@@ -1021,7 +612,7 @@ func makeAssetsHandler(svc *Service) http.HandlerFunc {
 		out, err := svc.GetAssets(r.Context(), address, chainID)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "portfolio assets failed", "err", err, "address", address)
-			http.Error(w, "failed to load assets", http.StatusInternalServerError)
+			writeInventoryError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, out)

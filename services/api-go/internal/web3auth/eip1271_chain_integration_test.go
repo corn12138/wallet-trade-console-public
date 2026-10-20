@@ -105,10 +105,10 @@ func TestEIP1271_LiveChainTreatsAnEOAAsRejection(t *testing.T) {
 // by its owner key, verified end to end against the live chain.
 func TestService_ContractWalletLoginAgainstLiveChain(t *testing.T) {
 	chainID, rpcURL, wallet, owner := acceptanceChain(t)
-	svc := NewServiceWithConfig("acceptance-secret", Config{
+	svc := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs:  []int{chainID},
 		ContractVerifier: acceptanceVerifier(t, chainID, rpcURL),
-	})
+	}))
 
 	challenge, err := svc.GenerateNonceFor(context.Background(), wallet)
 	if err != nil {
@@ -134,10 +134,10 @@ func TestService_ContractWalletLoginAgainstLiveChain(t *testing.T) {
 
 func TestService_ContractWalletLoginRejectsAStranger(t *testing.T) {
 	chainID, rpcURL, wallet, _ := acceptanceChain(t)
-	svc := NewServiceWithConfig("acceptance-secret", Config{
+	svc := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs:  []int{chainID},
 		ContractVerifier: acceptanceVerifier(t, chainID, rpcURL),
-	})
+	}))
 
 	challenge, _ := svc.GenerateNonceFor(context.Background(), wallet)
 	message := buildMessage(strings.ToLower(wallet), chainID, challenge)

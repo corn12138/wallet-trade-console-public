@@ -1,0 +1,526 @@
+[
+ {
+  "name": "base detail keeps an imported campaign unsupported",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"unsupported\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\"}}",
+  "variants": [],
+  "current": "valid",
+  "strictClient": "valid",
+  "semantic": "valid"
+ },
+ {
+  "name": "base detail with the header advertised but ignored",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"unsupported\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\"}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "valid",
+  "semantic": "valid"
+ },
+ {
+  "name": "negotiated baseline detail",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "valid"
+ },
+ {
+  "name": "negotiated baseline with null description and reward",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"\",\"description\":null,\"reward\":null,\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "valid"
+ },
+ {
+  "name": "baseline shape without the negotiated variant",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "baseline shape with an unrelated variant only",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "baseline state also carrying executable content",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":{\"schemaVersion\":1,\"termsCanonicalVersion\":1,\"templateId\":\"campaignCardV1\",\"displayContent\":{\"layout\":\"compact\",\"sortOrder\":10},\"materialTerms\":{\"copy\":{\"en\":{\"title\":\"Test activity\",\"description\":\"A testnet demonstration.\",\"rules\":\"Wallet participation only.\",\"rewardDescription\":\"Information only. No reward distribution is implemented.\"},\"zh\":{\"title\":\"测试活动\",\"description\":\"测试网演示。\",\"rules\":\"仅保存钱包参加记录。\",\"rewardDescription\":\"仅展示说明，尚未实现奖励发放。\"}},\"startAt\":\"2026-10-09T00:00:00Z\",\"endAt\":\"2026-10-10T00:00:00Z\",\"rules\":{\"join\":{\"kind\":\"walletJoinV1\",\"version\":1,\"params\":{}},\"reminder\":{\"kind\":\"reminderIntentV1\",\"version\":1,\"params\":{}}},\"rewardDelivery\":\"display-only\"},\"cta\":{\"actionKind\":\"none\"}},\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "baseline state without the baseline object",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\"}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "ready content carrying a baseline object",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"campaign-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000002\",\"publicationVersion\":\"1\",\"interactionVersion\":\"1\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"ready\",\"content\":{\"schemaVersion\":1,\"termsCanonicalVersion\":1,\"templateId\":\"campaignCardV1\",\"displayContent\":{\"layout\":\"compact\",\"sortOrder\":10},\"materialTerms\":{\"copy\":{\"en\":{\"title\":\"Test activity\",\"description\":\"A testnet demonstration.\",\"rules\":\"Wallet participation only.\",\"rewardDescription\":\"Information only. No reward distribution is implemented.\"},\"zh\":{\"title\":\"测试活动\",\"description\":\"测试网演示。\",\"rules\":\"仅保存钱包参加记录。\",\"rewardDescription\":\"仅展示说明，尚未实现奖励发放。\"}},\"startAt\":\"2026-10-09T00:00:00Z\",\"endAt\":\"2026-10-10T00:00:00Z\",\"rules\":{\"join\":{\"kind\":\"walletJoinV1\",\"version\":1,\"params\":{}},\"reminder\":{\"kind\":\"reminderIntentV1\",\"version\":1,\"params\":{}}},\"rewardDelivery\":\"display-only\"},\"cta\":{\"actionKind\":\"none\"}},\"materialTermsHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contentHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"participantCount\":\"1\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-10-08T00:00:00.123456789Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "unsupported content carrying a baseline object",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"unsupported\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "baseline window inverted",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-09-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "baseline null object",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":null}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "invalid",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "baseline of an unknown template version",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV2\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "unsupported",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "unknown content state",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaselineV2\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "unsupported",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "baseline with an unexpected banner key",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\",\"banner\":\"https://example.invalid/x.png\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "invalid",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "baseline with raw legacy metadata",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\",\"metadataJson\":\"{}\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "invalid",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "baseline missing its capture time",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "invalid",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "baseline title longer than the legacy column",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "invalid",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "baseline capture time with an offset",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T20:00:00+08:00\"}}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "invalid",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "base list of ready and imported campaigns",
+  "contract": "QueryListResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"id\":\"campaign-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000002\",\"publicationVersion\":\"1\",\"interactionVersion\":\"1\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"ready\",\"content\":{\"schemaVersion\":1,\"termsCanonicalVersion\":1,\"templateId\":\"campaignCardV1\",\"displayContent\":{\"layout\":\"compact\",\"sortOrder\":10},\"materialTerms\":{\"copy\":{\"en\":{\"title\":\"Test activity\",\"description\":\"A testnet demonstration.\",\"rules\":\"Wallet participation only.\",\"rewardDescription\":\"Information only. No reward distribution is implemented.\"},\"zh\":{\"title\":\"测试活动\",\"description\":\"测试网演示。\",\"rules\":\"仅保存钱包参加记录。\",\"rewardDescription\":\"仅展示说明，尚未实现奖励发放。\"}},\"startAt\":\"2026-10-09T00:00:00Z\",\"endAt\":\"2026-10-10T00:00:00Z\",\"rules\":{\"join\":{\"kind\":\"walletJoinV1\",\"version\":1,\"params\":{}},\"reminder\":{\"kind\":\"reminderIntentV1\",\"version\":1,\"params\":{}}},\"rewardDelivery\":\"display-only\"},\"cta\":{\"actionKind\":\"none\"}},\"materialTermsHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contentHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"participantCount\":\"1\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-10-08T00:00:00.123456789Z\"},{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"unsupported\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\"}],\"nextCursor\":null}",
+  "variants": [],
+  "current": "valid",
+  "strictClient": "valid",
+  "semantic": "valid"
+ },
+ {
+  "name": "negotiated list mixing ready, unsupported and baseline items",
+  "contract": "QueryListResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"id\":\"campaign-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000002\",\"publicationVersion\":\"1\",\"interactionVersion\":\"1\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"ready\",\"content\":{\"schemaVersion\":1,\"termsCanonicalVersion\":1,\"templateId\":\"campaignCardV1\",\"displayContent\":{\"layout\":\"compact\",\"sortOrder\":10},\"materialTerms\":{\"copy\":{\"en\":{\"title\":\"Test activity\",\"description\":\"A testnet demonstration.\",\"rules\":\"Wallet participation only.\",\"rewardDescription\":\"Information only. No reward distribution is implemented.\"},\"zh\":{\"title\":\"测试活动\",\"description\":\"测试网演示。\",\"rules\":\"仅保存钱包参加记录。\",\"rewardDescription\":\"仅展示说明，尚未实现奖励发放。\"}},\"startAt\":\"2026-10-09T00:00:00Z\",\"endAt\":\"2026-10-10T00:00:00Z\",\"rules\":{\"join\":{\"kind\":\"walletJoinV1\",\"version\":1,\"params\":{}},\"reminder\":{\"kind\":\"reminderIntentV1\",\"version\":1,\"params\":{}}},\"rewardDelivery\":\"display-only\"},\"cta\":{\"actionKind\":\"none\"}},\"materialTermsHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contentHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"participantCount\":\"1\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-10-08T00:00:00.123456789Z\"},{\"id\":\"legacy-2\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"unsupported\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\"},{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "valid"
+ },
+ {
+  "name": "list leaking one baseline item to a base client",
+  "contract": "QueryListResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"id\":\"campaign-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000002\",\"publicationVersion\":\"1\",\"interactionVersion\":\"1\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"ready\",\"content\":{\"schemaVersion\":1,\"termsCanonicalVersion\":1,\"templateId\":\"campaignCardV1\",\"displayContent\":{\"layout\":\"compact\",\"sortOrder\":10},\"materialTerms\":{\"copy\":{\"en\":{\"title\":\"Test activity\",\"description\":\"A testnet demonstration.\",\"rules\":\"Wallet participation only.\",\"rewardDescription\":\"Information only. No reward distribution is implemented.\"},\"zh\":{\"title\":\"测试活动\",\"description\":\"测试网演示。\",\"rules\":\"仅保存钱包参加记录。\",\"rewardDescription\":\"仅展示说明，尚未实现奖励发放。\"}},\"startAt\":\"2026-10-09T00:00:00Z\",\"endAt\":\"2026-10-10T00:00:00Z\",\"rules\":{\"join\":{\"kind\":\"walletJoinV1\",\"version\":1,\"params\":{}},\"reminder\":{\"kind\":\"reminderIntentV1\",\"version\":1,\"params\":{}}},\"rewardDelivery\":\"display-only\"},\"cta\":{\"actionKind\":\"none\"}},\"materialTermsHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contentHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"participantCount\":\"1\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-10-08T00:00:00.123456789Z\"},{\"id\":\"legacy-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000003\",\"publicationVersion\":\"1\",\"interactionVersion\":\"2\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"legacyBaseline\",\"content\":null,\"materialTermsHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contentHash\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"participantCount\":\"2\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-11-01T00:00:00.000Z\",\"baseline\":{\"templateId\":\"legacyBaselineV1\",\"title\":\"Public legacy <b>not markup</b>\",\"description\":\"Read-only description\\nsecond line\",\"reward\":\"100 USDC pool\",\"startAt\":\"2026-10-01T00:00:00.000Z\",\"endAt\":\"2026-11-01T00:00:00.000Z\",\"capturedAt\":\"2026-10-07T12:00:00.123456Z\"}}],\"nextCursor\":null}",
+  "variants": [],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "base history excludes imports",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-08T00:10:00Z\"},\"beforeStatus\":\"joined\",\"operation\":\"leave\",\"clientCommandId\":\"0199c182-9d88-7000-8000-000000000001\",\"interactionVersion\":\"4\",\"occurredAt\":\"2026-10-08T00:10:00Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\"}],\"nextCursor\":null}",
+  "variants": [],
+  "current": "valid",
+  "strictClient": "valid",
+  "semantic": "valid"
+ },
+ {
+  "name": "history advertised but answered by a server that ignored the header",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-08T00:10:00Z\"},\"beforeStatus\":\"joined\",\"operation\":\"leave\",\"clientCommandId\":\"0199c182-9d88-7000-8000-000000000001\",\"interactionVersion\":\"4\",\"occurredAt\":\"2026-10-08T00:10:00Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\"}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "valid",
+  "semantic": "valid"
+ },
+ {
+  "name": "negotiated history with a cancellation and two imports",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-08T00:10:00Z\"},\"beforeStatus\":\"joined\",\"operation\":\"leave\",\"clientCommandId\":\"0199c182-9d88-7000-8000-000000000001\",\"interactionVersion\":\"4\",\"occurredAt\":\"2026-10-08T00:10:00Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"entry\":\"command\"},{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}},{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"reminder\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"set\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-10T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"2\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-10T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "valid"
+ },
+ {
+  "name": "negotiated history of only an import",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "valid"
+ },
+ {
+  "name": "import entry to a client that did not negotiate",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "tagged command entry to a client that did not negotiate",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-08T00:10:00Z\"},\"beforeStatus\":\"joined\",\"operation\":\"leave\",\"clientCommandId\":\"0199c182-9d88-7000-8000-000000000001\",\"interactionVersion\":\"4\",\"occurredAt\":\"2026-10-08T00:10:00Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"entry\":\"command\"}],\"nextCursor\":null}",
+  "variants": [],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "history mixing tagged and untagged entries",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-08T00:10:00Z\"},\"beforeStatus\":\"joined\",\"operation\":\"leave\",\"clientCommandId\":\"0199c182-9d88-7000-8000-000000000001\",\"interactionVersion\":\"4\",\"occurredAt\":\"2026-10-08T00:10:00Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\"},{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry presented as the user's join",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":\"join\",\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry carrying a command key",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":\"0199c182-9d88-7000-8000-000000000009\",\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry with a previous status",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":\"left\",\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry claiming verified acceptance",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"verified\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry claiming an accepted revision",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":\"0199c182-9d88-7000-8000-000000000002\",\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry with accepted terms",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":{\"copy\":{\"en\":{\"title\":\"Test activity\",\"description\":\"A testnet demonstration.\",\"rules\":\"Wallet participation only.\",\"rewardDescription\":\"Information only. No reward distribution is implemented.\"},\"zh\":{\"title\":\"测试活动\",\"description\":\"测试网演示。\",\"rules\":\"仅保存钱包参加记录。\",\"rewardDescription\":\"仅展示说明，尚未实现奖励发放。\"}},\"startAt\":\"2026-10-09T00:00:00Z\",\"endAt\":\"2026-10-10T00:00:00Z\",\"rules\":{\"join\":{\"kind\":\"walletJoinV1\",\"version\":1,\"params\":{}},\"reminder\":{\"kind\":\"reminderIntentV1\",\"version\":1,\"params\":{}}},\"rewardDelivery\":\"display-only\"},\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry with a ready snapshot",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"ready\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import time differing from the entry time",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:01Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "legacy record time differing from the state",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-16T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry with an unknown legacy record time",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":null,\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":null}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "valid"
+ },
+ {
+  "name": "import entry at state version two",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry recording a cancellation",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "import entry without its import object",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\"}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "command entry with a null operation",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-08T00:10:00Z\"},\"beforeStatus\":\"joined\",\"operation\":null,\"clientCommandId\":\"0199c182-9d88-7000-8000-000000000001\",\"interactionVersion\":\"4\",\"occurredAt\":\"2026-10-08T00:10:00Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"entry\":\"command\"}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "command entry with a null command key",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-08T00:10:00Z\"},\"beforeStatus\":\"joined\",\"operation\":\"leave\",\"clientCommandId\":null,\"interactionVersion\":\"4\",\"occurredAt\":\"2026-10-08T00:10:00Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\"}],\"nextCursor\":null}",
+  "variants": [],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "command entry carrying an import object",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"2\",\"status\":\"left\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-08T00:10:00Z\"},\"beforeStatus\":\"joined\",\"operation\":\"leave\",\"clientCommandId\":\"0199c182-9d88-7000-8000-000000000001\",\"interactionVersion\":\"4\",\"occurredAt\":\"2026-10-08T00:10:00Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"entry\":\"command\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "valid",
+  "strictClient": "rejected",
+  "semantic": "invalid"
+ },
+ {
+  "name": "unknown history entry kind",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"adminCommand\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "unsupported",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "import object with an administrator field",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":{\"importedAt\":\"2026-10-07T12:30:00.5Z\",\"legacyRecordedAt\":\"2020-01-15T00:00:00Z\",\"actor\":\"0x1111111111111111111111111111111111111111\"}}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "invalid",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "import object as a string",
+  "contract": "QueryHistoryResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"items\":[{\"entry\":\"legacyImport\",\"campaignId\":\"legacy-1\",\"kind\":\"join\",\"state\":{\"state\":\"known\",\"stateVersion\":\"1\",\"status\":\"joined\",\"acceptanceProvenance\":\"legacyUnknown\",\"acceptedRevisionId\":null,\"acceptedPublicationVersion\":null,\"acceptedTermsHash\":null,\"acceptedAt\":\"2020-01-15T00:00:00Z\",\"changedAt\":\"2026-10-07T12:30:00.5Z\"},\"beforeStatus\":null,\"operation\":null,\"clientCommandId\":null,\"interactionVersion\":\"1\",\"occurredAt\":\"2026-10-07T12:30:00.5Z\",\"acceptedTerms\":null,\"snapshotState\":\"legacyUnknown\",\"legacyImport\":\"legacy\"}],\"nextCursor\":null}",
+  "variants": [
+   "legacyImportHistoryV1"
+  ],
+  "current": "invalid",
+  "strictClient": "rejected"
+ },
+ {
+  "name": "ready media and trade content to a client that checks capabilities",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"campaign-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000002\",\"publicationVersion\":\"1\",\"interactionVersion\":\"1\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"ready\",\"content\":{\"schemaVersion\":1,\"termsCanonicalVersion\":1,\"templateId\":\"campaignCardV1\",\"displayContent\":{\"layout\":\"compact\",\"sortOrder\":10,\"mediaAssetId\":\"trading-week-banner-v1\"},\"materialTerms\":{\"copy\":{\"en\":{\"title\":\"Test activity\",\"description\":\"A testnet demonstration.\",\"rules\":\"Wallet participation only.\",\"rewardDescription\":\"Information only. No reward distribution is implemented.\"},\"zh\":{\"title\":\"测试活动\",\"description\":\"测试网演示。\",\"rules\":\"仅保存钱包参加记录。\",\"rewardDescription\":\"仅展示说明，尚未实现奖励发放。\"}},\"startAt\":\"2026-10-09T00:00:00Z\",\"endAt\":\"2026-10-10T00:00:00Z\",\"rules\":{\"join\":{\"kind\":\"walletJoinV1\",\"version\":1,\"params\":{}},\"reminder\":{\"kind\":\"reminderIntentV1\",\"version\":1,\"params\":{}}},\"rewardDelivery\":\"display-only\"},\"cta\":{\"actionKind\":\"openTrade\",\"chainId\":11155111,\"marketId\":\"ETH-USD\"}},\"materialTermsHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contentHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"participantCount\":\"1\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-10-08T00:00:00.123456789Z\"}}",
+  "variants": [
+   "legacyBaselineV1",
+   "contentCapabilitiesV1"
+  ],
+  "current": "valid",
+  "strictClient": "valid",
+  "semantic": "valid"
+ },
+ {
+  "name": "ready media and trade content to a client that does not check capabilities",
+  "contract": "QueryDetailResponse",
+  "raw": "{\"schemaVersion\":1,\"serverNow\":\"2026-10-08T00:00:00.123456789Z\",\"asOf\":\"2026-10-08T00:00:00.123456789Z\",\"item\":{\"id\":\"campaign-1\",\"slug\":null,\"revisionId\":\"0199c182-9d88-7000-8000-000000000002\",\"publicationVersion\":\"1\",\"interactionVersion\":\"1\",\"mode\":\"enabled\",\"effectivePhase\":\"active\",\"contentState\":\"ready\",\"content\":{\"schemaVersion\":1,\"termsCanonicalVersion\":1,\"templateId\":\"campaignCardV1\",\"displayContent\":{\"layout\":\"compact\",\"sortOrder\":10,\"mediaAssetId\":\"trading-week-banner-v1\"},\"materialTerms\":{\"copy\":{\"en\":{\"title\":\"Test activity\",\"description\":\"A testnet demonstration.\",\"rules\":\"Wallet participation only.\",\"rewardDescription\":\"Information only. No reward distribution is implemented.\"},\"zh\":{\"title\":\"测试活动\",\"description\":\"测试网演示。\",\"rules\":\"仅保存钱包参加记录。\",\"rewardDescription\":\"仅展示说明，尚未实现奖励发放。\"}},\"startAt\":\"2026-10-09T00:00:00Z\",\"endAt\":\"2026-10-10T00:00:00Z\",\"rules\":{\"join\":{\"kind\":\"walletJoinV1\",\"version\":1,\"params\":{}},\"reminder\":{\"kind\":\"reminderIntentV1\",\"version\":1,\"params\":{}}},\"rewardDelivery\":\"display-only\"},\"cta\":{\"actionKind\":\"openTrade\",\"chainId\":11155111,\"marketId\":\"ETH-USD\"}},\"materialTermsHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contentHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"participantCount\":\"1\",\"statisticsState\":\"ready\",\"nextTransitionAt\":\"2026-10-08T00:00:00.123456789Z\"}}",
+  "variants": [
+   "legacyBaselineV1"
+  ],
+  "current": "valid",
+  "strictClient": "valid",
+  "semantic": "invalid"
+ }
+]

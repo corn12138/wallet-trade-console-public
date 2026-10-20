@@ -2,10 +2,8 @@
 
 /**
  * Atlas X · /profile/[address]
- * Public wallet profile — holdings, created tokens, and trade history.
- * Backed by /token?creatorAddress=… for created tokens. Holdings and trades
- * fall back to portfolio + activity endpoints so the page works for any
- * address, not just the connected one.
+ * Public creation records remain accessible independently of the private
+ * holdings section, which requires the connected and authenticated owner.
  */
 
 import { useMemo, useState } from 'react';
@@ -15,12 +13,14 @@ import { useParams } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { buildApiUrl } from '@/lib/api/base-url';
-import { getPortfolioAssets, getActivityFeed } from '@/lib/api/atlas';
+import { getActivityFeed } from '@/lib/api/atlas';
+import { usePortfolioData } from '@/hooks/usePortfolioData';
+import { PortfolioInventory, PortfolioValue } from '@/app/_atlas/PortfolioAssetViews';
 import { followProfile, getFollowState, unfollowProfile } from '@/lib/api/social';
 import { useApp } from '@/app/_atlas/AppContext';
 import { Icon } from '@/app/_atlas/Icon';
 import { Empty, MetricCard, PageHeader, TabBar } from '@/app/_atlas/Common';
-import { fmt, fmtCompact, fmtCompactDec } from '@/app/_atlas/data';
+import { fmtCompactDec } from '@/app/_atlas/data';
 import { useEnumLabel } from '@/app/_atlas/enums';
 
 type ProfileTab = 'holdings' | 'created' | 'trades';
@@ -84,11 +84,8 @@ export default function ProfilePage() {
     enabled: Boolean(address),
   });
 
-  const { data: portfolio, isLoading: holdingsLoading, isError: holdingsError } = useQuery({
-    queryKey: ['atlas-design-profile-portfolio', address],
-    queryFn: () => getPortfolioAssets(address),
-    enabled: Boolean(address),
-  });
+  const { isAuthorized: holdingsAllowed, accessState, assetsQuery } = usePortfolioData({ targetAddress: address });
+  const holdingsCount = holdingsAllowed && assetsQuery.data ? String(assetsQuery.data.items.length) : '—';
 
   const { data: activity, isLoading: tradesLoading, isError: tradesError } = useQuery({
     queryKey: ['atlas-design-profile-activity', address],
@@ -96,15 +93,9 @@ export default function ProfilePage() {
     enabled: Boolean(address),
   });
 
-  const holdings = useMemo(() => portfolio?.items ?? [], [portfolio]);
   const trades = useMemo(
     () => (activity?.items ?? []).filter((a) => TRADE_TYPES.has((a.type || '').toLowerCase())),
     [activity],
-  );
-
-  const totalValue = useMemo(
-    () => holdings.reduce((s, a) => s + (a.valueUsd || 0), 0),
-    [holdings],
   );
 
   // Durable follow graph (profile_follows rows). fetchApi carries the web3
@@ -167,7 +158,7 @@ export default function ProfilePage() {
       {/* PROFILE HEADER */}
       <section className="block" style={{ padding: 22 }}>
         <div className="row between" style={{ flexWrap: 'wrap', gap: 14 }}>
-          <div className="row gap-14">
+          <div className="row gap-14" style={{ minWidth: 0, flexWrap: 'wrap' }}>
             <div
               style={{
                 width: 64,
@@ -197,7 +188,7 @@ export default function ProfilePage() {
               <div className="h-display" style={{ fontSize: 28, marginTop: 4 }}>
                 {short(address)}
               </div>
-              <div className="row gap-6 mt-6">
+              <div className="row gap-6 mt-6" style={{ flexWrap: 'wrap' }}>
                 <button className="btn btn-xs" onClick={copyAddress}>
                   <Icon name="copy" size={12} /> {tp('copy')}
                 </button>
@@ -230,7 +221,7 @@ export default function ProfilePage() {
             <div style={{ textAlign: 'right' }}>
               <div className="eyebrow">{tp('portfolio')}</div>
               <div className="h-display" style={{ fontSize: 24, marginTop: 4 }}>
-                {holdingsError ? '—' : `$${fmtCompact(totalValue)}`}
+                {holdingsAllowed ? <PortfolioValue data={assetsQuery.data} isLoading={assetsQuery.isLoading} /> : '—'}
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -244,7 +235,7 @@ export default function ProfilePage() {
       </section>
 
       <section className="grid-4">
-        <MetricCard label={tp('metricHoldings')} value={String(holdings.length)} sub={tp('metricHoldingsSub')} tone="y" icon="wallet" />
+        <MetricCard label={tp('metricHoldings')} value={holdingsCount} sub={tp('metricHoldingsSub')} tone="y" icon="wallet" />
         <MetricCard label={tp('metricCreated')} value={String(createdTokens.length)} sub={tp('metricCreatedSub')} tone="p" icon="rocket" />
         <MetricCard label={tp('metricRecentTrades')} value={String(trades.length)} sub={tp('metricRecentTradesSub')} tone="c" icon="activity" />
         <MetricCard label={tp('metricVisibility')} value={isOwner ? tp('visibilityPrivate') : tp('visibilityPublic')} sub={isOwner ? tp('visibilityConnected') : tp('visibilityReadOnly')} tone="g" icon="security" />
@@ -252,7 +243,7 @@ export default function ProfilePage() {
 
       <TabBar
         tabs={[
-          { key: 'holdings' as const, label: `${tp('tabHoldings')} · ${holdings.length}` },
+          { key: 'holdings' as const, label: `${tp('tabHoldings')} · ${holdingsCount}` },
           { key: 'created' as const, label: `${tp('tabCreated')} · ${createdTokens.length}` },
           { key: 'trades' as const, label: `${tp('tabTrades')} · ${trades.length}` },
         ]}
@@ -261,74 +252,20 @@ export default function ProfilePage() {
       />
 
       {tab === 'holdings' && (
-        <section className="block tight">
-          <div
-            className="tbl"
-            style={{ boxShadow: 'none', border: '2px solid var(--ink)', borderRadius: 14 }}
-          >
-            <div
-              className="tbl-head"
-              style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr auto' }}
-            >
-              <span>{tp('colAsset')}</span>
-              <span>{tp('colBalance')}</span>
-              <span>{tp('colValue')}</span>
-              <span>{tp('col24h')}</span>
-              <span />
+        <section className="block" style={{ minWidth: 0 }}>
+          {holdingsAllowed ? (
+            <PortfolioInventory query={assetsQuery} />
+          ) : (
+            <div style={{ padding: 18, lineHeight: 1.6 }} data-testid="profile-holdings-private">
+              <p>{tp('holdingsPrivate')}</p>
+              {accessState !== 'other-account' && (
+                <>
+                  <p className="mt-8">{accessState === 'disconnected' ? tp('holdingsConnect') : tp('holdingsSignin')}</p>
+                  <button type="button" className="btn btn-xs btn-y mt-14" onClick={app.openConnect}>{tp('holdingsSigninAction')}</button>
+                </>
+              )}
             </div>
-            {holdingsLoading && (
-              <div className="tbl-row" style={{ gridTemplateColumns: '1fr' }}>
-                <div className="skel lg" />
-              </div>
-            )}
-            {!holdingsLoading &&
-              holdings.map((a, idx) => {
-                const palette = PALETTE[idx % PALETTE.length];
-                return (
-                  <div
-                    key={a.id}
-                    className="tbl-row"
-                    style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr auto' }}
-                  >
-                    <div className="sym">
-                      <span
-                        className="b"
-                        style={{
-                          background: `var(--${palette})`,
-                          color: ['c', 'b', 'p', 'o', 'r'].includes(palette) ? '#fff' : 'var(--ink)',
-                        }}
-                      >
-                        {a.symbol[0]}
-                      </span>
-                      <div>
-                        <div>{a.symbol}</div>
-                        <div
-                          style={{
-                            fontFamily: 'var(--mf)',
-                            fontSize: 10,
-                            color: 'var(--ink-2)',
-                            fontWeight: 400,
-                          }}
-                        >
-                          {a.name}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mono">{fmt(Number(a.rawBalance) || 0, 4)}</div>
-                    <div className="mono">${fmt(a.valueUsd || 0)}</div>
-                    <div className="mono" style={{ color: 'var(--ink-2)' }}>—</div>
-                    <Link href="/swap" className="btn btn-xs btn-y">
-                      {tp('trade')}
-                    </Link>
-                  </div>
-                );
-              })}
-            {!holdingsLoading && !holdings.length && (
-              <Empty
-                body={holdingsError ? tp('holdingsErrorBody') : tp('holdingsEmptyBody')}
-              />
-            )}
-          </div>
+          )}
         </section>
       )}
 

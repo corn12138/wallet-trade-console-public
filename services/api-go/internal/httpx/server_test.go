@@ -10,14 +10,16 @@ import (
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/ai"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/article"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth/authtest"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/contractconfig"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/deployments"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/txreview"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/web3auth"
-	"github.com/golang-jwt/jwt/v5"
 )
 
-const testWeb3Secret = "test-web3-secret"
+// httpxAuth is this package's credential fixture: a real-policy verifier and
+// its in-memory sessions. Tests that take the store down build their own.
+var httpxAuth = authtest.MustNew()
 
 // emptyLoader satisfies markets.DeploymentsLoader so markets/discover mount.
 type emptyLoader struct{}
@@ -29,8 +31,9 @@ func (emptyLoader) Load() (map[int]deployments.ChainConfig, error) {
 // TestRouter_GuardParity locks in the auth boundary documented in
 // docs/migration/backend-go/guard-parity.md: the modules that are entirely
 // non-public in the deployed NestJS Web3AppModule must 401 without a token in
-// Go, while public modules stay open. Production posture disables the web3
-// guard's non-prod X-Wallet-Address fallback so both guard types are strict.
+// Go, while public modules stay open. The web3 guard has no header identity in
+// any environment (FQ-01); NODE_ENV only keeps the production CORS/cookie
+// defaults here.
 func TestRouter_GuardParity(t *testing.T) {
 	t.Setenv("NODE_ENV", "production")
 
@@ -38,7 +41,7 @@ func TestRouter_GuardParity(t *testing.T) {
 	userVerifier := auth.NewUserVerifier("test-access-secret", "test-refresh-secret", time.Hour, time.Hour)
 	r := NewRouter(Deps{
 		MarketsLoader:  emptyLoader{},
-		AuthVerifier:   auth.NewVerifier(testWeb3Secret),
+		AuthVerifier:   httpxAuth.Verifier,
 		UserVerifier:   userVerifier,
 		CsrfSigner:     &auth.CsrfSigner{},
 		ContractConfig: &contractconfig.Service{},
@@ -358,21 +361,9 @@ func TestRouter_GuardParity(t *testing.T) {
 	}
 }
 
+// signWeb3Token signs 0x…dEaD in: a genuine token bound to a live session.
 func signWeb3Token(t *testing.T) string {
 	t.Helper()
-	claims := auth.Claims{
-		Sub:     "0x000000000000000000000000000000000000dEaD",
-		ChainID: 11155111,
-		Type:    "web3",
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte(testWeb3Secret))
-	if err != nil {
-		t.Fatalf("sign web3 token: %v", err)
-	}
-	return signed
+	token, _ := httpxAuth.Login(t, "0x000000000000000000000000000000000000dEaD", 11155111)
+	return token
 }

@@ -1,0 +1,1047 @@
+{
+  "description": "LG-03a owner-scoped action/attempt workbench wire cases. Go builds every `wire` from its stored `row` exactly (internal/web3events/workbench_corpus_test.go); the Web decoder accepts every `wire` and rejects every `invalid` case (apps/web/src/features/activity/model/workbench.spec.ts). Unknown fields are ignored by the Web decoder; unknown enum values are rejected.",
+  "actions": [
+    {
+      "name": "pending server-keyed action is running",
+      "row": {
+        "id": "6f1c0e0a-4b7d-4c55-9a43-1d2e3f405162",
+        "chainId": 11155111,
+        "clientActionId": "srv:nonce:11155111:7",
+        "actionType": null,
+        "status": "pending",
+        "attemptCount": 2,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "updatedAt": "2026-10-13T08:01:00.000Z"
+      },
+      "wire": {
+        "id": "6f1c0e0a-4b7d-4c55-9a43-1d2e3f405162",
+        "chainId": 11155111,
+        "clientActionId": "srv:nonce:11155111:7",
+        "actionType": null,
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "workflowStatus": "running",
+        "attemptCount": 2,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "updatedAt": "2026-10-13T08:01:00.000Z"
+      }
+    },
+    {
+      "name": "confirmed client-keyed action completes the app flow only",
+      "row": {
+        "id": "bf_0123456789abcdef0123456789abcdef",
+        "chainId": 11155111,
+        "clientActionId": "cli:swap-0001-abcdef",
+        "actionType": "swap",
+        "status": "confirmed",
+        "attemptCount": 1,
+        "createdAt": "2026-10-12T23:59:59.999Z",
+        "updatedAt": "2026-10-13T00:00:10.500Z"
+      },
+      "wire": {
+        "id": "bf_0123456789abcdef0123456789abcdef",
+        "chainId": 11155111,
+        "clientActionId": "cli:swap-0001-abcdef",
+        "actionType": "swap",
+        "legacyStatus": "confirmed",
+        "executionStatus": "succeeded",
+        "workflowStatus": "completed",
+        "attemptCount": 1,
+        "createdAt": "2026-10-12T23:59:59.999Z",
+        "updatedAt": "2026-10-13T00:00:10.500Z"
+      }
+    },
+    {
+      "name": "reverted action needs attention",
+      "row": {
+        "id": "a2",
+        "chainId": 31337,
+        "clientActionId": "srv:tx:31337:0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "actionType": "trade",
+        "status": "failed",
+        "attemptCount": 1,
+        "createdAt": "2026-10-13T01:00:00.000Z",
+        "updatedAt": "2026-10-13T01:00:00.000Z"
+      },
+      "wire": {
+        "id": "a2",
+        "chainId": 31337,
+        "clientActionId": "srv:tx:31337:0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "actionType": "trade",
+        "legacyStatus": "failed",
+        "executionStatus": "reverted",
+        "workflowStatus": "needs_attention",
+        "attemptCount": 1,
+        "createdAt": "2026-10-13T01:00:00.000Z",
+        "updatedAt": "2026-10-13T01:00:00.000Z"
+      }
+    },
+    {
+      "name": "reorged action has an unknown execution",
+      "row": {
+        "id": "a3",
+        "chainId": 11155111,
+        "clientActionId": "srv:nonce:11155111:9",
+        "actionType": null,
+        "status": "reorged",
+        "attemptCount": 1,
+        "createdAt": "2026-10-13T02:00:00.000Z",
+        "updatedAt": "2026-10-13T02:30:00.000Z"
+      },
+      "wire": {
+        "id": "a3",
+        "chainId": 11155111,
+        "clientActionId": "srv:nonce:11155111:9",
+        "actionType": null,
+        "legacyStatus": "reorged",
+        "executionStatus": "unknown",
+        "workflowStatus": "needs_attention",
+        "attemptCount": 1,
+        "createdAt": "2026-10-13T02:00:00.000Z",
+        "updatedAt": "2026-10-13T02:30:00.000Z"
+      }
+    },
+    {
+      "name": "unrecognized legacy status stays unknown",
+      "row": {
+        "id": "a4",
+        "chainId": 11155111,
+        "clientActionId": "srv:nonce:11155111:10",
+        "actionType": null,
+        "status": "mystery",
+        "attemptCount": 0,
+        "createdAt": "2026-10-13T03:00:00.000Z",
+        "updatedAt": "2026-10-13T03:00:00.000Z"
+      },
+      "wire": {
+        "id": "a4",
+        "chainId": 11155111,
+        "clientActionId": "srv:nonce:11155111:10",
+        "actionType": null,
+        "legacyStatus": "mystery",
+        "executionStatus": "unknown",
+        "workflowStatus": "needs_attention",
+        "attemptCount": 0,
+        "createdAt": "2026-10-13T03:00:00.000Z",
+        "updatedAt": "2026-10-13T03:00:00.000Z"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "name": "pending submit: the block sentinel is not a block and an unreachable node stays pending",
+      "row": {
+        "id": 1,
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": 7,
+        "blockNumber": 0,
+        "blockHash": null,
+        "confirmations": 0,
+        "gasUsed": null,
+        "gasPrice": null,
+        "status": "pending",
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "finalizedAt": null,
+        "lastCheckedAt": "2026-10-13T08:00:30.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z"
+      },
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "replaced original keeps its own hash and points at the winner",
+      "row": {
+        "id": 1,
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": 7,
+        "blockNumber": 0,
+        "blockHash": null,
+        "confirmations": 0,
+        "gasUsed": null,
+        "gasPrice": null,
+        "status": "replaced",
+        "replacedByHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+        "failureCode": null,
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "finalizedAt": null,
+        "lastCheckedAt": "2026-10-13T08:00:30.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z"
+      },
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "replaced",
+        "executionStatus": "replaced",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+        "failureCode": null,
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "speed-up winner is included, not finalized, despite the heuristic timestamp",
+      "row": {
+        "id": 2,
+        "attemptNumber": 2,
+        "chainId": 11155111,
+        "txHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "1000000000000000000000000",
+        "senderNonce": 7,
+        "blockNumber": 123456,
+        "blockHash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "confirmations": 12,
+        "gasUsed": 21000,
+        "gasPrice": 1000000000,
+        "status": "confirmed",
+        "replacedByHash": null,
+        "failureCode": null,
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": "2026-10-13T08:01:00.000Z",
+        "finalizedAt": "2026-10-13T08:03:00.000Z",
+        "lastCheckedAt": "2026-10-13T08:00:30.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z"
+      },
+      "wire": {
+        "attemptNumber": 2,
+        "chainId": 11155111,
+        "txHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "1000000000000000000000000",
+        "senderNonce": "7",
+        "legacyStatus": "confirmed",
+        "executionStatus": "succeeded",
+        "canonicality": "unknown",
+        "finality": "included",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": null,
+        "observation": {
+          "blockNumber": "123456",
+          "blockHash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "confirmations": 12,
+          "gasUsed": "21000",
+          "gasPrice": "1000000000",
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": "2026-10-13T08:01:00.000Z",
+        "legacyFinalizedAt": "2026-10-13T08:03:00.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "reverted attempt is included",
+      "row": {
+        "id": 1,
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": 7,
+        "blockNumber": 99,
+        "blockHash": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "confirmations": 1,
+        "gasUsed": 50000,
+        "gasPrice": 2,
+        "status": "failed",
+        "replacedByHash": null,
+        "failureCode": null,
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": "2026-10-13T08:01:00.000Z",
+        "finalizedAt": null,
+        "lastCheckedAt": "2026-10-13T08:00:30.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z"
+      },
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "failed",
+        "executionStatus": "reverted",
+        "canonicality": "unknown",
+        "finality": "included",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": null,
+        "observation": {
+          "blockNumber": "99",
+          "blockHash": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "confirmations": 1,
+          "gasUsed": "50000",
+          "gasPrice": "2",
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": "2026-10-13T08:01:00.000Z",
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "dropped attempt",
+      "row": {
+        "id": 1,
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": 7,
+        "blockNumber": 0,
+        "blockHash": null,
+        "confirmations": 0,
+        "gasUsed": null,
+        "gasPrice": null,
+        "status": "dropped",
+        "replacedByHash": null,
+        "failureCode": "not_found",
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "finalizedAt": null,
+        "lastCheckedAt": "2026-10-13T08:00:30.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z"
+      },
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "dropped",
+        "executionStatus": "dropped",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "not_found",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "reorged attempt keeps its old block evidence and is orphaned",
+      "row": {
+        "id": 1,
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": 7,
+        "blockNumber": 77,
+        "blockHash": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "confirmations": 2,
+        "gasUsed": null,
+        "gasPrice": null,
+        "status": "reorged",
+        "replacedByHash": null,
+        "failureCode": null,
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "finalizedAt": null,
+        "lastCheckedAt": "2026-10-13T08:00:30.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z"
+      },
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "reorged",
+        "executionStatus": "unknown",
+        "canonicality": "orphaned",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": null,
+        "observation": {
+          "blockNumber": "77",
+          "blockHash": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "confirmations": 2,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "unknown nonce and non-decimal value are null, never zero",
+      "row": {
+        "id": 1,
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": null,
+        "contractAddress": null,
+        "value": "0x10",
+        "senderNonce": null,
+        "blockNumber": 0,
+        "blockHash": null,
+        "confirmations": 0,
+        "gasUsed": null,
+        "gasPrice": null,
+        "status": "pending",
+        "replacedByHash": null,
+        "failureCode": null,
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "finalizedAt": null,
+        "lastCheckedAt": "2026-10-13T08:00:30.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z"
+      },
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": null,
+        "contractAddress": null,
+        "value": null,
+        "senderNonce": null,
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": null,
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "unrecognized legacy status stays unknown",
+      "row": {
+        "id": 1,
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": 7,
+        "blockNumber": 0,
+        "blockHash": null,
+        "confirmations": 0,
+        "gasUsed": null,
+        "gasPrice": null,
+        "status": "mystery",
+        "replacedByHash": null,
+        "failureCode": null,
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "finalizedAt": null,
+        "lastCheckedAt": "2026-10-13T08:00:30.000Z",
+        "createdAt": "2026-10-13T08:00:00.123Z"
+      },
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "mystery",
+        "executionStatus": "unknown",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": null,
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "execution status outside the closed set",
+      "kind": "action",
+      "wire": {
+        "id": "6f1c0e0a-4b7d-4c55-9a43-1d2e3f405162",
+        "chainId": 11155111,
+        "clientActionId": "srv:nonce:11155111:7",
+        "actionType": null,
+        "legacyStatus": "pending",
+        "executionStatus": "finalized",
+        "workflowStatus": "running",
+        "attemptCount": 2,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "updatedAt": "2026-10-13T08:01:00.000Z"
+      }
+    },
+    {
+      "name": "workflow status outside the closed set",
+      "kind": "action",
+      "wire": {
+        "id": "6f1c0e0a-4b7d-4c55-9a43-1d2e3f405162",
+        "chainId": 11155111,
+        "clientActionId": "srv:nonce:11155111:7",
+        "actionType": null,
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "workflowStatus": "done",
+        "attemptCount": 2,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "updatedAt": "2026-10-13T08:01:00.000Z"
+      }
+    },
+    {
+      "name": "missing client action identity",
+      "kind": "action",
+      "wire": {
+        "id": "6f1c0e0a-4b7d-4c55-9a43-1d2e3f405162",
+        "chainId": 11155111,
+        "actionType": null,
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "workflowStatus": "running",
+        "attemptCount": 2,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "updatedAt": "2026-10-13T08:01:00.000Z"
+      }
+    },
+    {
+      "name": "fractional chain id",
+      "kind": "action",
+      "wire": {
+        "id": "6f1c0e0a-4b7d-4c55-9a43-1d2e3f405162",
+        "chainId": 1.5,
+        "clientActionId": "srv:nonce:11155111:7",
+        "actionType": null,
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "workflowStatus": "running",
+        "attemptCount": 2,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "updatedAt": "2026-10-13T08:01:00.000Z"
+      }
+    },
+    {
+      "name": "amount as a JSON number",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": 0,
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "amount with a sign",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "-1",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "block number as a JSON number",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": 5,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "canonicality outside the closed set",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "final",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "indexing status outside the closed set",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": "done",
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "recorded execution context without a revision",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "recorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "execution context state outside the closed set",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "current",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "malformed tx hash",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1234",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "attempt number zero",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 0,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00.123Z",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    },
+    {
+      "name": "non-UTC timestamp",
+      "kind": "attempt",
+      "wire": {
+        "attemptNumber": 1,
+        "chainId": 11155111,
+        "txHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "fromAddress": "0x000000000000000000000000000000000000dead",
+        "toAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "contractAddress": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "value": "0",
+        "senderNonce": "7",
+        "legacyStatus": "pending",
+        "executionStatus": "pending",
+        "canonicality": "unknown",
+        "finality": "unknown",
+        "indexingStatus": null,
+        "replacedByHash": null,
+        "failureCode": "rpc_unavailable",
+        "observation": {
+          "blockNumber": null,
+          "blockHash": null,
+          "confirmations": 0,
+          "gasUsed": null,
+          "gasPrice": null,
+          "lastCheckedAt": "2026-10-13T08:00:30.000Z"
+        },
+        "submittedAt": "2026-10-13T08:00:00.123Z",
+        "confirmedAt": null,
+        "legacyFinalizedAt": null,
+        "createdAt": "2026-10-13T08:00:00+08:00",
+        "executionContext": {
+          "state": "notRecorded",
+          "registryRevision": null
+        }
+      }
+    }
+  ]
+}

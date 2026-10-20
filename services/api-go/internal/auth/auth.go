@@ -1,13 +1,12 @@
-// Package auth is the Go port of legacy NestJS web3-auth's
-// Web3AuthGuard. It verifies the Bearer JWT issued by NestJS's
-// /web3-auth/verify (HS256 signed with the shared JWT_SECRET) and
-// exposes the recovered wallet address via request context.
+// Package auth verifies web3 (SIWE) bearer credentials for guarded routes and
+// exposes the authenticated wallet through the request context.
 //
-// Non-production parity with the NestJS guard: when no Bearer is
-// present and NODE_ENV != "production", the middleware falls back
-// to the X-Wallet-Address header so dev/staging tools keep working
-// against either backend. NODE_ENV=development additionally allows
-// no header at all (zero-address fallback) — same as NestJS.
+// Every credential is checked under one trusted Policy (HS256, issuer,
+// audience, signing key, auth epoch) and against its persistent session, so
+// logout and operator revocation take effect immediately and a database
+// restore is cut off by the epoch. There is no development identity in any
+// environment: the former zero-address and X-Wallet-Address fallbacks are
+// gone, and tests authenticate with real tokens from package authtest.
 package auth
 
 import (
@@ -15,75 +14,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
-	"regexp"
 	"strings"
-
-	"github.com/golang-jwt/jwt/v5"
 )
-
-// Claims mirrors the Web3JwtPayload interface in web3-auth.service.ts.
-// `sub` carries the lowercase wallet address; `chainId` is the chain
-// the SIWE sign-in happened on; `type` is the literal "web3" marker
-// distinguishing these from refresh / user-auth JWTs.
-type Claims struct {
-	Sub     string `json:"sub"`
-	ChainID int    `json:"chainId"`
-	Type    string `json:"type"`
-	jwt.RegisteredClaims
-}
-
-// Verifier holds the HMAC secret. Built once at startup from JWT_SECRET.
-type Verifier struct {
-	secret []byte
-}
-
-// NewVerifier builds a Verifier. An empty secret is allowed for tests
-// (Verify will always fail) but the cmd/api wiring refuses to start
-// in production with a missing secret.
-func NewVerifier(secret string) *Verifier {
-	return &Verifier{secret: []byte(secret)}
-}
-
-// Errors returned by Verify. Handlers map these to 401.
-var (
-	ErrMissingToken = errors.New("auth: missing or malformed bearer token")
-	ErrInvalidToken = errors.New("auth: token signature invalid or expired")
-	ErrWrongType    = errors.New("auth: token type is not web3")
-	ErrInvalidAddr  = errors.New("auth: token sub is not a valid address")
-)
-
-// addressRE matches the 0x + 40-hex shape NestJS isValidAddress checks.
-var addressRE = regexp.MustCompile(`^0x[a-fA-F0-9]{40}$`)
-
-// Verify parses and validates the Bearer token. Returns the claims
-// (with a normalized lowercase address) or one of the sentinel errors.
-func (v *Verifier) Verify(token string) (Claims, error) {
-	if v == nil || len(v.secret) == 0 {
-		return Claims{}, ErrInvalidToken
-	}
-	parsed, err := jwt.ParseWithClaims(token, &Claims{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrInvalidToken
-		}
-		return v.secret, nil
-	})
-	if err != nil || !parsed.Valid {
-		return Claims{}, ErrInvalidToken
-	}
-	claims, ok := parsed.Claims.(*Claims)
-	if !ok {
-		return Claims{}, ErrInvalidToken
-	}
-	if claims.Type != "web3" {
-		return Claims{}, ErrWrongType
-	}
-	if !addressRE.MatchString(claims.Sub) {
-		return Claims{}, ErrInvalidAddr
-	}
-	claims.Sub = strings.ToLower(claims.Sub)
-	return *claims, nil
-}
 
 // ctxKey is a private type to avoid collisions with other packages
 // storing values on the same context.
@@ -152,77 +84,33 @@ func ResolveOwner(authenticated, requested string) (string, error) {
 	return auth, nil
 }
 
-// Middleware returns a chi-compatible middleware that authenticates
-// requests for guarded routes. It mirrors Web3AuthGuard.canActivate:
-//
-//  1. Bearer token in Authorization header → verified via JWT
-//  2. If no Bearer and NODE_ENV != "production" → X-Wallet-Address header
-//  3. If still none and NODE_ENV == "development" → zero address
-//  4. Otherwise → 401
-//
-// The recovered (lowercase, normalized) address is placed on
-// r.Context() under the addressKey, retrievable via AddressFromContext.
-func Middleware(v *Verifier) func(http.Handler) http.Handler {
-	prod := os.Getenv("NODE_ENV") == "production"
-	dev := os.Getenv("NODE_ENV") == "development"
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			addr, chainID, ok := authenticate(r, v, prod, dev)
-			if !ok {
-				writeUnauthorized(w)
-				return
-			}
-			ctx := context.WithValue(r.Context(), addressKey, addr)
-			if chainID != 0 {
-				ctx = context.WithValue(ctx, chainIDKey, chainID)
-			}
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
+// bearer accepts exactly one "Bearer <token>" header value.
+func bearer(headers []string) (string, bool) {
+	if len(headers) != 1 {
+		return "", false
 	}
+	parts := strings.Fields(headers[0])
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return "", false
+	}
+	return parts[1], true
 }
 
-// writeUnauthorized emits the Web3AuthGuard 401 as JSON. The deployed NestJS
-// guard throws an UnauthorizedException whose body carries this message; the
-// frontend reads `.message`. We mirror the access guard's {statusCode, message}
-// shape (internal/userauth.writeError) rather than the older plaintext body so
-// every Go guard denies access with a consistent, FE-consumable JSON envelope
-// (the remaining NestJS envelope fields are an FE-layer concern — see
-// docs/migration/backend-go/adr/0005-response-contract-raw-payloads.md and
-// golden-run-2026-06-08.md blocker A).
+// writeUnauthorized emits the web3 guard 401 as the JSON envelope the
+// frontend reads (`.message`), shared by every Go guard.
 func writeUnauthorized(w http.ResponseWriter) {
+	writeAuthError(w, http.StatusUnauthorized, "Missing or invalid web3 authorization")
+}
+
+// writeUnavailable tells the client the session could not be confirmed. It is
+// not a logout signal: clients keep the credential and retry later.
+func writeUnavailable(w http.ResponseWriter) {
+	writeAuthError(w, http.StatusServiceUnavailable, "Web3 session verification unavailable")
+}
+
+func writeAuthError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusUnauthorized)
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"statusCode": http.StatusUnauthorized,
-		"message":    "Missing or invalid web3 authorization",
-	})
-}
-
-// authenticate runs the Web3AuthGuard precedence: Bearer → fallback
-// header (non-prod) → zero address (dev only). Returns (address,
-// chainID, ok). chainID is 0 when no JWT was presented.
-func authenticate(r *http.Request, v *Verifier, prod, dev bool) (string, int, bool) {
-	if token := extractBearer(r.Header.Get("Authorization")); token != "" {
-		claims, err := v.Verify(token)
-		if err != nil {
-			return "", 0, false
-		}
-		return claims.Sub, claims.ChainID, true
-	}
-	if !prod {
-		if hdr := r.Header.Get("X-Wallet-Address"); hdr != "" && addressRE.MatchString(hdr) {
-			return strings.ToLower(hdr), 0, true
-		}
-		if dev {
-			return "0x0000000000000000000000000000000000000000", 0, true
-		}
-	}
-	return "", 0, false
-}
-
-func extractBearer(header string) string {
-	if !strings.HasPrefix(header, "Bearer ") {
-		return ""
-	}
-	return strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]any{"statusCode": status, "message": message})
 }

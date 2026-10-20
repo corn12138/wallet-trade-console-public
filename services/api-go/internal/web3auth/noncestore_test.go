@@ -80,38 +80,38 @@ func TestMemoryNonceStore_ExpiredChallengeIsNotUsable(t *testing.T) {
 	}
 }
 
-func TestResolveNonceStore_ProductionRefusesMemory(t *testing.T) {
+func TestResolveNonceStore_SharedRequiredRefusesMemory(t *testing.T) {
 	_, err := ResolveNonceStore(context.Background(), NonceStoreConfig{
-		Kind:       "memory",
-		Production: true,
+		Kind:          "memory",
+		RequireShared: true,
 	})
 	if err == nil {
-		t.Fatal("production + memory must not resolve")
+		t.Fatal("a deployed process + memory must not resolve")
 	}
 	if !strings.Contains(err.Error(), "SIWE_NONCE_STORE=memory is refused") {
 		t.Errorf("error should name the refused setting, got %q", err)
 	}
 }
 
-func TestResolveNonceStore_ProductionRefusesMissingRedisTarget(t *testing.T) {
-	// Kind empty in production resolves to redis; with no URL that must fail
-	// rather than silently fall back to the in-process map.
-	_, err := ResolveNonceStore(context.Background(), NonceStoreConfig{Production: true})
+func TestResolveNonceStore_SharedRequiredRefusesMissingRedisTarget(t *testing.T) {
+	// Kind empty resolves to redis when a shared store is required; with no
+	// URL that must fail rather than silently fall back to the in-process map.
+	_, err := ResolveNonceStore(context.Background(), NonceStoreConfig{RequireShared: true})
 	if err == nil {
-		t.Fatal("production with no redis target must not resolve")
+		t.Fatal("a deployed process with no redis target must not resolve")
 	}
 	if !strings.Contains(err.Error(), "SIWE_NONCE_REDIS_URL") {
 		t.Errorf("error should name the variable to set, got %q", err)
 	}
 }
 
-func TestResolveNonceStore_ProductionRefusesUnreachableRedis(t *testing.T) {
+func TestResolveNonceStore_SharedRequiredRefusesUnreachableRedis(t *testing.T) {
 	// Port 1 is reserved and never listening; construction must fail closed
 	// instead of degrading.
 	store, err := ResolveNonceStore(context.Background(), NonceStoreConfig{
-		Kind:       "redis",
-		RedisURL:   "redis://127.0.0.1:1/0",
-		Production: true,
+		Kind:          "redis",
+		RedisURL:      "redis://127.0.0.1:1/0",
+		RequireShared: true,
 	})
 	if err == nil {
 		_ = store.Close()
@@ -122,7 +122,7 @@ func TestResolveNonceStore_ProductionRefusesUnreachableRedis(t *testing.T) {
 	}
 }
 
-func TestResolveNonceStore_DevelopmentDefaultsToMemory(t *testing.T) {
+func TestResolveNonceStore_LocalTestDefaultsToMemory(t *testing.T) {
 	store, err := ResolveNonceStore(context.Background(), NonceStoreConfig{})
 	if err != nil {
 		t.Fatalf("development resolve: %v", err)
@@ -143,49 +143,47 @@ func TestNonceStoreConfigFromEnv_PrefersTheDedicatedTarget(t *testing.T) {
 	t.Setenv("REDIS_URL", "redis://shared:6379/0")
 	t.Setenv("SIWE_NONCE_REDIS_URL", "redis://auth:6379/2")
 	t.Setenv("SIWE_NONCE_STORE", "redis")
-	t.Setenv("NODE_ENV", "production")
 
-	cfg := NonceStoreConfigFromEnv()
+	cfg := NonceStoreConfigFromEnv(true)
 	if cfg.RedisURL != "redis://auth:6379/2" {
 		t.Errorf("RedisURL = %q, want the dedicated auth target", cfg.RedisURL)
 	}
-	if !cfg.Production {
-		t.Error("NODE_ENV=production must set Production")
+	if !cfg.RequireShared {
+		t.Error("the caller's requirement must be kept")
 	}
 }
 
 func TestNonceStoreConfigFromEnv_FallsBackToTheSharedRedis(t *testing.T) {
 	t.Setenv("REDIS_URL", "redis://shared:6379/0")
 	t.Setenv("SIWE_NONCE_REDIS_URL", "")
-	if got := NonceStoreConfigFromEnv().RedisURL; got != "redis://shared:6379/0" {
+	if got := NonceStoreConfigFromEnv(false).RedisURL; got != "redis://shared:6379/0" {
 		t.Errorf("RedisURL = %q, want the shared target", got)
 	}
 }
 
-// The whole point of the slice: a production process with no shared store does
-// not start.
-func TestNewServiceFromEnv_ProductionWithoutSharedStoreRefusesToStart(t *testing.T) {
-	t.Setenv("NODE_ENV", "production")
+// The whole point of the slice: a deployed process (anything but a loopback
+// development/test one) with no shared store does not start.
+func TestNewServiceFromEnv_DeployedWithoutSharedStoreRefusesToStart(t *testing.T) {
 	t.Setenv("REDIS_URL", "")
 	t.Setenv("SIWE_NONCE_REDIS_URL", "")
-	t.Setenv("SIWE_NONCE_STORE", "")
-
-	svc, err := NewServiceFromEnv(context.Background(), "secret", nil)
-	if err == nil {
-		_ = svc.Close()
-		t.Fatal("production without a shared nonce store must not construct a service")
+	for _, kind := range []string{"", "memory"} {
+		t.Setenv("SIWE_NONCE_STORE", kind)
+		svc, err := NewServiceFromEnv(context.Background(), Runtime{})
+		if err == nil {
+			_ = svc.Close()
+			t.Fatalf("SIWE_NONCE_STORE=%q: a deployed process without a shared nonce store must not construct a service", kind)
+		}
 	}
 }
 
-func TestNewServiceFromEnv_DevelopmentStartsOnMemory(t *testing.T) {
-	t.Setenv("NODE_ENV", "")
+func TestNewServiceFromEnv_LocalTestStartsOnMemory(t *testing.T) {
 	t.Setenv("REDIS_URL", "")
 	t.Setenv("SIWE_NONCE_REDIS_URL", "")
 	t.Setenv("SIWE_NONCE_STORE", "")
 
-	svc, err := NewServiceFromEnv(context.Background(), "secret", nil)
+	svc, err := NewServiceFromEnv(context.Background(), Runtime{LocalTest: true})
 	if err != nil {
-		t.Fatalf("development must start without Redis: %v", err)
+		t.Fatalf("a loopback development/test process must start without Redis: %v", err)
 	}
 	defer svc.Close()
 	if svc.NonceStoreKind() != "memory" {

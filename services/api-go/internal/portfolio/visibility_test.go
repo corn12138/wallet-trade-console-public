@@ -90,11 +90,12 @@ func TestShouldFilterAsSpam_RelaxedOnlyLabelTags(t *testing.T) {
 	}
 	// Pure thin-market only → relaxed should NOT drop.
 	b := RawAsset{
-		Symbol:   "OBSCURE",
-		Name:     "Some Token",
-		Status:   "launched",
-		ValueUSD: 0,
-		Metadata: &RawAssetMeta{Origin: "wallet-discovered"},
+		Symbol:          "OBSCURE",
+		Name:            "Some Token",
+		Status:          "launched",
+		ValueUSD:        ptrFloat(0),
+		ValuationStatus: ValuationKnown,
+		Metadata:        &RawAssetMeta{Origin: "wallet-discovered"},
 	}
 	if shouldFilterAsSpam(b, "relaxed") {
 		t.Errorf("relaxed must NOT drop on thin-market alone")
@@ -119,11 +120,12 @@ func TestShouldFilterAsSpam_StandardDropsAllNonThin(t *testing.T) {
 func TestShouldFilterAsSpam_StrictDropsEverythingWithSignal(t *testing.T) {
 	// Wallet-discovered with only the thin-market signal — strict drops.
 	a := RawAsset{
-		Symbol:   "ZERO",
-		Name:     "Zero",
-		Status:   "active",
-		ValueUSD: 0,
-		Metadata: &RawAssetMeta{Origin: "wallet-discovered"},
+		Symbol:          "ZERO",
+		Name:            "Zero",
+		Status:          "active",
+		ValueUSD:        ptrFloat(0),
+		ValuationStatus: ValuationKnown,
+		Metadata:        &RawAssetMeta{Origin: "wallet-discovered"},
 	}
 	if !shouldFilterAsSpam(a, "strict") {
 		t.Errorf("strict must drop on any signal")
@@ -171,9 +173,9 @@ func TestApplyVisibility_HiddenMatchRemoves(t *testing.T) {
 func TestApplyVisibility_SortByValueDescThenUpdated(t *testing.T) {
 	wallet := "0xowner"
 	in := []RawAsset{
-		{ID: "a", Symbol: "A", ChainID: 1, Status: "active", ValueUSD: 100, UpdatedAt: "2026-01-01T00:00:00Z", WalletAddress: &wallet},
-		{ID: "b", Symbol: "B", ChainID: 1, Status: "active", ValueUSD: 200, UpdatedAt: "2025-01-01T00:00:00Z", WalletAddress: &wallet},
-		{ID: "c", Symbol: "C", ChainID: 1, Status: "active", ValueUSD: 100, UpdatedAt: "2027-01-01T00:00:00Z", WalletAddress: &wallet},
+		{ID: "a", Symbol: "A", ChainID: 1, Status: "active", ValueUSD: ptrFloat(100), ValuationStatus: ValuationKnown, UpdatedAt: "2026-01-01T00:00:00Z", WalletAddress: &wallet},
+		{ID: "b", Symbol: "B", ChainID: 1, Status: "active", ValueUSD: ptrFloat(200), ValuationStatus: ValuationKnown, UpdatedAt: "2025-01-01T00:00:00Z", WalletAddress: &wallet},
+		{ID: "c", Symbol: "C", ChainID: 1, Status: "active", ValueUSD: ptrFloat(100), ValuationStatus: ValuationKnown, UpdatedAt: "2027-01-01T00:00:00Z", WalletAddress: &wallet},
 	}
 	got := applyVisibility(in, nil, "standard")
 	if len(got.Items) != 3 {

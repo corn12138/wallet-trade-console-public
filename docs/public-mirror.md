@@ -8,6 +8,7 @@ deployment configuration and rollback history.
 
 - frontend, Go backend, shared packages, database schema, and contracts;
 - tests and portable development configuration;
+- a public-owned fresh-install SQL baseline with required guards and singleton initialization;
 - public documentation and a CI workflow that uses no production secrets.
 
 ## What is never exported
@@ -116,3 +117,8 @@ Public contributions are reviewed here, imported into a private integration
 branch, and tested there. The resulting approved private revision is then
 exported back through the same release sequence. There is no automatic path
 from a public pull request to production.
+
+The SQL in `scripts/public-db` is maintained as a public overlay. It represents
+the current fresh-install contract and contains no private migration history or
+runtime rows. Database-sensitive source syncs must update and validate it on
+PostgreSQL 16; preserving an older baseline is not sufficient.

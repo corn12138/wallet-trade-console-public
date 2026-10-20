@@ -5,6 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AtlasTxReviewInput } from '@/lib/api/atlas';
 import { TxPreflight } from './TxPreflight';
 
+let mockSessionGeneration = 1;
+vi.mock('@/lib/web3/auth-provider', () => ({
+  useAuth: () => ({ sessionGeneration: mockSessionGeneration, isRestoring: false }),
+}));
+
 const mockReview = vi.fn();
 const mockExplain = vi.fn();
 
@@ -18,17 +23,7 @@ vi.mock('./ProductStatus', () => ({
   useProductStatus: () => ({ data: { aiExplain: { status: mockAiStatus } } }),
 }));
 
-const messages = {
-  security: {
-    txReview: {
-      preflightTitle: 'Pre-sign review',
-      simulating: 'Simulating…',
-      explain: 'Explain in plain language',
-      explaining: 'Explaining…',
-      explanationDisclaimer: 'Generated summary of the checks below. The checks are the verdict.',
-    },
-  },
-};
+import messages from '../../../../../services/api-go/internal/i18n/baseline/en.json';
 
 const APPROVE_INPUT: AtlasTxReviewInput = {
   operationType: 'approve',
@@ -72,6 +67,7 @@ function renderPreflight(input: AtlasTxReviewInput | null) {
 
 describe('TxPreflight', () => {
   beforeEach(() => {
+    mockSessionGeneration = 1;
     mockReview.mockReset();
     mockExplain.mockReset();
     mockAiStatus = 'disabled';
@@ -99,6 +95,24 @@ describe('TxPreflight', () => {
     renderPreflight(APPROVE_INPUT);
     await waitFor(() => expect(mockReview).toHaveBeenCalled());
     expect(mockReview.mock.calls[0][0]).toEqual(APPROVE_INPUT);
+  });
+
+  it('shows decoded contract facts and their limits even when AI is disabled', async () => {
+    mockReview.mockResolvedValue(reviewResult({
+      checks: [
+        { id: 'contract-position-call', severity: 'info', status: 'pass', title: 'Position calldata decoded', summary: 'openPosition; sizeDelta=90071992547409931234567890 (USD scaled by 1e30).' },
+        { id: 'contract-price-bound', severity: 'info', status: 'pass', title: 'Execution price bound encoded', summary: 'Maximum execution price, not a current quote.' },
+        { id: 'contract-deadline', severity: 'info', status: 'pass', title: 'Deadline encoded', summary: 'The contract checks block time at execution.' },
+        { id: 'contract-semantics-scope', severity: 'info', status: 'pass', title: 'Decoded intent scope', summary: 'Not proof of execution success or a security audit.' },
+      ],
+    }));
+    renderPreflight(APPROVE_INPUT);
+    expect(await screen.findByText('Position calldata decoded')).toBeTruthy();
+    expect(screen.getByText(/90071992547409931234567890/)).toBeTruthy();
+    expect(screen.getByText('Execution price bound encoded')).toBeTruthy();
+    expect(screen.getByText('Deadline encoded')).toBeTruthy();
+    expect(screen.getByText(/Not proof of execution success/)).toBeTruthy();
+    expect(mockExplain).not.toHaveBeenCalled();
   });
 
   /**
@@ -160,7 +174,7 @@ describe('TxPreflight', () => {
     // Still a complete review, and no failure wording anywhere.
     expect(screen.getByText('Unknown spender')).toBeTruthy();
     expect(screen.getByTestId('tx-preflight-status').textContent).toBe('warning');
-    expect(screen.queryByText(/failed|unavailable|error/i)).toBeNull();
+    expect(screen.queryAllByText(/failed|unavailable|error/i).filter((node) => !node.closest('[data-testid="simulation-evidence"]'))).toHaveLength(0);
   });
 
   it('drops a stale explanation when the transaction changes', async () => {

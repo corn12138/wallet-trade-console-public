@@ -1,4 +1,4 @@
-import type { ModalState, WalletState } from './AppContext';
+import type { ModalState, WalletState } from '@/lib/ui/shell-contract';
 
 export function getSiwePromptKey(address: string | undefined, chainId: number | undefined) {
   if (!address || !chainId) return null;
@@ -9,13 +9,14 @@ export function shouldAutoOpenSiweModal(input: {
   isConnected: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isRestoring?: boolean;
   walletState: WalletState;
   modal: ModalState;
   promptKey: string | null;
   dismissedPromptKey: string | null;
 }) {
   if (!input.isConnected) return false;
-  if (input.isAuthenticated || input.isLoading) return false;
+  if (input.isAuthenticated || input.isLoading || input.isRestoring) return false;
   if (input.walletState !== 'siwe') return false;
   if (input.modal) return false;
   if (!input.promptKey) return false;

@@ -22,6 +22,9 @@ type Options struct {
 	// (symbol, chainID) so a fresh subscriber gets an immediate frame. May be
 	// nil (then subscribers wait for the next worker broadcast).
 	MarketSnapshot SnapshotFunc
+	// CampaignPush mounts the authenticated /campaign-events namespace when
+	// non-nil. Market and token namespaces are unaffected either way.
+	CampaignPush CampaignPush
 }
 
 // NewServer builds the realtime server and registers the namespaces.
@@ -34,6 +37,9 @@ func NewServer(opts Options) *Server {
 	s := &Server{io: io}
 	s.markets = registerMarketsGateway(io, opts.MarketSnapshot)
 	s.tokenEvents = registerTokenEventsGateway(io)
+	if opts.CampaignPush != nil {
+		registerCampaignGateway(io, opts.CampaignPush)
+	}
 	return s
 }
 

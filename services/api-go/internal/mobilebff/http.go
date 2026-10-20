@@ -30,7 +30,13 @@ func Register(r chi.Router, s *Service) {
 }
 
 func (s *Service) handleFeedHome(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, s.GetFeedHome(r.Context()))
+	w.Header().Set("Cache-Control", "no-store")
+	out, err := s.GetFeedHome(r.Context())
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Service) handleArticleDetail(w http.ResponseWriter, r *http.Request) {
@@ -89,15 +95,33 @@ func (s *Service) handleMessageRead(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleProfileHome(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, s.GetProfileHome(r.Context(), r))
+	w.Header().Set("Cache-Control", "private, no-store")
+	out, err := s.GetProfileHome(r.Context(), r)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Service) handleSettingsIndex(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, s.GetSettingsIndex(r.Context(), r, r.URL.Query().Get("ownerAddress")))
+	w.Header().Set("Cache-Control", "private, no-store")
+	out, err := s.GetSettingsIndex(r.Context(), r, r.URL.Query().Get("ownerAddress"))
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Service) handleTopicLanding(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, s.GetTopicLanding(r.Context(), chi.URLParam(r, "slug")))
+	w.Header().Set("Cache-Control", "no-store")
+	out, err := s.GetTopicLanding(r.Context(), chi.URLParam(r, "slug"))
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Service) handleVideoFeed(w http.ResponseWriter, r *http.Request) {
@@ -113,6 +137,7 @@ func (s *Service) handleVideoDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleSharePrepare(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
 	var body SharePrepareRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
@@ -153,6 +178,8 @@ func writeError(w http.ResponseWriter, status int, message string) {
 
 func writeErr(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, ErrCampaignUnavailable):
+		writeError(w, http.StatusServiceUnavailable, "campaign data unavailable")
 	case errors.Is(err, ErrLoginRequired):
 		writeError(w, http.StatusUnauthorized, "login-required")
 	case errors.Is(err, ErrBadRequest):

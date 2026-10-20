@@ -597,6 +597,28 @@ model Web3Wallet {
   @@map("web3_wallets")
 }
 
+// Web3 SIWE sessions (FQ-01). Separate from AuthSession, which belongs to the
+// user-auth domain: the subject is a wallet. CHECK constraints and the one-way
+// revocation trigger live in migration 20261009120000_web3_auth_sessions;
+// Prisma cannot express them.
+model Web3AuthSession {
+  id             String    @id @db.Uuid
+  walletAddress  String    @map("wallet_address") @db.VarChar(42)
+  chainId        Int       @map("chain_id")
+  sessionVersion Int       @default(1) @map("session_version")
+  authEpoch      BigInt    @map("auth_epoch")
+  keyId          String    @map("key_id") @db.VarChar(64)
+  issuedAt       DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokeReason   String?   @map("revoke_reason") @db.VarChar(16)
+  revokedBy      String?   @map("revoked_by") @db.VarChar(96)
+  createdAt      DateTime  @default(dbgenerated("clock_timestamp()")) @map("created_at") @db.Timestamptz(6)
+
+  @@index([walletAddress, expiresAt], map: "web3_auth_sessions_wallet_idx")
+  @@map("web3_auth_sessions")
+}
+
 // 钱包分组
 model Web3WalletGroup {
   id           String              @id @default(cuid())
@@ -844,7 +866,26 @@ model Web3Transaction {
   failureCode   String? @map("failure_code")
   failureDetail String? @map("failure_detail") @db.Text
 
-  action Web3TransactionAction? @relation(fields: [actionId], references: [id])
+  /// Execution context (LG-03b, docs/claude-web3-lg03b-task-2026-10-14.md §6).
+  /// Written only by the insert that creates the row; NULL is final
+  /// notRecorded. The only later change is claimUnverified -> a final state
+  /// for an identical claimDigest. Bounds are named CHECKs (web3_tx_ctx_*).
+  executionContextState           String?   @map("execution_context_state")
+  executionContextMode            String?   @map("execution_context_mode")
+  executionContextClaimDigest     String?   @map("execution_context_claim_digest")
+  executionContextClaimedRevision BigInt?   @map("execution_context_claimed_revision")
+  executionContextOperation       String?   @map("execution_context_operation")
+  executionContextMarket          String?   @map("execution_context_market")
+  executionContextBinding         String?   @map("execution_context_binding")
+  executionContextConsumer        String?   @map("execution_context_consumer")
+  executionContextManifest        String?   @map("execution_context_manifest")
+  executionContextReason          String?   @map("execution_context_reason")
+  executionContextDiagnostic      String?   @map("execution_context_diagnostic")
+  executionContextRevision        BigInt?   @map("execution_context_revision")
+  executionContextClassifiedAt    DateTime? @map("execution_context_classified_at")
+
+  action                   Web3TransactionAction?     @relation(fields: [actionId], references: [id])
+  executionContextSnapshot ExecutionRegistrySnapshot? @relation(fields: [executionContextRevision], references: [revision], onDelete: NoAction, onUpdate: NoAction, map: "web3_tx_ctx_revision_fkey")
 
   @@unique([chainId, txHash])
   @@unique([actionId, attemptNumber], map: "web3_transactions_action_attempt_key")
@@ -856,6 +897,123 @@ model Web3Transaction {
   @@index([chainId, fromAddress, senderNonce], map: "web3_transactions_nonce_idx")
   @@index([status, lastCheckedAt], map: "web3_transactions_reconcile_idx")
   @@map("web3_transactions")
+}
+
+/// Immutable execution registry revision (LG-03b §4). Members are added only by
+/// the staging transaction (builder_xid) before sealing; sealed rows, members
+/// and activation history cannot change (triggers in the migration).
+model ExecutionRegistrySnapshot {
+  revision           BigInt              @id @default(autoincrement())
+  schemaVersion      Int                 @map("schema_version")
+  manifestDigest     String              @map("manifest_digest")
+  declarationsDigest String              @map("declarations_digest")
+  contentDigest      String?             @map("content_digest")
+  sealed             Boolean             @default(false)
+  builderXid         Unsupported("xid8") @default(dbgenerated("pg_current_xact_id()")) @map("builder_xid")
+  sourceSummary      Json                @map("source_summary")
+  stagedAt           DateTime            @default(now()) @map("staged_at")
+  stagedBy           String              @map("staged_by")
+  reason             String
+
+  entries     ExecutionRegistryEntry[]
+  activations ExecutionRegistryActivation[]
+  pointers    ExecutionRegistryPointer[]
+  attempts    Web3Transaction[]
+
+  @@map("execution_registry_snapshots")
+}
+
+model ExecutionRegistryEntry {
+  revision            BigInt
+  chainId             Int      @map("chain_id")
+  name                String
+  address             String
+  deploymentFile      String   @map("deployment_file")
+  deploymentTimestamp String   @map("deployment_timestamp")
+  abiHash             String   @map("abi_hash")
+  interfaces          String[]
+  codeHash            String   @map("code_hash")
+  codeBlockNumber     BigInt   @map("code_block_number")
+  codeBlockHash       String   @map("code_block_hash")
+  entryDigest         String   @map("entry_digest")
+
+  snapshot          ExecutionRegistrySnapshot  @relation(fields: [revision], references: [revision], onDelete: NoAction, onUpdate: NoAction, map: "execution_registry_entries_revision_fkey")
+  pmMarkets         ExecutionRegistryMarket[]  @relation("MarketPositionManager")
+  indexMarkets      ExecutionRegistryMarket[]  @relation("MarketIndexToken")
+  collateralMarkets ExecutionRegistryMarket[]  @relation("MarketCollateralToken")
+  targetBindings    ExecutionRegistryBinding[]
+
+  @@id([revision, chainId, name])
+  @@unique([revision, entryDigest], map: "execution_registry_entries_digest_key")
+  @@map("execution_registry_entries")
+}
+
+model ExecutionRegistryMarket {
+  revision           BigInt
+  chainId            Int      @map("chain_id")
+  symbol             String
+  positionManager    String   @map("position_manager")
+  indexToken         String   @map("index_token")
+  collateralToken    String   @map("collateral_token")
+  indexDecimals      Int      @map("index_decimals") @db.SmallInt
+  collateralDecimals Int      @map("collateral_decimals") @db.SmallInt
+  pricePrecision     Int      @map("price_precision") @db.SmallInt
+  components         String[]
+  marketDigest       String   @map("market_digest")
+
+  positionManagerEntry ExecutionRegistryEntry     @relation("MarketPositionManager", fields: [revision, chainId, positionManager], references: [revision, chainId, name], onDelete: NoAction, onUpdate: NoAction, map: "execution_registry_markets_pm_fkey")
+  indexTokenEntry      ExecutionRegistryEntry     @relation("MarketIndexToken", fields: [revision, chainId, indexToken], references: [revision, chainId, name], onDelete: NoAction, onUpdate: NoAction, map: "execution_registry_markets_index_fkey")
+  collateralTokenEntry ExecutionRegistryEntry     @relation("MarketCollateralToken", fields: [revision, chainId, collateralToken], references: [revision, chainId, name], onDelete: NoAction, onUpdate: NoAction, map: "execution_registry_markets_collateral_fkey")
+  bindings             ExecutionRegistryBinding[]
+
+  @@id([revision, chainId, symbol])
+  @@unique([revision, marketDigest], map: "execution_registry_markets_digest_key")
+  @@map("execution_registry_markets")
+}
+
+model ExecutionRegistryBinding {
+  revision      BigInt
+  chainId       Int    @map("chain_id")
+  operation     String
+  market        String
+  status        String
+  interfaceId   String @map("interface_id")
+  targetName    String @map("target_name")
+  roles         Json
+  bindingDigest String @map("binding_digest")
+
+  marketRow ExecutionRegistryMarket @relation(fields: [revision, chainId, market], references: [revision, chainId, symbol], onDelete: NoAction, onUpdate: NoAction, map: "execution_registry_bindings_market_fkey")
+  target    ExecutionRegistryEntry  @relation(fields: [revision, chainId, targetName], references: [revision, chainId, name], onDelete: NoAction, onUpdate: NoAction, map: "execution_registry_bindings_target_fkey")
+
+  @@id([revision, chainId, operation, market])
+  @@unique([revision, bindingDigest], map: "execution_registry_bindings_digest_key")
+  @@map("execution_registry_bindings")
+}
+
+/// Append-only; the pointer can only move with a same-transaction record.
+model ExecutionRegistryActivation {
+  activationVersion BigInt              @id @map("activation_version")
+  revision          BigInt
+  previousRevision  BigInt?             @map("previous_revision")
+  activatedAt       DateTime            @default(now()) @map("activated_at")
+  activatedBy       String              @map("activated_by")
+  reason            String
+  codeObservations  Json                @map("code_observations")
+  xid               Unsupported("xid8") @default(dbgenerated("pg_current_xact_id()"))
+
+  snapshot ExecutionRegistrySnapshot @relation(fields: [revision], references: [revision], onDelete: NoAction, onUpdate: NoAction, map: "execution_registry_activations_revision_fkey")
+
+  @@map("execution_registry_activations")
+}
+
+model ExecutionRegistryPointer {
+  id                Int    @id @db.SmallInt
+  activeRevision    BigInt @map("active_revision")
+  activationVersion BigInt @map("activation_version")
+
+  snapshot ExecutionRegistrySnapshot @relation(fields: [activeRevision], references: [revision], onDelete: NoAction, onUpdate: NoAction, map: "execution_registry_pointer_revision_fkey")
+
+  @@map("execution_registry_pointer")
 }
 
 // Token status enum for launchpad
@@ -1024,10 +1182,375 @@ model LaunchpadCampaign {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  definition CampaignDefinition?
+
   @@index([status])
   @@index([startDate])
   @@index([endDate])
   @@map("launchpad_campaigns")
+}
+
+// Versioned Campaign persistence. CHECK constraints and append-only/version
+// triggers live in 20261008140000_versioned_campaign_commands: Prisma cannot
+// express those guards, so a generated schema migration must preserve them.
+model CampaignDefinition {
+  id             String   @id @db.Text
+  slug           String?  @unique @db.VarChar(100)
+  source         String   @default("created") @db.VarChar(24)
+  legacySnapshot Json?    @map("legacy_snapshot") @db.JsonB
+  createdBy      String   @map("created_by") @db.VarChar(96)
+  createdAt      DateTime @default(dbgenerated("clock_timestamp()")) @map("created_at") @db.Timestamptz(6)
+
+  campaign           LaunchpadCampaign         @relation(fields: [id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  revisions          CampaignRevision[]
+  publication        CampaignPublication?
+  publicationHistory CampaignPublicationHistory[]
+  interactionStates  CampaignInteractionState[]
+  auditEvents        CampaignAuditEvent[]
+  legacyActivation   CampaignLegacyActivation?
+
+  @@map("campaign_definitions")
+}
+
+model CampaignRevision {
+  id                    String   @id @db.Uuid
+  campaignId            String   @map("campaign_id") @db.Text
+  schemaVersion         Int      @map("schema_version")
+  termsCanonicalVersion Int      @map("terms_canonical_version")
+  input                 Json     @db.JsonB
+  materialTermsHash     String   @map("material_terms_hash") @db.VarChar(64)
+  contentHash           String   @map("content_hash") @db.VarChar(64)
+  createdBy             String   @map("created_by") @db.VarChar(96)
+  createdAt             DateTime @default(dbgenerated("clock_timestamp()")) @map("created_at") @db.Timestamptz(6)
+
+  definition         CampaignDefinition           @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  activePublications CampaignPublication[]         @relation("CampaignActiveRevision")
+  publicationsBefore CampaignPublicationHistory[]  @relation("CampaignPublicationBeforeRevision")
+  publicationsAfter  CampaignPublicationHistory[]  @relation("CampaignPublicationAfterRevision")
+  interactionStates  CampaignInteractionState[]    @relation("CampaignAcceptedRevision")
+  interactionHistory CampaignInteractionHistory[]  @relation("CampaignHistoricalAcceptedRevision")
+  legacyActivations  CampaignLegacyActivation[]
+
+  @@unique([campaignId, id], map: "campaign_revision_identity_key")
+  @@unique([campaignId, id, materialTermsHash], map: "campaign_revision_terms_key")
+  @@map("campaign_revisions")
+}
+
+model CampaignPublication {
+  campaignId         String   @id @map("campaign_id") @db.Text
+  publicationVersion BigInt   @default(0) @map("publication_version")
+  interactionVersion BigInt   @default(0) @map("interaction_version")
+  activeRevisionId   String?  @map("active_revision_id") @db.Uuid
+  mode               String   @default("enabled") @db.VarChar(16)
+  updatedBy          String   @map("updated_by") @db.VarChar(96)
+  updatedAt          DateTime @default(dbgenerated("clock_timestamp()")) @map("updated_at") @db.Timestamptz(6)
+
+  definition     CampaignDefinition @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  activeRevision CampaignRevision?  @relation("CampaignActiveRevision", fields: [campaignId, activeRevisionId], references: [campaignId, id], onDelete: Restrict, onUpdate: Restrict, map: "campaign_publication_revision_fk")
+
+  @@map("campaign_publications")
+}
+
+model CampaignCommand {
+  id                         String   @id @db.Uuid
+  actor                      String   @db.VarChar(42)
+  operation                  String   @db.VarChar(32)
+  targetId                   String   @map("target_id") @db.VarChar(160)
+  clientCommandId            String   @map("client_command_id") @db.Uuid
+  payloadHash                String   @map("payload_hash") @db.VarChar(64)
+  expectedPublicationVersion BigInt?  @map("expected_publication_version")
+  expectedStateVersion       BigInt?  @map("expected_state_version")
+  reason                     String   @db.VarChar(1000)
+  requestId                  String   @map("request_id") @db.VarChar(96)
+  result                     Json     @db.JsonB
+  occurredAt                 DateTime @map("occurred_at") @db.Timestamptz(6)
+
+  publicationHistory      CampaignPublicationHistory?
+  interactionHistory      CampaignInteractionHistory?
+  auditEvent              CampaignAuditEvent?
+  legacyActivation        CampaignLegacyActivation?   @relation("CampaignLegacyActivationCommand")
+  legacyActivationPublish CampaignLegacyActivation?   @relation("CampaignLegacyActivationPublish")
+
+  @@unique([actor, operation, targetId, clientCommandId], map: "campaign_command_idempotency_key")
+  @@map("campaign_commands")
+}
+
+model CampaignPublicationHistory {
+  campaignId         String   @map("campaign_id") @db.Text
+  publicationVersion BigInt   @map("publication_version")
+  commandId          String   @unique @map("command_id") @db.Uuid
+  actor              String   @db.VarChar(42)
+  beforeMode         String   @map("before_mode") @db.VarChar(16)
+  afterMode          String   @map("after_mode") @db.VarChar(16)
+  beforeRevisionId   String?  @map("before_revision_id") @db.Uuid
+  afterRevisionId    String?  @map("after_revision_id") @db.Uuid
+  occurredAt         DateTime @map("occurred_at") @db.Timestamptz(6)
+
+  definition         CampaignDefinition          @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  command            CampaignCommand             @relation(fields: [commandId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  beforeRevision     CampaignRevision?           @relation("CampaignPublicationBeforeRevision", fields: [campaignId, beforeRevisionId], references: [campaignId, id], onDelete: Restrict, onUpdate: Restrict, map: "campaign_history_before_revision_fk")
+  afterRevision      CampaignRevision?           @relation("CampaignPublicationAfterRevision", fields: [campaignId, afterRevisionId], references: [campaignId, id], onDelete: Restrict, onUpdate: Restrict, map: "campaign_history_after_revision_fk")
+  interactionStates  CampaignInteractionState[]   @relation("CampaignAcceptedPublication")
+  interactionHistory CampaignInteractionHistory[] @relation("CampaignHistoricalAcceptedPublication")
+
+  @@id([campaignId, publicationVersion])
+  @@unique([campaignId, publicationVersion, afterRevisionId], map: "campaign_published_revision_key")
+  @@map("campaign_publication_history")
+}
+
+model CampaignInteractionState {
+  campaignId                 String    @map("campaign_id") @db.Text
+  walletAddress              String    @map("wallet_address") @db.VarChar(42)
+  kind                       String    @db.VarChar(16)
+  status                     String    @db.VarChar(16)
+  rowVersion                 BigInt    @map("row_version")
+  acceptanceProvenance        String    @map("acceptance_provenance") @db.VarChar(16)
+  acceptedRevisionId         String?   @map("accepted_revision_id") @db.Uuid
+  acceptedPublicationVersion BigInt?   @map("accepted_publication_version")
+  acceptedTermsHash          String?   @map("accepted_terms_hash") @db.VarChar(64)
+  acceptedAt                 DateTime? @map("accepted_at") @db.Timestamptz(6)
+  changedAt                  DateTime  @map("changed_at") @db.Timestamptz(6)
+
+  definition          CampaignDefinition          @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  acceptedRevision    CampaignRevision?           @relation("CampaignAcceptedRevision", fields: [campaignId, acceptedRevisionId, acceptedTermsHash], references: [campaignId, id, materialTermsHash], onDelete: Restrict, onUpdate: Restrict, map: "campaign_state_accepted_terms_fk")
+  acceptedPublication CampaignPublicationHistory? @relation("CampaignAcceptedPublication", fields: [campaignId, acceptedPublicationVersion, acceptedRevisionId], references: [campaignId, publicationVersion, afterRevisionId], onDelete: Restrict, onUpdate: Restrict, map: "campaign_state_accepted_publication_fk")
+  history             CampaignInteractionHistory[]
+
+  @@id([campaignId, walletAddress, kind])
+  @@index([walletAddress, campaignId], map: "campaign_interaction_wallet_idx")
+  @@map("campaign_interaction_states")
+}
+
+model CampaignInteractionHistory {
+  campaignId                 String    @map("campaign_id") @db.Text
+  walletAddress              String    @map("wallet_address") @db.VarChar(42)
+  kind                       String    @db.VarChar(16)
+  rowVersion                 BigInt    @map("row_version")
+  interactionVersion         BigInt    @map("interaction_version")
+  commandId                  String    @unique @map("command_id") @db.Uuid
+  beforeStatus               String?   @map("before_status") @db.VarChar(16)
+  afterStatus                String    @map("after_status") @db.VarChar(16)
+  acceptanceProvenance        String    @map("acceptance_provenance") @db.VarChar(16)
+  acceptedRevisionId         String?   @map("accepted_revision_id") @db.Uuid
+  acceptedPublicationVersion BigInt?   @map("accepted_publication_version")
+  acceptedTermsHash          String?   @map("accepted_terms_hash") @db.VarChar(64)
+  acceptedAt                 DateTime? @map("accepted_at") @db.Timestamptz(6)
+  occurredAt                 DateTime  @map("occurred_at") @db.Timestamptz(6)
+
+  command             CampaignCommand             @relation(fields: [commandId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  state               CampaignInteractionState    @relation(fields: [campaignId, walletAddress, kind], references: [campaignId, walletAddress, kind], onDelete: Restrict, onUpdate: Restrict, map: "campaign_history_state_fk")
+  acceptedRevision    CampaignRevision?           @relation("CampaignHistoricalAcceptedRevision", fields: [campaignId, acceptedRevisionId, acceptedTermsHash], references: [campaignId, id, materialTermsHash], onDelete: Restrict, onUpdate: Restrict, map: "campaign_history_accepted_terms_fk")
+  acceptedPublication CampaignPublicationHistory? @relation("CampaignHistoricalAcceptedPublication", fields: [campaignId, acceptedPublicationVersion, acceptedRevisionId], references: [campaignId, publicationVersion, afterRevisionId], onDelete: Restrict, onUpdate: Restrict, map: "campaign_history_accepted_publication_fk")
+
+  @@id([campaignId, walletAddress, kind, rowVersion])
+  @@unique([campaignId, interactionVersion], map: "campaign_history_interaction_version_key")
+  @@index([walletAddress, occurredAt, campaignId, kind, rowVersion], map: "campaign_interaction_history_wallet_idx")
+  @@map("campaign_interaction_history")
+}
+
+model CampaignAuditEvent {
+  id         String   @id @db.Uuid
+  campaignId String   @map("campaign_id") @db.Text
+  commandId  String   @unique @map("command_id") @db.Uuid
+  actor      String   @db.VarChar(42)
+  operation  String   @db.VarChar(32)
+  changes    Json     @db.JsonB
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz(6)
+
+  definition CampaignDefinition @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  command    CampaignCommand    @relation(fields: [commandId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@map("campaign_audit_events")
+}
+
+model CampaignPrivateScope {
+  walletAddress String @id @map("wallet_address") @db.VarChar(42)
+  scopeId       String @unique @map("scope_id") @db.Uuid
+
+  @@map("campaign_private_scopes")
+}
+
+model OutboxStream {
+  streamKey         String @id @map("stream_key") @db.VarChar(500)
+  source            String @db.VarChar(16)
+  lastStreamVersion BigInt @map("last_stream_version")
+
+  events DurableOutbox[]
+
+  @@unique([source, streamKey], map: "outbox_stream_source_key")
+  @@map("outbox_streams")
+}
+
+model DurableOutbox {
+  id               String    @id @db.Uuid
+  source           String    @db.VarChar(16)
+  aggregateId      String    @map("aggregate_id") @db.VarChar(500)
+  aggregateVersion BigInt    @map("aggregate_version")
+  topic            String    @db.VarChar(100)
+  ownerScope       String?   @map("owner_scope") @db.VarChar(42)
+  payloadVersion   Int       @map("payload_version")
+  payload          Json      @db.JsonB
+  occurredAt       DateTime  @map("occurred_at") @db.Timestamptz(6)
+  availableAt      DateTime  @map("available_at") @db.Timestamptz(6)
+  publishedAt      DateTime? @map("published_at") @db.Timestamptz(6)
+  leaseOwner       String?   @map("lease_owner") @db.Uuid
+  leaseUntil       DateTime? @map("lease_until") @db.Timestamptz(6)
+  attempts         Int       @default(0)
+  errorCode        String?   @map("error_code") @db.VarChar(100)
+  deadLetteredAt   DateTime? @map("dead_lettered_at") @db.Timestamptz(6)
+
+  replayGeneration  BigInt               @default(0) @map("replay_generation")
+  replayTransaction String?              @map("replay_transaction") @db.VarChar(20)
+  replayIntents     OutboxReplayIntent[]
+
+  stream   OutboxStream      @relation(fields: [source, aggregateId], references: [source, streamKey], onDelete: Restrict, onUpdate: Restrict, map: "outbox_source_stream_fk")
+  receipts ConsumerReceipt[]
+
+  @@unique([aggregateId, aggregateVersion], map: "outbox_stream_version_key")
+  @@index([publishedAt, availableAt], map: "durable_outbox_pending_idx")
+  @@map("durable_outbox")
+}
+
+model ConsumerReceipt {
+  consumerId String   @map("consumer_id") @db.VarChar(100)
+  eventId    String   @map("event_id") @db.Uuid
+  consumedAt DateTime @map("consumed_at") @db.Timestamptz(6)
+
+  event DurableOutbox @relation(fields: [eventId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([consumerId, eventId])
+  @@map("consumer_receipts")
+}
+
+// Controlled legacy import staging (LG-02a): capture runs, the raw-value
+// archive, the import plan and write fences. Guards and the fence triggers on
+// the legacy tables live in migration 20261009180000.
+model CampaignLegacyImportRun {
+  id           String    @id @db.Uuid
+  algorithm    String    @db.VarChar(32)
+  status       String    @default("capturing") @db.VarChar(16)
+  operator     String    @db.VarChar(96)
+  limits       Json      @db.JsonB
+  limitHit     String?   @map("limit_hit") @db.VarChar(32)
+  snapshot     String?
+  capturedAt   DateTime? @map("captured_at") @db.Timestamptz(6)
+  sourceSha256 String?   @map("source_sha256") @db.VarChar(64)
+  rowCount     BigInt?   @map("row_count")
+  byteCount    BigInt?   @map("byte_count")
+  retainUntil  DateTime  @map("retain_until") @db.Timestamptz(6)
+  createdAt    DateTime  @default(dbgenerated("clock_timestamp()")) @map("created_at") @db.Timestamptz(6)
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz(6)
+  abandonedBy  String?   @map("abandoned_by") @db.VarChar(96)
+
+  archiveRows CampaignLegacyArchiveRow[]
+  items       CampaignLegacyImportItem[]
+  fences      CampaignLegacyWriteFence[]
+
+  @@map("campaign_legacy_import_runs")
+}
+
+model CampaignLegacyArchiveRow {
+  runId       String @map("run_id") @db.Uuid
+  sourceTable String @map("source_table") @db.VarChar(32)
+  rowId       String @map("row_id")
+  campaignId  String @map("campaign_id")
+  rowJson     String @map("row_json")
+  rowSha256   String @map("row_sha256") @db.VarChar(64)
+
+  run CampaignLegacyImportRun @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([runId, sourceTable, rowId])
+  @@index([runId, campaignId], map: "campaign_legacy_archive_campaign_idx")
+  @@map("campaign_legacy_archive_rows")
+}
+
+model CampaignLegacyImportItem {
+  runId              String @map("run_id") @db.Uuid
+  campaignId         String @map("campaign_id")
+  legacyRowSha256    String @map("legacy_row_sha256") @db.VarChar(64)
+  interactionsSha256 String @map("interactions_sha256") @db.VarChar(64)
+  participantRows    Int    @map("participant_rows")
+  reminderRows       Int    @map("reminder_rows")
+  decision           String @db.VarChar(24)
+  findings           Json   @db.JsonB
+
+  run            CampaignLegacyImportRun       @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  reviewDecision CampaignLegacyReviewDecision?
+  activations    CampaignLegacyActivation[]
+
+  @@id([runId, campaignId])
+  @@map("campaign_legacy_import_items")
+}
+
+model CampaignLegacyWriteFence {
+  campaignId String    @map("campaign_id")
+  runId      String    @map("run_id") @db.Uuid
+  fencedBy   String    @map("fenced_by") @db.VarChar(96)
+  fencedAt   DateTime  @default(dbgenerated("clock_timestamp()")) @map("fenced_at") @db.Timestamptz(6)
+  liftedBy   String?   @map("lifted_by") @db.VarChar(96)
+  liftedAt   DateTime? @map("lifted_at") @db.Timestamptz(6)
+
+  run CampaignLegacyImportRun @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([campaignId, runId])
+  @@map("campaign_legacy_write_fences")
+}
+
+// One row, advanced by every fence change; writers with a transaction-wide
+// snapshot lock it to see the current fence state (migration 20261009180000).
+model CampaignLegacyFenceClock {
+  id    Int    @id @db.SmallInt
+  ticks BigInt
+
+  @@map("campaign_legacy_fence_clock")
+}
+
+// Recorded review decisions and activations of the controlled legacy import
+// (LG-02b1); guards live in migration 20261009200000.
+model CampaignLegacyReviewDecision {
+  id                   String   @id @db.Uuid
+  runId                String   @map("run_id") @db.Uuid
+  campaignId           String   @map("campaign_id")
+  decision             String   @db.VarChar(24)
+  acceptedDifferences  Json     @map("accepted_differences") @db.JsonB
+  acknowledgedFindings Json     @map("acknowledged_findings") @db.JsonB
+  reason               String   @db.VarChar(1000)
+  decidedBy            String   @map("decided_by") @db.VarChar(42)
+  clientCommandId      String   @map("client_command_id") @db.Uuid
+  decidedAt            DateTime @default(dbgenerated("clock_timestamp()")) @map("decided_at") @db.Timestamptz(6)
+
+  item       CampaignLegacyImportItem  @relation(fields: [runId, campaignId], references: [runId, campaignId], onDelete: Restrict, onUpdate: Restrict)
+  activation CampaignLegacyActivation?
+
+  @@unique([runId, campaignId], map: "campaign_legacy_review_once")
+  @@unique([decidedBy, clientCommandId], map: "campaign_legacy_review_idempotency")
+  @@map("campaign_legacy_review_decisions")
+}
+
+model CampaignLegacyActivation {
+  id                   String   @id @db.Uuid
+  campaignId           String   @unique @map("campaign_id")
+  runId                String   @map("run_id") @db.Uuid
+  decision             String   @db.VarChar(24)
+  reviewId             String?  @unique @map("review_id") @db.Uuid
+  commandId            String   @unique @map("command_id") @db.Uuid
+  publishCommandId     String?  @unique @map("publish_command_id") @db.Uuid
+  revisionId           String   @map("revision_id") @db.Uuid
+  activatedBy          String   @map("activated_by") @db.VarChar(42)
+  activatedAt          DateTime @map("activated_at") @db.Timestamptz(6)
+  legacyRowSha256      String   @map("legacy_row_sha256") @db.VarChar(64)
+  interactionsSha256   String   @map("interactions_sha256") @db.VarChar(64)
+  importedInteractions Int      @map("imported_interactions")
+  comparison           Json     @db.JsonB
+
+  definition     CampaignDefinition            @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  item           CampaignLegacyImportItem      @relation(fields: [runId, campaignId], references: [runId, campaignId], onDelete: Restrict, onUpdate: Restrict)
+  review         CampaignLegacyReviewDecision? @relation(fields: [reviewId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  command        CampaignCommand               @relation("CampaignLegacyActivationCommand", fields: [commandId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  publishCommand CampaignCommand?              @relation("CampaignLegacyActivationPublish", fields: [publishCommandId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  revision       CampaignRevision              @relation(fields: [campaignId, revisionId], references: [campaignId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@map("campaign_legacy_activations")
 }
 
 // Staking/Farming Pool model
@@ -1462,4 +1985,47 @@ model BridgeRelayerLogFailure {
   @@id([chainId, blockNumber, logIndex, txHash])
   @@index([resolvedAt, lastFailedAt(sort: Desc)], map: "bridge_relayer_log_failures_unresolved_idx")
   @@map("bridge_relayer_log_failures")
+}
+
+// Database triggers preserve append-only maintenance evidence and bind each
+// successful replay to its exact delivery transition and database transaction.
+model OutboxReplayIntent {
+  commandId              String               @id @map("command_id") @db.Uuid
+  principal              String               @db.VarChar(128)
+  authorityRole          String               @map("authority_role") @db.VarChar(128)
+  authorityVersion       BigInt               @map("authority_version")
+  operation              String               @db.VarChar(32)
+  source                 String               @db.VarChar(16)
+  eventId                String               @map("event_id") @db.Uuid
+  expectedGeneration     BigInt               @map("expected_generation")
+  expectedDeadLetteredAt DateTime             @map("expected_dead_lettered_at") @db.Timestamptz(6)
+  expectedAttempts       Int                  @map("expected_attempts")
+  expectedErrorCode      String               @map("expected_error_code") @db.VarChar(100)
+  fingerprint            String               @db.VarChar(64)
+  reason                 String               @db.VarChar(500)
+  requestId              String               @map("request_id") @db.VarChar(128)
+  acceptedAt             DateTime             @default(dbgenerated("clock_timestamp()")) @map("accepted_at") @db.Timestamptz(6)
+  schemaVersion          Int                  @default(1) @map("schema_version")
+  event                  DurableOutbox        @relation(fields: [eventId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  outcome                OutboxReplayOutcome?
+
+  @@unique([commandId, eventId])
+  @@map("outbox_replay_intents")
+}
+
+model OutboxReplayOutcome {
+  commandId        String             @id @map("command_id") @db.Uuid
+  eventId          String             @map("event_id") @db.Uuid
+  replayGeneration BigInt             @map("replay_generation")
+  status           String             @db.VarChar(16)
+  code             String             @db.VarChar(32)
+  beforeState      Json               @map("before_state") @db.JsonB
+  afterState       Json               @map("after_state") @db.JsonB
+  completedAt      DateTime           @map("completed_at") @db.Timestamptz(6)
+  writeTransaction String             @map("write_transaction") @db.VarChar(20)
+  schemaVersion    Int                @default(1) @map("schema_version")
+  intent           OutboxReplayIntent @relation(fields: [commandId, eventId], references: [commandId, eventId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([commandId, eventId])
+  @@map("outbox_replay_outcomes")
 }

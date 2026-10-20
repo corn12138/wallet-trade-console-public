@@ -27,6 +27,7 @@ import (
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/ai"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/article"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
+	campaignhttp "github.com/corn12138/wallet-trade-console-public/services/api-go/internal/campaign/v2/http"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/contractconfig"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/deployments"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/httpx"
@@ -63,6 +64,7 @@ func main() {
 		AIExplain:      ai.NewService(ai.Config{}, nil, txReviewSvc),
 		Web3Auth:       &web3auth.Service{},
 		ArticleRepo:    &article.Repository{},
+		CampaignV2:     campaignhttp.Router(campaignhttp.Config{}),
 	}
 
 	r := httpx.NewRouter(deps)

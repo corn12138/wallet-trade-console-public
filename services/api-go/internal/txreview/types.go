@@ -70,15 +70,19 @@ const (
 // engine. Pointer-typed *big.Int / *bool fields carry "absent" via
 // nil when the RPC call didn't succeed (mirrors NestJS nullable types).
 type SimulationResult struct {
-	Mode               SimulationMode `json:"mode"`
-	GasEstimate        *big.Int       `json:"-"`
-	GasEstimateString  *string        `json:"gasEstimate,omitempty"`
-	GasLimitSuggestion *string        `json:"gasLimitSuggestion,omitempty"`
-	EstimatedFeeWei    *big.Int       `json:"-"`
-	EstimatedFeeString *string        `json:"estimatedFeeWei,omitempty"`
-	CallSucceeded      *bool          `json:"callSucceeded,omitempty"`
-	ErrorMessage       *string        `json:"errorMessage,omitempty"`
-	NativeBalanceWei   *big.Int       `json:"-"` // not serialized, fed to rules
+	SimulationScope    string                 `json:"simulationScope"`
+	ConsistentSnapshot bool                   `json:"consistentSnapshot"`
+	Observations       SimulationObservations `json:"observations"`
+	CurrentAllowance   *big.Int               `json:"-"`
+	Mode               SimulationMode         `json:"mode"`
+	GasEstimate        *big.Int               `json:"-"`
+	GasEstimateString  *string                `json:"gasEstimate,omitempty"`
+	GasLimitSuggestion *string                `json:"gasLimitSuggestion,omitempty"`
+	EstimatedFeeWei    *big.Int               `json:"-"`
+	EstimatedFeeString *string                `json:"estimatedFeeWei,omitempty"`
+	CallSucceeded      *bool                  `json:"callSucceeded,omitempty"`
+	ErrorMessage       *string                `json:"errorMessage,omitempty"`
+	NativeBalanceWei   *big.Int               `json:"-"` // not serialized, fed to rules
 }
 
 // AllowanceChange mirrors TxReviewResult.allowanceChange.
@@ -131,6 +135,7 @@ type ReviewInput struct {
 	DeadlineSeconds  *int          `json:"deadlineSeconds,omitempty"`
 	SlippageBps      *int          `json:"slippageBps,omitempty"`
 	QuoteExpiresAt   *string       `json:"quoteExpiresAt,omitempty"`
+	ValidUntil       *string       `json:"validUntil,omitempty"`
 	ProductID        *string       `json:"productId,omitempty"`
 	Tx               *TxShape      `json:"tx,omitempty"`
 }
@@ -180,4 +185,7 @@ type Result struct {
 	ConnectedSite      *ConnectedSiteSummary `json:"connectedSite"`
 	RecommendedActions []string              `json:"recommendedActions"`
 	Checks             []Check               `json:"checks"`
+	// ExecutionContext is present only when the execution registry is wired
+	// (LG-03b); it is advisory and never changes ReviewStatus.
+	ExecutionContext *ReviewExecutionContext `json:"executionContext,omitempty"`
 }

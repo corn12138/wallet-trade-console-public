@@ -29,6 +29,10 @@ interface Web3ProviderProps {
  * - SIWE 认证状态管理
  */
 export function Web3Provider({ children }: Web3ProviderProps) {
+  // Mark SSR hydration as restoration before child effects run; Wagmi's own
+  // reconnectOnMount resolves the final connector state without deleting SIWE.
+  const [initialState] = useState(() => ({ ...wagmiConfig.state, status: 'reconnecting' as const }));
+
   // React Query 客户端（每个请求创建新实例，避免服务端状态泄露）
   const [queryClient] = useState(
     () =>
@@ -50,7 +54,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
   }, []);
 
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={wagmiConfig} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>{children}</AuthProvider>
       </QueryClientProvider>
