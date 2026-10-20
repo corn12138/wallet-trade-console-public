@@ -1,0 +1,2687 @@
+// Generated from the canonical campaign schema. Do not edit.
+export default {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wallet-trade:campaign:v2:contract:1",
+  "title": "Campaign v2 closed wire contracts",
+  "$ref": "#/$defs/RevisionInput",
+  "$defs": {
+    "LocalizedCopy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "rules": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "rewardDescription": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "rules",
+        "rewardDescription"
+      ]
+    },
+    "Translations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "en": {
+          "$ref": "#/$defs/LocalizedCopy"
+        },
+        "zh": {
+          "$ref": "#/$defs/LocalizedCopy"
+        }
+      },
+      "required": [
+        "en",
+        "zh"
+      ]
+    },
+    "EmptyParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "JoinRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "walletJoinV1"
+        },
+        "version": {
+          "type": "integer",
+          "const": 1
+        },
+        "params": {
+          "$ref": "#/$defs/EmptyParams"
+        }
+      },
+      "required": [
+        "kind",
+        "version",
+        "params"
+      ]
+    },
+    "ReminderRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "reminderIntentV1"
+        },
+        "version": {
+          "type": "integer",
+          "const": 1
+        },
+        "params": {
+          "$ref": "#/$defs/EmptyParams"
+        }
+      },
+      "required": [
+        "kind",
+        "version",
+        "params"
+      ]
+    },
+    "RuleSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "join": {
+          "$ref": "#/$defs/JoinRule"
+        },
+        "reminder": {
+          "$ref": "#/$defs/ReminderRule"
+        }
+      },
+      "required": [
+        "join",
+        "reminder"
+      ]
+    },
+    "MaterialTerms": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Translations"
+        },
+        "startAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "endAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "rules": {
+          "$ref": "#/$defs/RuleSet"
+        },
+        "rewardDelivery": {
+          "type": "string",
+          "const": "display-only"
+        }
+      },
+      "required": [
+        "copy",
+        "startAt",
+        "endAt",
+        "rules",
+        "rewardDelivery"
+      ]
+    },
+    "DisplayContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "layout": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "featured"
+          ]
+        },
+        "sortOrder": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "mediaAssetId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,80}$"
+        }
+      },
+      "required": [
+        "layout",
+        "sortOrder"
+      ]
+    },
+    "CTA": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actionKind": {
+          "type": "string",
+          "enum": [
+            "none",
+            "openTrade"
+          ]
+        },
+        "chainId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "marketId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,80}$"
+        }
+      },
+      "required": [
+        "actionKind"
+      ]
+    },
+    "RevisionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "termsCanonicalVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "templateId": {
+          "type": "string",
+          "const": "campaignCardV1"
+        },
+        "displayContent": {
+          "$ref": "#/$defs/DisplayContent"
+        },
+        "materialTerms": {
+          "$ref": "#/$defs/MaterialTerms"
+        },
+        "cta": {
+          "$ref": "#/$defs/CTA"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "termsCanonicalVersion",
+        "templateId",
+        "displayContent",
+        "materialTerms",
+        "cta"
+      ]
+    },
+    "CreateCommandInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "revision": {
+          "$ref": "#/$defs/RevisionInput"
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,99}$"
+        }
+      },
+      "required": [
+        "clientCommandId",
+        "reason",
+        "revision"
+      ]
+    },
+    "RevisionCommandInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "expectedPublicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "revision": {
+          "$ref": "#/$defs/RevisionInput"
+        }
+      },
+      "required": [
+        "clientCommandId",
+        "reason",
+        "expectedPublicationVersion",
+        "revision"
+      ]
+    },
+    "PublicationCommandInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "expectedPublicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "publish",
+            "pause",
+            "resume",
+            "archive",
+            "rollback"
+          ]
+        },
+        "candidateRevisionId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        }
+      },
+      "required": [
+        "clientCommandId",
+        "reason",
+        "expectedPublicationVersion",
+        "operation"
+      ]
+    },
+    "PositiveInteractionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "expectedStateVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "expectedPublicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "clientCommandId",
+        "expectedStateVersion",
+        "expectedPublicationVersion"
+      ]
+    },
+    "CancelInteractionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "expectedStateVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "clientCommandId",
+        "expectedStateVersion"
+      ]
+    },
+    "QueryLegacyBaselineView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "templateId",
+        "title",
+        "description",
+        "reward",
+        "startAt",
+        "endAt",
+        "capturedAt"
+      ],
+      "properties": {
+        "templateId": {
+          "type": "string",
+          "const": "legacyBaselineV1"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 200
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "startAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "endAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "capturedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        }
+      }
+    },
+    "QueryPublicCampaignView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "slug",
+        "revisionId",
+        "publicationVersion",
+        "interactionVersion",
+        "mode",
+        "effectivePhase",
+        "contentState",
+        "content",
+        "materialTermsHash",
+        "contentHash",
+        "participantCount",
+        "statisticsState",
+        "nextTransitionAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+        },
+        "slug": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,99}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revisionId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "publicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "interactionVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "enabled",
+            "paused",
+            "archived"
+          ]
+        },
+        "effectivePhase": {
+          "type": "string",
+          "enum": [
+            "upcoming",
+            "active",
+            "ended",
+            "unsupported"
+          ]
+        },
+        "contentState": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "unsupported",
+            "legacyBaseline"
+          ]
+        },
+        "content": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RevisionInput"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baseline": {
+          "$ref": "#/$defs/QueryLegacyBaselineView"
+        },
+        "materialTermsHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "participantCount": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "statisticsState": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "unavailable"
+          ]
+        },
+        "nextTransitionAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "QueryPersonalStateView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "stateVersion",
+        "status",
+        "acceptanceProvenance",
+        "acceptedRevisionId",
+        "acceptedPublicationVersion",
+        "acceptedTermsHash",
+        "acceptedAt",
+        "changedAt"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "absent",
+            "known",
+            "unknown"
+          ]
+        },
+        "stateVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "joined",
+                "left",
+                "set",
+                "removed"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptanceProvenance": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "verified",
+                "neverAccepted",
+                "legacyUnknown"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptedRevisionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptedPublicationVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptedTermsHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "changedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "QueryMyCampaignView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "publicationVersion",
+        "interactionVersion",
+        "participation",
+        "reminder"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+        },
+        "publicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "interactionVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "participation": {
+          "$ref": "#/$defs/QueryPersonalStateView"
+        },
+        "reminder": {
+          "$ref": "#/$defs/QueryPersonalStateView"
+        }
+      }
+    },
+    "QueryHistoryImportView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "importedAt",
+        "legacyRecordedAt"
+      ],
+      "properties": {
+        "importedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "legacyRecordedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "QueryHistoryView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaignId",
+        "kind",
+        "state",
+        "beforeStatus",
+        "operation",
+        "clientCommandId",
+        "interactionVersion",
+        "occurredAt",
+        "acceptedTerms",
+        "snapshotState"
+      ],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "enum": [
+            "command",
+            "legacyImport"
+          ]
+        },
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "join",
+            "reminder"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/QueryPersonalStateView"
+        },
+        "beforeStatus": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "joined",
+                "left",
+                "set",
+                "removed"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "join",
+                "leave",
+                "set-reminder",
+                "remove-reminder"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clientCommandId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "interactionVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "occurredAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "acceptedTerms": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MaterialTerms"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "snapshotState": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "legacyUnknown",
+            "unsupported",
+            "none"
+          ]
+        },
+        "legacyImport": {
+          "$ref": "#/$defs/QueryHistoryImportView"
+        }
+      }
+    },
+    "QueryPreviewView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaignId",
+        "revisionId",
+        "contentState",
+        "content",
+        "materialTermsHash",
+        "contentHash",
+        "isPublished"
+      ],
+      "properties": {
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+        },
+        "revisionId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "contentState": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "unsupported"
+          ]
+        },
+        "content": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RevisionInput"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "materialTermsHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "isPublished": {
+          "type": "boolean"
+        }
+      }
+    },
+    "QueryListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "items",
+        "nextCursor"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QueryPublicCampaignView"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "QueryMeResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "items"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QueryMyCampaignView"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        }
+      }
+    },
+    "QueryHistoryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "items",
+        "nextCursor"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QueryHistoryView"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "QueryDetailResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "item"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "item": {
+          "$ref": "#/$defs/QueryPublicCampaignView"
+        }
+      }
+    },
+    "QueryPreviewResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "item"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "item": {
+          "$ref": "#/$defs/QueryPreviewView"
+        }
+      }
+    },
+    "AdminRevisionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "createdAt",
+        "schemaVersion",
+        "termsCanonicalVersion",
+        "contentState",
+        "materialTermsHash",
+        "contentHash",
+        "published",
+        "active"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "createdAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "termsCanonicalVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "contentState": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "unsupported"
+          ]
+        },
+        "materialTermsHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "published": {
+          "type": "boolean"
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "AdminCampaignView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaignId",
+        "slug",
+        "source",
+        "publicationVersion",
+        "interactionVersion",
+        "mode",
+        "activeRevisionId",
+        "effectivePhase",
+        "materialTermsLock",
+        "hasAcceptedHistory",
+        "revisions",
+        "revisionsTruncated"
+      ],
+      "properties": {
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+        },
+        "slug": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,99}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "created",
+            "legacy-unversioned"
+          ]
+        },
+        "publicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "interactionVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "enabled",
+            "paused",
+            "archived"
+          ]
+        },
+        "activeRevisionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effectivePhase": {
+          "type": "string",
+          "enum": [
+            "unpublished",
+            "upcoming",
+            "active",
+            "ended",
+            "unsupported"
+          ]
+        },
+        "materialTermsLock": {
+          "type": "string",
+          "enum": [
+            "open",
+            "locked",
+            "legacyUnverified",
+            "unknown"
+          ]
+        },
+        "hasAcceptedHistory": {
+          "type": "boolean"
+        },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AdminRevisionSummary"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "revisionsTruncated": {
+          "type": "boolean"
+        }
+      }
+    },
+    "AdminCampaignResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "item"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "item": {
+          "$ref": "#/$defs/AdminCampaignView"
+        }
+      }
+    },
+    "CommandState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "status",
+        "stateVersion",
+        "acceptanceProvenance",
+        "acceptedRevisionId",
+        "acceptedPublicationVersion",
+        "acceptedTermsHash",
+        "acceptedAt"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "join",
+            "reminder"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "joined",
+            "left",
+            "set",
+            "removed"
+          ]
+        },
+        "stateVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "acceptanceProvenance": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "neverAccepted",
+            "legacyUnknown"
+          ]
+        },
+        "acceptedRevisionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptedPublicationVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptedTermsHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CommandResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaignId",
+        "revisionId",
+        "publicationVersion",
+        "interactionVersion",
+        "state",
+        "changed"
+      ],
+      "properties": {
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+        },
+        "revisionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "publicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "interactionVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CommandState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "changed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CommandResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "original",
+        "current",
+        "replayed"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "original": {
+          "$ref": "#/$defs/CommandResult"
+        },
+        "current": {
+          "$ref": "#/$defs/CommandResult"
+        },
+        "replayed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "AdminCommandIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clientCommandId",
+        "actor",
+        "operation",
+        "targetId",
+        "payloadHash",
+        "committedAt"
+      ],
+      "properties": {
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "actor": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "create",
+            "revision",
+            "publish",
+            "rollback",
+            "pause",
+            "resume",
+            "archive"
+          ]
+        },
+        "targetId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+        },
+        "payloadHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "committedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        }
+      }
+    },
+    "AdminCommandResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "command",
+        "original",
+        "current",
+        "replayed"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "command": {
+          "$ref": "#/$defs/AdminCommandIdentity"
+        },
+        "original": {
+          "$ref": "#/$defs/CommandResult"
+        },
+        "current": {
+          "$ref": "#/$defs/CommandResult"
+        },
+        "replayed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "code",
+        "requestId"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        }
+      }
+    },
+    "LegacyRunView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runId",
+        "status",
+        "operator",
+        "capturedAt",
+        "sourceSha256",
+        "rows",
+        "retainUntil"
+      ],
+      "properties": {
+        "runId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "capturing",
+            "captured",
+            "incomplete",
+            "abandoned"
+          ]
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "capturedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceSha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "retainUntil": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        }
+      }
+    },
+    "LegacyFindingSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "severity",
+        "count"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "blocker",
+            "review",
+            "info"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "LegacyFenceView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fencedBy",
+        "fencedAt",
+        "liftedBy",
+        "liftedAt"
+      ],
+      "properties": {
+        "fencedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "fencedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "liftedBy": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 96
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "liftedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "LegacyReviewView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewId",
+        "runId",
+        "campaignId",
+        "decision",
+        "acceptedDifferences",
+        "acknowledgedFindings",
+        "reason",
+        "reviewer",
+        "clientCommandId",
+        "decidedAt"
+      ],
+      "properties": {
+        "reviewId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "campaignId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "import-public",
+            "import-unpublished",
+            "exclude"
+          ]
+        },
+        "acceptedDifferences": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "visibility",
+              "participantCount",
+              "walletState"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "acknowledgedFindings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "reviewer": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "decidedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        }
+      }
+    },
+    "LegacyActivationSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "activationId",
+        "decision",
+        "activatedBy",
+        "activatedAt",
+        "classes"
+      ],
+      "properties": {
+        "activationId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "import-public",
+            "import-unpublished"
+          ]
+        },
+        "activatedBy": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "activatedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "visibility",
+              "participantCount",
+              "walletState",
+              "field"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 4
+        }
+      }
+    },
+    "LegacyPlanItemView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaignId",
+        "decision",
+        "legacyRowSha256",
+        "interactionsSha256",
+        "participantRows",
+        "reminderRows",
+        "findings",
+        "fence",
+        "review",
+        "activation"
+      ],
+      "properties": {
+        "campaignId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "import-public",
+            "import-unpublished",
+            "review-required",
+            "blocked",
+            "already-versioned"
+          ]
+        },
+        "legacyRowSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "interactionsSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "participantRows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "reminderRows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegacyFindingSummary"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "fence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LegacyFenceView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LegacyReviewView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "activation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LegacyActivationSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "LegacyImportPlanResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "run",
+        "items",
+        "nextCursor",
+        "unlistedItems"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "run": {
+          "$ref": "#/$defs/LegacyRunView"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegacyPlanItemView"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unlistedItems": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "LegacyDifferenceGroupView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "field",
+        "before",
+        "after",
+        "count",
+        "walletRefs"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": [
+            "visibility",
+            "participantCount",
+            "walletState",
+            "field"
+          ]
+        },
+        "field": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,80}$"
+        },
+        "before": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "after": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "walletRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 16,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "minItems": 0,
+          "maxItems": 20
+        }
+      }
+    },
+    "LegacyComparisonView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instant",
+        "wallets",
+        "groups",
+        "groupsTruncated",
+        "classes",
+        "accepted"
+      ],
+      "properties": {
+        "instant": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "wallets": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegacyDifferenceGroupView"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "groupsTruncated": {
+          "type": "boolean"
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "visibility",
+              "participantCount",
+              "walletState",
+              "field"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 4
+        },
+        "accepted": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "visibility",
+              "participantCount",
+              "walletState"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3
+        }
+      }
+    },
+    "LegacyActivationView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "activationId",
+        "campaignId",
+        "runId",
+        "decision",
+        "reviewId",
+        "revisionId",
+        "commandId",
+        "publishCommandId",
+        "clientCommandId",
+        "payloadHash",
+        "activatedBy",
+        "activatedAt",
+        "publicationVersion",
+        "interactionVersion",
+        "importedInteractions",
+        "comparison"
+      ],
+      "properties": {
+        "activationId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "import-public",
+            "import-unpublished"
+          ]
+        },
+        "reviewId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revisionId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "publishCommandId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "payloadHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "activatedBy": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "activatedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "publicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "interactionVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "importedInteractions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "comparison": {
+          "$ref": "#/$defs/LegacyComparisonView"
+        }
+      }
+    },
+    "LegacyReviewCommandInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clientCommandId",
+        "decision",
+        "acceptedDifferences",
+        "acknowledgedFindings",
+        "reason"
+      ],
+      "properties": {
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "import-public",
+            "import-unpublished",
+            "exclude"
+          ]
+        },
+        "acceptedDifferences": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "visibility",
+              "participantCount",
+              "walletState"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "acknowledgedFindings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "LegacyActivationCommandInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clientCommandId",
+        "reason",
+        "legacyRowSha256",
+        "interactionsSha256"
+      ],
+      "properties": {
+        "clientCommandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "legacyRowSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "interactionsSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "LegacyReviewResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "review",
+        "replayed"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "review": {
+          "$ref": "#/$defs/LegacyReviewView"
+        },
+        "replayed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "LegacyActivationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "activation",
+        "replayed"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "activation": {
+          "$ref": "#/$defs/LegacyActivationView"
+        },
+        "replayed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "LegacyDriftView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "change",
+        "rowRef",
+        "afterRef"
+      ],
+      "properties": {
+        "table": {
+          "type": "string",
+          "enum": [
+            "launchpad_campaigns",
+            "campaign_participants",
+            "campaign_reminders"
+          ]
+        },
+        "change": {
+          "type": "string",
+          "enum": [
+            "added",
+            "changed",
+            "removed"
+          ]
+        },
+        "rowRef": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 16,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "afterRef": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 16,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "LegacyImportRefusal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "code",
+        "requestId",
+        "drift",
+        "driftTruncated",
+        "comparison"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "drift": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegacyDriftView"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        },
+        "driftTruncated": {
+          "type": "boolean"
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LegacyComparisonView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "EventFeedHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "source": {
+          "type": "string",
+          "const": "campaign"
+        },
+        "streamVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "minLength": 1,
+          "maxLength": 19
+        },
+        "publicationVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "minLength": 1,
+          "maxLength": 19
+        },
+        "interactionVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "minLength": 1,
+          "maxLength": 19
+        },
+        "eventSchema": {
+          "type": "integer",
+          "const": 1
+        },
+        "occurredAt": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 40,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        }
+      },
+      "required": [
+        "eventId",
+        "source",
+        "streamVersion",
+        "publicationVersion",
+        "interactionVersion",
+        "eventSchema",
+        "occurredAt"
+      ]
+    },
+    "EventFeedResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "serverNow": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 40,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "asOf": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 40,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "publication",
+            "interaction",
+            "personal"
+          ]
+        },
+        "headVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "minLength": 1,
+          "maxLength": 19
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "hasMore": {
+          "type": "boolean"
+        },
+        "resetRequired": {
+          "type": "boolean"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EventFeedHint"
+          },
+          "minItems": 0,
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "serverNow",
+        "asOf",
+        "campaignId",
+        "family",
+        "headVersion",
+        "cursor",
+        "hasMore",
+        "resetRequired",
+        "events"
+      ]
+    },
+    "PushSubscriptionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "publication",
+            "interaction",
+            "personal"
+          ]
+        }
+      },
+      "required": [
+        "campaignId",
+        "family"
+      ]
+    },
+    "PushAck": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "publication",
+            "interaction",
+            "personal"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_request",
+            "unauthorized",
+            "session_unavailable",
+            "not_found",
+            "unavailable",
+            "too_many_subscriptions",
+            "capacity",
+            "rate_limited",
+            "cancelled"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "success"
+      ]
+    },
+    "PushInvalidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "publication",
+            "interaction",
+            "personal"
+          ]
+        },
+        "headVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "minLength": 1,
+          "maxLength": 19
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "campaignId",
+        "family",
+        "headVersion"
+      ]
+    },
+    "PushReset": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,128}$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "publication",
+            "interaction",
+            "personal"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "unauthorized",
+            "session_unavailable",
+            "not_found"
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "campaignId",
+        "family",
+        "reason"
+      ]
+    }
+  }
+} as const;

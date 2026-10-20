@@ -116,3 +116,8 @@ describe('AdvancedEarnPage wallet staking metrics', () => {
         expect(screen.getByTestId('metric-Pending rewards')).toHaveTextContent('—');
     });
 });
+
+// Page tests fix the session scope; provider restoration has its own integration gate.
+vi.mock('@/lib/web3/auth-provider', () => ({
+  useAuth: () => ({ sessionGeneration: 1, isRestoring: false }),
+}));

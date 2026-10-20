@@ -103,6 +103,10 @@ type stubRPCSimple struct {
 	allowanceResult                []byte
 }
 
+func (s *stubRPCSimple) ChainID(context.Context) (*big.Int, error) {
+	return big.NewInt(DefaultChainID), nil
+}
+
 func (s *stubRPCSimple) EstimateGas(_ context.Context, _, _, _, _ string) (*big.Int, error) {
 	return s.estimateGas, nil
 }
@@ -149,7 +153,7 @@ func TestReview_CustomOp_Happy(t *testing.T) {
 	}
 }
 
-func TestReview_CustomOp_KnownSpenderApproves(t *testing.T) {
+func TestReview_CustomOp_KnownSpenderDoesNotEstablishSemantics(t *testing.T) {
 	known := fakeKnown{spenders: []string{"0x000000000000000000000000000000000000beef"}}
 	svc := NewService(&stubRPCSimple{estimateGas: big.NewInt(21000), gasPrice: big.NewInt(1e9), balance: big.NewInt(1e18)},
 		&fakeSwap{}, &fakeEarn{}, nil, nil, known, nil)
@@ -161,8 +165,8 @@ func TestReview_CustomOp_KnownSpenderApproves(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
-	if out.ReviewStatus != ReviewApproved {
-		t.Errorf("status = %s, want approved", out.ReviewStatus)
+	if out.ReviewStatus != ReviewWarning || findCheck(out.Checks, "contract-semantics-unknown") == nil {
+		t.Errorf("known spender must not establish arbitrary calldata semantics: %+v", out)
 	}
 }
 

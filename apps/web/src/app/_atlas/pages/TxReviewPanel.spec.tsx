@@ -19,6 +19,11 @@ import { TxReviewPanel } from './TxReviewPanel';
  *    re-word, re-rank, or drop what the deterministic engine decided
  */
 
+let mockSessionGeneration = 1;
+vi.mock('@/lib/web3/auth-provider', () => ({
+  useAuth: () => ({ sessionGeneration: mockSessionGeneration, isRestoring: false }),
+}));
+
 const mockReview = vi.fn();
 const mockExplain = vi.fn();
 
@@ -84,6 +89,7 @@ function fillBridgeForm({ recipient = '' }: { recipient?: string } = {}) {
 
 describe('TxReviewPanel bridge-deposit mode', () => {
   beforeEach(() => {
+    mockSessionGeneration = 1;
     mockReview.mockReset();
     mockExplain.mockReset();
     mockToast.mockReset();
@@ -189,6 +195,7 @@ describe('TxReviewPanel explanation layer', () => {
   };
 
   beforeEach(() => {
+    mockSessionGeneration = 1;
     mockReview.mockReset();
     mockExplain.mockReset();
     mockToast.mockReset();
@@ -263,8 +270,8 @@ describe('TxReviewPanel explanation layer', () => {
     // The review still lands — a missing explanation costs the user nothing.
     expect(await screen.findByText('Trusted-relayer bridge')).toBeTruthy();
     expect(screen.queryByText('Plain-language summary')).toBeNull();
-    // No failure wording anywhere: static is a valid answer, not a breakage.
-    expect(screen.queryByText(/failed|unavailable|error/i)).toBeNull();
+    // Static prose adds no error; simulation evidence retains its own availability.
+    expect(screen.queryAllByText(/failed|unavailable|error/i).filter((node) => !node.closest('[data-testid="simulation-evidence"]'))).toHaveLength(0);
     expect(mockToast).not.toHaveBeenCalled();
   });
 

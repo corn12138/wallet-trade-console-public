@@ -552,3 +552,8 @@ describe('SwapPage quote gating', () => {
         await waitFor(() => expect(mockGetSwapQuote.mock.calls.length).toBeGreaterThan(before));
     });
 });
+
+// Page tests fix the session scope; provider restoration has its own integration gate.
+vi.mock('@/lib/web3/auth-provider', () => ({
+  useAuth: () => ({ sessionGeneration: 1, isRestoring: false }),
+}));

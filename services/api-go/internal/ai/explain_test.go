@@ -317,8 +317,7 @@ func TestExplainEndpointReturns200WhenAIDisabled(t *testing.T) {
 }
 
 // The endpoint re-derives the review server-side; it does not accept a
-// client-supplied verdict. A caller who posts a fabricated review body gets the
-// server's own determination back.
+// client-supplied verdict. Unknown request fields are rejected before review or model work.
 func TestExplainRecomputesTheReviewServerSide(t *testing.T) {
 	reviewer := &fakeReviewer{result: blockedReview()}
 	fc := &fakeClient{exp: goodExplanation()}
@@ -333,6 +332,11 @@ func TestExplainRecomputesTheReviewServerSide(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	explainRouter(svc).ServeHTTP(rec, explainRequest(body))
+	if rec.Code != http.StatusBadRequest || reviewer.calls != 0 || fc.gotUser != "" {
+		t.Fatalf("client verdict accepted: code=%d calls=%d", rec.Code, reviewer.calls)
+	}
+	rec = httptest.NewRecorder()
+	explainRouter(svc).ServeHTTP(rec, explainRequest(explainBody))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("code = %d, body = %s", rec.Code, rec.Body.String())

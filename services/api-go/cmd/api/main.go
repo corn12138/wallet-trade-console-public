@@ -23,6 +23,7 @@ import (
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/bridge"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/campaign"
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/campaign/eventpush"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/contractconfig"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/db"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/discover"
@@ -66,6 +67,13 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Validated before anything connects: every web3 security default below
+	// derives from this profile, so an unknown environment never starts.
+	profile, err := resolveDeploymentProfile(os.Getenv, listenAddr())
+	if err != nil {
+		return err
+	}
+
 	databaseURL, err := runtimeenv.Resolve()
 	if err != nil {
 		return err
@@ -79,10 +87,13 @@ func run() error {
 		defer pool.Close()
 	}
 
-	authVerifier, err := buildAuthVerifier()
+	// One web3 verifier/issuer (FQ-01): every guard, both /me routes, logout
+	// and /verify share its policy and persistent session store.
+	web3Creds, err := buildWeb3Credentials(ctx, os.Getenv, pool)
 	if err != nil {
 		return err
 	}
+	authVerifier := web3Creds.verifier
 
 	// User-auth (login/register/refresh) wires its own verifier with
 	// separate JWT_SECRET / JWT_REFRESH_SECRET so the user-flow tokens
@@ -133,8 +144,8 @@ func run() error {
 		tokenRepo = tokenRepoConcrete
 		discoverTokens = tokenRepoConcrete
 	}
-	// campaign.NewRepository handles nil pool — methods return
-	// ErrPoolUnavailable, which the service degrades to empty/404.
+	// Campaign dependency failures remain unavailable; empty results must come
+	// from a successful read rather than missing database configuration.
 	campaignRepo := campaign.NewRepository(pool)
 	socialRepo := social.NewRepository(pool)
 	activityRepo := activity.NewRepository(pool)
@@ -190,17 +201,19 @@ func run() error {
 	bridgeRPCs := buildBridgeRPCs(swapRPC)
 	web3TxVerifier := web3events.NewRPCTransactionVerifier(buildWeb3TransactionRPCs(bridgeRPCs))
 
-	// Web3-auth (SIWE). JWT_SECRET also signs the issued web3 access
-	// token (Type="web3"), same secret the existing auth.Verifier
-	// reads — so a token minted here verifies for guarded routes.
+	// Web3-auth (SIWE). Tokens are issued by the same verifier every guard
+	// uses, and only after their session is persisted.
 	//
-	// Construction resolves the shared challenge store, so a production
-	// process with no reachable Redis fails here rather than serving logins
-	// whose replay protection is silently process-local (ADR 0007).
-	web3AuthSvc, err := web3auth.NewServiceFromEnv(
-		ctx, os.Getenv("JWT_SECRET"),
-		web3auth.NewRPCContractVerifier(buildContractWalletRPCs(bridgeRPCs)),
-	)
+	// Construction resolves the shared challenge store, so any process other
+	// than a loopback development/test one with no reachable Redis fails here
+	// rather than serving logins whose replay protection is silently
+	// process-local (ADR 0007).
+	web3AuthSvc, err := web3auth.NewServiceFromEnv(ctx, web3auth.Runtime{
+		Credentials:      authVerifier,
+		Sessions:         web3Creds.sessions,
+		ContractVerifier: web3auth.NewRPCContractVerifier(buildContractWalletRPCs(bridgeRPCs)),
+		LocalTest:        profile.localTest(),
+	})
 	if err != nil {
 		return fmt.Errorf("web3 auth: %w", err)
 	}
@@ -269,7 +282,17 @@ func run() error {
 			slog.Info("AI tx-review explanations enabled", "provider", "deepseek", "model", aiCfg.Model, "timeout", aiCfg.Timeout)
 		}
 	}
+	executionRegistry := buildExecutionRegistry(ctx, pool)
+	txReviewSvc.WithExecutionContext(reviewExecution{svc: executionRegistry})
+	if executionRegistry != nil {
+		eventsRepoConcrete.WithExecutionContextColumns()
+	}
 	aiExplainSvc := ai.NewService(aiCfg, aiClient, txReviewSvc)
+	var deployedMarkets func(*int) ([]markets.SymbolView, error)
+	if marketsSvc != nil {
+		deployedMarkets = marketsSvc.GetSymbols
+	}
+	campaignServices := buildCampaignRuntime(pool, authVerifier, web3Creds.adminsGranted, campaignTradeMarkets(deployedMarkets))
 
 	addr := listenAddr()
 	server := &http.Server{
@@ -283,6 +306,8 @@ func run() error {
 			DiscoverStaking:     discoverStaking(stakingRepoConcrete),
 			DiscoverEvents:      discoverEvents(eventsRepoConcrete, pool),
 			CampaignRepo:        campaignRepo,
+			CampaignService:     campaignServices.Compatible,
+			CampaignV2:          campaignServices.Routes,
 			SocialRepo:          socialRepo,
 			TokenListRepo:       tokenRepoConcrete,
 			ActivityRepo:        activityRepo,
@@ -296,10 +321,12 @@ func run() error {
 			SwapRPC:             swapRPCCaller(swapRPC),
 			BridgeRPCs:          bridgeRPCs,
 			AuthVerifier:        authVerifier,
+			I18nAdmins:          i18nAdmins(web3Creds.adminsGranted),
 			TradingRepoConcrete: tradingRepoConcrete,
 			TradingMarkets:      tradingMarketsAdapter{svc: marketsSvc},
 			Web3EventsRepo:      eventsRepoConcrete,
 			Web3TxVerifier:      web3TxVerifier,
+			ExecutionRegistry:   executionRegistry,
 			TagsRepo:            tagsRepo,
 			PaperTradeRepo:      paperTradeRepo,
 			PaperTradeEnabled:   paperTradeEnabled,
@@ -340,9 +367,19 @@ func run() error {
 	// (REDIS_URL -> cross-process; MARKET_STREAM_SYMBOLS drives the worker).
 	var realtimeStop func()
 	if realtimeEnabled() {
-		rt, stopRealtime := buildRealtime(ctx, marketsSvc)
+		var campaignPush realtime.CampaignPush
+		pushHub := buildCampaignPush(pool, authVerifier, os.Getenv)
+		if pushHub != nil {
+			campaignPush = eventpush.Transport{Hub: pushHub}
+		}
+		rt, stopRealtime := buildRealtime(ctx, marketsSvc, campaignPush)
 		server.Handler = mountRealtime(server.Handler, rt)
-		realtimeStop = stopRealtime
+		realtimeStop = func() {
+			if pushHub != nil {
+				pushHub.Close()
+			}
+			stopRealtime()
+		}
 		slog.Info("realtime Socket.IO enabled at /socket.io/ (markets + token-events)")
 		// Production token-events producer feed: the indexer publishes
 		// committed trade/price/graduation projections over Postgres
@@ -524,23 +561,6 @@ func portfolioMarkets(a marketsSummaryAdapter) portfolio.MarketSnapshotProvider 
 		return nil
 	}
 	return a
-}
-
-// buildAuthVerifier loads JWT_SECRET from the env and constructs a
-// Verifier. In production the secret is mandatory — NestJS already
-// crashes at boot on missing JWT_SECRET, and we mirror that contract.
-// In non-production, missing secret is allowed but logged loudly, so
-// guarded routes will only authenticate via the X-Wallet-Address /
-// zero-address fallbacks the middleware implements.
-func buildAuthVerifier() (*auth.Verifier, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		if os.Getenv("NODE_ENV") == "production" {
-			return nil, errors.New("JWT_SECRET is required in production")
-		}
-		slog.Warn("JWT_SECRET not set; guarded routes will only accept X-Wallet-Address / dev fallbacks")
-	}
-	return auth.NewVerifier(secret), nil
 }
 
 // buildUserVerifier returns the access+refresh signer for /api/auth/*.

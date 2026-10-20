@@ -49,6 +49,8 @@ type Service struct {
 	writer         Writer
 	verifier       TransactionVerifier
 	web3Middleware func(http.Handler) http.Handler
+	workbench      WorkbenchReader
+	classifier     ContextClassifier
 }
 
 // NewService builds a Service. A nil reader is allowed; routes return
@@ -72,8 +74,9 @@ func (s *Service) WithWrites(
 	return s
 }
 
-// Router mounts the 5 read endpoints + the 2 mutation endpoints under
-// /api/web3-events. The mutations are always mounted (so route parity sees a
+// Router mounts the 5 public read endpoints, the 3 owner-scoped workbench
+// reads and the 2 mutation endpoints under /api/web3-events. The private routes
+// are always mounted (so route parity sees a
 // constant topology) under the web3 guard when one is wired — mirroring the
 // NestJS @Public controller whose POSTs add @UseGuards(Web3AuthGuard). Without a
 // Writer (no DB) the handlers degrade to 503, like sibling modules.
@@ -85,17 +88,20 @@ func Router(svc *Service) chi.Router {
 	r.Get("/user/{address}", svc.userEvents)
 	r.Get("/transactions", svc.recentTransactions)
 
-	mountWrites := func(r chi.Router) {
+	mountPrivate := func(r chi.Router) {
 		r.Post("/transactions", svc.reportSubmittedTransaction)
 		r.Post("/transactions/{txHash}/receipt", svc.reportTransactionReceipt)
+		r.Get("/actions", svc.listActions)
+		r.Get("/actions/{actionId}", svc.getAction)
+		r.Get("/actions/{actionId}/attempts", svc.listAttempts)
 	}
 	if svc.web3Middleware != nil {
 		r.Group(func(r chi.Router) {
 			r.Use(svc.web3Middleware)
-			mountWrites(r)
+			mountPrivate(r)
 		})
 	} else {
-		mountWrites(r)
+		mountPrivate(r)
 	}
 	return r
 }
@@ -321,6 +327,8 @@ type submittedBody struct {
 	// action identity, and CLIENT_ACTION_ID_REUSED stays unreachable.
 	ClientActionID    *string `json:"clientActionId"`
 	ClientFingerprint *string `json:"clientFingerprint"`
+	// Optional LG-03b execution context; a bad value never fails the report.
+	ExecutionContext json.RawMessage `json:"executionContext"`
 }
 
 type receiptBody struct {
@@ -337,6 +345,7 @@ type receiptBody struct {
 	Value             *string         `json:"value"`
 	TxType            *string         `json:"txType"`
 	Metadata          json.RawMessage `json:"metadata"`
+	ExecutionContext  json.RawMessage `json:"executionContext"`
 }
 
 // reportSubmittedTransaction is POST /web3-events/transactions — the Go port of
@@ -408,6 +417,7 @@ func (s *Service) reportSubmittedTransaction(w http.ResponseWriter, r *http.Requ
 		RequestFingerprint: identity.fingerprint,
 		SenderNonce:        verified.SenderNonce,
 		BlockHash:          verified.BlockHash,
+		Context:            s.classifyContext(r.Context(), body.ExecutionContext, chainID, verified.ToAddress, verified.Input),
 	})
 	if err != nil {
 		if writeActionConflict(w, r, err) {
@@ -492,6 +502,7 @@ func (s *Service) reportTransactionReceipt(w http.ResponseWriter, r *http.Reques
 		SenderNonce:        verified.SenderNonce,
 		BlockHash:          verified.BlockHash,
 		Confirmations:      verified.Confirmations,
+		Context:            s.classifyContext(r.Context(), body.ExecutionContext, chainID, verified.ToAddress, verified.Input),
 	})
 	if err != nil {
 		if writeActionConflict(w, r, err) {

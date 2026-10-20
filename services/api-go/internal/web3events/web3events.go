@@ -111,6 +111,15 @@ type Pagination struct {
 // Repository wraps the pgx pool.
 type Repository struct {
 	pool *pgxpool.Pool
+	// contextColumns is set only after the startup probe found the LG-03b
+	// columns; otherwise the attempt SQL uses only the legacy schema.
+	contextColumns bool
+}
+
+// WithExecutionContextColumns enables writing attempt execution contexts.
+func (r *Repository) WithExecutionContextColumns() *Repository {
+	r.contextColumns = true
+	return r
 }
 
 // NewRepository binds the repo to a pgxpool.
@@ -474,6 +483,9 @@ type SubmitTxInput struct {
 	// Chain-observed attempt facts.
 	SenderNonce *uint64
 	BlockHash   *string
+
+	// Classified execution context (§6); nil = none.
+	Context *ContextWrite
 }
 
 // ReceiptTxInput is the normalized payload for reportTransactionReceipt.
@@ -498,6 +510,8 @@ type ReceiptTxInput struct {
 	SenderNonce   *uint64
 	BlockHash     *string
 	Confirmations int
+
+	Context *ContextWrite
 }
 
 // metaArg returns a jsonb-encodable value (a JSON string) or nil so an absent
@@ -533,6 +547,8 @@ func (r *Repository) UpsertSubmittedTransaction(ctx context.Context, in SubmitTx
 		requestFingerprint: in.RequestFingerprint,
 		senderNonce:        in.SenderNonce,
 		blockHash:          in.BlockHash,
+		context:            in.Context,
+		contextColumns:     r.contextColumns,
 	})
 }
 
@@ -556,6 +572,8 @@ func (r *Repository) UpsertTransactionReceipt(ctx context.Context, in ReceiptTxI
 		requestFingerprint: in.RequestFingerprint,
 		senderNonce:        in.SenderNonce,
 		blockHash:          in.BlockHash,
+		context:            in.Context,
+		contextColumns:     r.contextColumns,
 		receipt: &receiptFacts{
 			status:        in.Status,
 			blockNumber:   in.BlockNumber,
@@ -591,29 +609,15 @@ type attemptWrite struct {
 	senderNonce        *uint64
 	blockHash          *string
 	receipt            *receiptFacts
-}
-
-func (r *Repository) recordAttempt(ctx context.Context, in attemptWrite) (TransactionRow, error) {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return TransactionRow{}, fmt.Errorf("web3events: begin attempt write: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	row, err := recordAttemptTx(ctx, tx, in)
-	if err != nil {
-		return TransactionRow{}, err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return TransactionRow{}, fmt.Errorf("web3events: commit attempt write: %w", err)
-	}
-	return row, nil
+	context            *ContextWrite
+	contextColumns     bool
+	contextPrior       contextPreimage
 }
 
 // recordAttemptTx is the whole sequence, separated from pool handling so the
 // failure paths can be driven without a live database.
 func recordAttemptTx(ctx context.Context, tx attemptTx, in attemptWrite) (TransactionRow, error) {
-	existing, err := lockAttempt(ctx, tx, in.chainID, in.txHash)
+	existing, err := lockAttempt(ctx, tx, in.chainID, in.txHash, in.contextColumns)
 	if err != nil {
 		return TransactionRow{}, err
 	}
@@ -632,15 +636,22 @@ func recordAttemptTx(ctx context.Context, tx attemptTx, in attemptWrite) (Transa
 	// under the action's own lock — bindAction has taken it — so the counter is
 	// bumped exactly once per real attempt rather than once per request.
 	attemptNumber := existing.attemptNumber
-	if !existing.found {
-		claimed, err := claimAttemptNumber(ctx, tx, actionID, in.chainID, in.txHash)
+	in.contextPrior = existing.contextPrior
+	// Old binaries can still insert action-less rows after the migration's
+	// backfill. Their placeholder ordinal must be allocated on first binding.
+	if !existing.found || existing.actionID == nil {
+		var prior *contextPreimage
+		if in.contextColumns {
+			prior = &in.contextPrior
+		}
+		claimed, err := claimAttemptNumber(ctx, tx, actionID, in.chainID, in.txHash, prior)
 		if err != nil {
 			return TransactionRow{}, err
 		}
 		attemptNumber = claimed
 	}
 
-	row, err := writeAttemptRow(ctx, tx, in, actionID, attemptNumber)
+	row, err := writeAttemptRowWithContext(ctx, tx, in, actionID, attemptNumber)
 	if err != nil {
 		return TransactionRow{}, err
 	}
@@ -699,8 +710,8 @@ func bindAction(ctx context.Context, tx attemptTx, in attemptWrite, existing exi
 // to 'pending' (submit) or overwrite a 'reorged' row with a stale confirmation
 // (receipt), and the two would flap against each other forever.
 //
-// The RETURNING list is deliberately the original column set: the public
-// GET /web3-events/transactions is unguarded, so the new columns must never
+// The private scan consumes action identity separately: the public
+// GET /web3-events/transactions is unguarded, so internal fields must never
 // reach TransactionRow.
 func writeAttemptRow(ctx context.Context, tx attemptTx, in attemptWrite, actionID string, attemptNumber int) (TransactionRow, error) {
 	var nonce *int64
@@ -709,8 +720,11 @@ func writeAttemptRow(ctx context.Context, tx attemptTx, in attemptWrite, actionI
 		nonce = &converted
 	}
 
+	if in.contextColumns {
+		return writeAttemptRowContext(ctx, tx, in, actionID, attemptNumber, nonce)
+	}
 	if in.receipt == nil {
-		return scanTxRow(tx.QueryRow(ctx, `
+		return scanAttemptTxRow(actionID, tx.QueryRow(ctx, `
 			INSERT INTO web3_transactions
 				(chain_id, tx_hash, from_address, to_address, contract_address,
 				 value, gas_used, gas_price, block_number, status, tx_type, metadata,
@@ -724,6 +738,8 @@ func writeAttemptRow(ctx context.Context, tx attemptTx, in attemptWrite, actionI
 				tx_type          = COALESCE(EXCLUDED.tx_type, web3_transactions.tx_type),
 				metadata         = COALESCE(EXCLUDED.metadata, web3_transactions.metadata),
 				action_id        = COALESCE(web3_transactions.action_id, EXCLUDED.action_id),
+				attempt_number   = CASE WHEN web3_transactions.action_id IS NULL
+				                        THEN EXCLUDED.attempt_number ELSE web3_transactions.attempt_number END,
 				sender_nonce     = COALESCE(web3_transactions.sender_nonce, EXCLUDED.sender_nonce),
 				block_hash       = COALESCE(EXCLUDED.block_hash, web3_transactions.block_hash),
 				last_checked_at  = now(),
@@ -734,12 +750,12 @@ func writeAttemptRow(ctx context.Context, tx attemptTx, in attemptWrite, actionI
 				END
 			WHERE LOWER(web3_transactions.from_address) = LOWER(EXCLUDED.from_address)
 			RETURNING id, chain_id, tx_hash, from_address, to_address, contract_address,
-			          value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at
+			          value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at, action_id
 		`, in.chainID, in.txHash, in.fromAddress, in.toAddress, in.contractAddress,
 			in.value, in.txType, metaArg(in.metadata), actionID, attemptNumber, nonce, in.blockHash))
 	}
 
-	return scanTxRow(tx.QueryRow(ctx, `
+	return scanAttemptTxRow(actionID, tx.QueryRow(ctx, `
 		INSERT INTO web3_transactions
 			(chain_id, tx_hash, from_address, to_address, contract_address,
 			 value, gas_used, gas_price, block_number, status, tx_type, metadata,
@@ -753,6 +769,8 @@ func writeAttemptRow(ctx context.Context, tx attemptTx, in attemptWrite, actionI
 			tx_type          = COALESCE(EXCLUDED.tx_type, web3_transactions.tx_type),
 			metadata         = COALESCE(EXCLUDED.metadata, web3_transactions.metadata),
 			action_id        = COALESCE(web3_transactions.action_id, EXCLUDED.action_id),
+			attempt_number   = CASE WHEN web3_transactions.action_id IS NULL
+			                        THEN EXCLUDED.attempt_number ELSE web3_transactions.attempt_number END,
 			sender_nonce     = COALESCE(web3_transactions.sender_nonce, EXCLUDED.sender_nonce),
 			last_checked_at  = now(),
 			-- A reorged attempt is not re-confirmed by a replayed receipt. Block
@@ -776,7 +794,7 @@ func writeAttemptRow(ctx context.Context, tx attemptTx, in attemptWrite, actionI
 			END
 		WHERE LOWER(web3_transactions.from_address) = LOWER(EXCLUDED.from_address)
 		RETURNING id, chain_id, tx_hash, from_address, to_address, contract_address,
-		          value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at
+		          value, gas_used, gas_price, block_number, status, tx_type, metadata, created_at, action_id
 	`, in.chainID, in.txHash, in.fromAddress, in.toAddress, in.contractAddress,
 		in.value, in.receipt.gasUsed, in.receipt.gasPrice, in.receipt.blockNumber,
 		in.receipt.status, in.txType, metaArg(in.metadata), actionID, attemptNumber,

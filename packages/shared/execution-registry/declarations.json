@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "description": "Reviewed execution declarations for /trade (docs/claude-web3-lg03b-task-2026-10-14.md \u00a74.1). Addresses come from packages/shared/deployments; this file only states what the app may prepare.",
+  "chains": {
+    "31337": {
+      "entries": {
+        "PositionManager": {
+          "interfaces": [
+            "perp.positionManager.close.v1",
+            "perp.positionManager.open.v1"
+          ]
+        },
+        "MockUSDC": {
+          "interfaces": [
+            "erc20.approve.v1"
+          ]
+        },
+        "MockWETH": {
+          "interfaces": []
+        },
+        "MockWBTC": {
+          "interfaces": []
+        },
+        "PerpMarket": {
+          "interfaces": []
+        },
+        "PerpOracle": {
+          "interfaces": []
+        },
+        "PerpVault": {
+          "interfaces": []
+        }
+      },
+      "markets": {
+        "ETH-USD": {
+          "positionManager": "PositionManager",
+          "indexToken": "MockWETH",
+          "collateralToken": "MockUSDC",
+          "indexDecimals": 18,
+          "collateralDecimals": 18,
+          "pricePrecision": 30,
+          "components": [
+            "PerpMarket",
+            "PerpOracle",
+            "PerpVault"
+          ]
+        },
+        "BTC-USD": {
+          "positionManager": "PositionManager",
+          "indexToken": "MockWBTC",
+          "collateralToken": "MockUSDC",
+          "indexDecimals": 8,
+          "collateralDecimals": 18,
+          "pricePrecision": 30,
+          "components": [
+            "PerpMarket",
+            "PerpOracle",
+            "PerpVault"
+          ]
+        }
+      },
+      "operations": {
+        "trade.approveCollateral": {
+          "status": "enabled"
+        },
+        "trade.openPosition": {
+          "status": "enabled"
+        },
+        "trade.closePosition": {
+          "status": "enabled"
+        }
+      }
+    },
+    "11155111": {
+      "entries": {
+        "PositionManager": {
+          "interfaces": [
+            "perp.positionManager.close.v1",
+            "perp.positionManager.open.v1"
+          ]
+        },
+        "MockUSDC": {
+          "interfaces": [
+            "erc20.approve.v1"
+          ]
+        },
+        "MockWETH": {
+          "interfaces": []
+        },
+        "MockWBTC": {
+          "interfaces": []
+        },
+        "PerpMarket": {
+          "interfaces": []
+        },
+        "PerpOracle": {
+          "interfaces": []
+        },
+        "PerpVault": {
+          "interfaces": []
+        }
+      },
+      "markets": {
+        "ETH-USD": {
+          "positionManager": "PositionManager",
+          "indexToken": "MockWETH",
+          "collateralToken": "MockUSDC",
+          "indexDecimals": 18,
+          "collateralDecimals": 18,
+          "pricePrecision": 30,
+          "components": [
+            "PerpMarket",
+            "PerpOracle",
+            "PerpVault"
+          ]
+        },
+        "BTC-USD": {
+          "positionManager": "PositionManager",
+          "indexToken": "MockWBTC",
+          "collateralToken": "MockUSDC",
+          "indexDecimals": 8,
+          "collateralDecimals": 18,
+          "pricePrecision": 30,
+          "components": [
+            "PerpMarket",
+            "PerpOracle",
+            "PerpVault"
+          ]
+        }
+      },
+      "operations": {
+        "trade.approveCollateral": {
+          "status": "enabled"
+        },
+        "trade.openPosition": {
+          "status": "enabled"
+        },
+        "trade.closePosition": {
+          "status": "enabled"
+        }
+      }
+    }
+  }
+}

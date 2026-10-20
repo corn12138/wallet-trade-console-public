@@ -37,7 +37,7 @@ func messageWithLines(addr string, chainID int, challenge NonceResponse, extra .
 }
 
 func TestVerifySiwe_RejectsIssuedAtInTheFuture(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, err := svc.GenerateNonceFor(context.Background(), addr)
@@ -61,7 +61,7 @@ func TestVerifySiwe_RejectsIssuedAtInTheFuture(t *testing.T) {
 }
 
 func TestVerifySiwe_AcceptsIssuedAtWithinClockSkew(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -76,7 +76,7 @@ func TestVerifySiwe_AcceptsIssuedAtWithinClockSkew(t *testing.T) {
 }
 
 func TestVerifySiwe_RejectsNotBeforeInTheFuture(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -92,7 +92,7 @@ func TestVerifySiwe_RejectsNotBeforeInTheFuture(t *testing.T) {
 }
 
 func TestVerifySiwe_AcceptsNotBeforeAlreadyPassed(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -109,7 +109,7 @@ func TestVerifySiwe_AcceptsNotBeforeAlreadyPassed(t *testing.T) {
 func TestVerifySiwe_RejectsExpiredChallenge(t *testing.T) {
 	base := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
 	withFrozenClock(t, base)
-	svc := NewService("secret", 0, time.Minute, []int{11155111})
+	svc := testService(t, 0, time.Minute, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -123,7 +123,7 @@ func TestVerifySiwe_RejectsExpiredChallenge(t *testing.T) {
 }
 
 func TestVerifySiwe_RejectsChainOutsideTheIssuedChallenge(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -138,7 +138,7 @@ func TestVerifySiwe_RejectsChainOutsideTheIssuedChallenge(t *testing.T) {
 }
 
 func TestVerifySiwe_RejectsMismatchedRequestOrigin(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -155,7 +155,7 @@ func TestVerifySiwe_RejectsMismatchedRequestOrigin(t *testing.T) {
 
 func TestVerifySiwe_AcceptsMatchingAndAbsentOrigin(t *testing.T) {
 	for _, origin := range []string{"", "null"} {
-		svc := NewService("secret", 0, 0, []int{11155111})
+		svc := testService(t, 0, 0, []int{11155111})
 		priv, _ := secp256k1.GeneratePrivateKey()
 		addr := addrFromPriv(t, priv)
 		challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -167,7 +167,7 @@ func TestVerifySiwe_AcceptsMatchingAndAbsentOrigin(t *testing.T) {
 		}
 	}
 
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -181,7 +181,7 @@ func TestVerifySiwe_AcceptsMatchingAndAbsentOrigin(t *testing.T) {
 
 // The body must not be able to choose the origin it is checked against.
 func TestHandler_VerifyOriginComesFromTheHeaderNotTheBody(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -192,7 +192,7 @@ func TestHandler_VerifyOriginComesFromTheHeaderNotTheBody(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/verify", strings.NewReader(body))
 	req.Header.Set("Origin", "https://phishing.example")
 	rec := httptest.NewRecorder()
-	Router(svc, nil).ServeHTTP(rec, req)
+	Router(svc).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401 — a body-supplied origin must not win", rec.Code)
@@ -202,7 +202,7 @@ func TestHandler_VerifyOriginComesFromTheHeaderNotTheBody(t *testing.T) {
 // One issued challenge funds exactly one attempt, so a wrong signature cannot
 // be retried against it.
 func TestVerifySiwe_FailedAttemptBurnsTheChallenge(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	other, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
@@ -251,10 +251,10 @@ func TestVerifySiwe_ContractWalletAuthenticatesWhenTheAccountAccepts(t *testing.
 	ownerKey, _ := secp256k1.GeneratePrivateKey()
 	walletAddress := "0x" + strings.Repeat("cd", 20)
 	verifier := &contractOwnerVerifier{chainID: 11155111, address: walletAddress, priv: ownerKey, t: t}
-	svc := NewServiceWithConfig("secret", Config{
+	svc := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs:  []int{11155111},
 		ContractVerifier: verifier,
-	})
+	}))
 
 	challenge, _ := svc.GenerateNonceFor(context.Background(), walletAddress)
 	message := buildMessage(walletAddress, 11155111, challenge)
@@ -277,12 +277,12 @@ func TestVerifySiwe_ContractWalletRejectionFails(t *testing.T) {
 	ownerKey, _ := secp256k1.GeneratePrivateKey()
 	strangerKey, _ := secp256k1.GeneratePrivateKey()
 	walletAddress := "0x" + strings.Repeat("cd", 20)
-	svc := NewServiceWithConfig("secret", Config{
+	svc := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs: []int{11155111},
 		ContractVerifier: &contractOwnerVerifier{
 			chainID: 11155111, address: walletAddress, priv: ownerKey, t: t,
 		},
-	})
+	}))
 
 	challenge, _ := svc.GenerateNonceFor(context.Background(), walletAddress)
 	message := buildMessage(walletAddress, 11155111, challenge)
@@ -299,10 +299,10 @@ func TestVerifySiwe_ContractWalletRejectionFails(t *testing.T) {
 func TestVerifySiwe_EOAPathDoesNotConsultTheContractVerifier(t *testing.T) {
 	ownerKey, _ := secp256k1.GeneratePrivateKey()
 	verifier := &contractOwnerVerifier{chainID: 11155111, address: "0xdead", priv: ownerKey, t: t}
-	svc := NewServiceWithConfig("secret", Config{
+	svc := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs:  []int{11155111},
 		ContractVerifier: verifier,
-	})
+	}))
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -321,7 +321,7 @@ func TestVerifySiwe_EOAPathDoesNotConsultTheContractVerifier(t *testing.T) {
 // With no verifier configured, a contract wallet is refused — never assumed
 // valid because the API happens not to be able to check.
 func TestVerifySiwe_NoVerifierRefusesNonRecoverableSignature(t *testing.T) {
-	svc := NewService("secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	walletAddress := "0x" + strings.Repeat("cd", 20)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), walletAddress)
 	message := buildMessage(walletAddress, 11155111, challenge)
@@ -337,13 +337,13 @@ func TestVerifySiwe_NoVerifierRefusesNonRecoverableSignature(t *testing.T) {
 func TestVerifySiwe_UnsupportedChainForContractWalletFailsClosed(t *testing.T) {
 	ownerKey, _ := secp256k1.GeneratePrivateKey()
 	walletAddress := "0x" + strings.Repeat("cd", 20)
-	svc := NewServiceWithConfig("secret", Config{
+	svc := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs: []int{11155111},
 		// Verifier only knows Anvil, but the challenge allows Sepolia.
 		ContractVerifier: &contractOwnerVerifier{
 			chainID: 31337, address: walletAddress, priv: ownerKey, t: t,
 		},
-	})
+	}))
 	challenge, _ := svc.GenerateNonceFor(context.Background(), walletAddress)
 	message := buildMessage(walletAddress, 11155111, challenge)
 	sig := "0x" + toHex(signCompactOverDigest(t, ownerKey, PersonalSignDigest(message)))
@@ -412,11 +412,11 @@ func acceptanceKey(t *testing.T) (*secp256k1.PrivateKey, string) {
 // the challenge carries only the first, so checking against it alone would
 // lock out every other configured origin.
 func TestVerifySiwe_AcceptsAnySecondaryConfiguredOrigin(t *testing.T) {
-	svc := NewServiceWithConfig("secret", Config{
+	svc := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs: []int{11155111},
 		AllowedDomains:  []string{"app.example.com"},
 		AllowedURIs:     []string{"https://app.example.com", "https://preview.example.com"},
-	})
+	}))
 	priv, addr := acceptanceKey(t)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
 	if challenge.URI != "https://app.example.com" {
@@ -433,11 +433,11 @@ func TestVerifySiwe_AcceptsAnySecondaryConfiguredOrigin(t *testing.T) {
 }
 
 func TestVerifySiwe_RejectsAnUnconfiguredOrigin(t *testing.T) {
-	svc := NewServiceWithConfig("secret", Config{
+	svc := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs: []int{11155111},
 		AllowedDomains:  []string{"app.example.com"},
 		AllowedURIs:     []string{"https://app.example.com", "https://preview.example.com"},
-	})
+	}))
 	priv, addr := acceptanceKey(t)
 	challenge, _ := svc.GenerateNonceFor(context.Background(), addr)
 	message := buildMessage(addr, 11155111, challenge)

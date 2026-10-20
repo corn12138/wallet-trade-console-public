@@ -468,8 +468,8 @@ func (s *Service) resolveAppSchemeRoute(rawURL string, parsed *url.URL, currentO
 		slug := orDefault(q.Get("slug"), "scholar-path")
 		return createResolvedRoute(rawURL, "topic-landing", "web", &resolvedRoute{fallback: "/topic/" + slug})
 	case "campaign/detail":
-		slug := orDefault(q.Get("slug"), "spring-launch-2026")
-		return createResolvedRoute(rawURL, "campaign-detail", "web", &resolvedRoute{fallback: "/campaign/" + slug})
+		id := orDefault(q.Get("id"), orDefault(q.Get("slug"), "spring-launch-2026"))
+		return createResolvedRoute(rawURL, "campaign-detail", "web", &resolvedRoute{fallback: "/campaign/" + url.PathEscape(id)})
 	case "help/detail":
 		slug := orDefault(q.Get("slug"), "bridge-gateway")
 		return createResolvedRoute(rawURL, "help-detail", "web", &resolvedRoute{fallback: "/help/" + slug})

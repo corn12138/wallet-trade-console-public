@@ -161,14 +161,14 @@ func TestRedisNonceStore_TTLExpiresTheChallenge(t *testing.T) {
 // in-memory store allowed.
 func TestService_ReplayAcrossReplicasIsRejected(t *testing.T) {
 	url, prefix := requireAcceptanceRedis(t)
-	replicaA := NewServiceWithConfig("shared-secret", Config{
+	replicaA := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs: []int{11155111},
 		NonceStore:      newAcceptanceRedisStore(t, url, prefix),
-	})
-	replicaB := NewServiceWithConfig("shared-secret", Config{
+	}))
+	replicaB := attachSessions(t, NewServiceWithConfig(Config{
 		AllowedChainIDs: []int{11155111},
 		NonceStore:      newAcceptanceRedisStore(t, url, prefix),
-	})
+	}))
 
 	priv, addr := acceptanceKey(t)
 	challenge, err := replicaA.GenerateNonceFor(context.Background(), addr)

@@ -441,6 +441,10 @@ input, textarea { background: transparent; border: 0; outline: 0; }
      narrow desktop window) cannot leave a half-width drawer behind. */
   .rail, .app[data-rail="open"] .rail, .rail:focus-within { width: var(--rail-w-open); transform: translateX(-100%); box-shadow: none; transition: transform .25s ease; }
   .app[data-drawer="1"] .rail { transform: none; }
+  /* Touch opens the drawer while focus stays on the menu button outside it. */
+  .app[data-drawer="1"] .rail-mark .word,
+  .app[data-drawer="1"] .rail-group,
+  .app[data-drawer="1"] .rail-it .lbl { opacity: 1; transition-delay: 0s; }
   #ax-burger { display: inline-flex; }
   /* Terminal collapses to one column, ordered by what a phone trader needs:
      chart, then the ticket (primary action) with the book under it, then the

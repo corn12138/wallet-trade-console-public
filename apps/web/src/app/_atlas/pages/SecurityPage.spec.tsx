@@ -135,7 +135,7 @@ describe('SecurityPage revoke', () => {
       chainId: 11155111,
       tokenAddress: TOKEN,
       spender: SPENDER,
-    });
+    }, expect.any(AbortSignal));
   });
 
   it('submits a real approve(spender, 0) wallet transaction on confirm', async () => {
@@ -171,3 +171,8 @@ describe('SecurityPage revoke', () => {
     expect(toast).toHaveBeenCalled();
   });
 });
+
+// Page tests fix the session scope; provider restoration has its own integration gate.
+vi.mock('@/lib/web3/auth-provider', () => ({
+  useAuth: () => ({ sessionGeneration: 1, isRestoring: false }),
+}));

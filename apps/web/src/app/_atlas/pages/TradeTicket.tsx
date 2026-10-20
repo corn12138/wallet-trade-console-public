@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { MAX_TRADING_LEVERAGE } from '@/hooks/trading-intent';
 import { useTranslations } from 'next-intl';
 import type { AppCtx } from '../AppContext';
 import { Icon } from '../Icon';
@@ -148,7 +149,7 @@ export function TradeTicket({
           </span>
         </div>
         <div className="lev-row">
-          {[1, 5, 10, 20, 50].map((L) => (
+          {[1, 5, 10, 20, MAX_TRADING_LEVERAGE].map((L) => (
             <button key={L} className={lev === L ? 'on' : ''} onClick={() => setLev(L)}>
               {L}×
             </button>
@@ -181,7 +182,7 @@ export function TradeTicket({
             value={deadlineMinutes}
             onChange={(e) => setDeadlineMinutes(e.target.value)}
             type="number"
-            min="1"
+            min="2"
             max="120"
             step="1"
             aria-label={t('deadline')}

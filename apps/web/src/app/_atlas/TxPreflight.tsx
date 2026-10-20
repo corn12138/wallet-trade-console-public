@@ -1,15 +1,19 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/web3/auth-provider';
+import { SimulationEvidence } from '@/features/tx-review';
+import { useQuery } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  explainSecurityTransaction,
   reviewSecurityTransaction,
-  type AtlasTxReviewExplanation,
   type AtlasTxReviewInput,
   type AtlasTxReviewResult,
 } from '@/lib/api/atlas';
+import { useTxReviewActions } from '@/hooks/useTxReviewActions';
 import { useProductStatus } from './ProductStatus';
+
+const contractEvidenceIds = new Set([
+  'contract-position-call', 'contract-price-bound', 'contract-deadline', 'contract-semantics-scope',
+]);
 
 /**
  * A pre-sign review strip: the deterministic tx-review, rendered where the user
@@ -34,8 +38,9 @@ export function TxPreflight({
 }) {
   const t = useTranslations('security.txReview');
   const locale = useLocale();
-  const [explanation, setExplanation] = useState<AtlasTxReviewExplanation | null>(null);
-  const [explainedReview, setExplainedReview] = useState<AtlasTxReviewResult | null>(null);
+  const auth = useAuth();
+  const actions = useTxReviewActions(input, locale, undefined, auth.sessionGeneration);
+  const explanation = actions.explanation;
 
   const productStatus = useProductStatus();
   const explainAvailable = productStatus.data?.aiExplain?.status === 'healthy';
@@ -46,26 +51,12 @@ export function TxPreflight({
   const key = input ? JSON.stringify(input) : null;
 
   const review = useQuery<AtlasTxReviewResult>({
-    queryKey: ['tx-preflight', key],
-    queryFn: () => reviewSecurityTransaction(input as AtlasTxReviewInput),
-    enabled: Boolean(input),
+    queryKey: ['tx-preflight', key, locale, auth.sessionGeneration],
+    queryFn: ({ signal }) => reviewSecurityTransaction(input as AtlasTxReviewInput, signal),
+    enabled: Boolean(input) && !auth.isRestoring,
     staleTime: 15_000,
     retry: false,
   });
-
-  const explain = useMutation({
-    mutationFn: () => explainSecurityTransaction({ ...(input as AtlasTxReviewInput), locale }),
-    onSuccess: (r) => {
-      setExplanation(r.explanation);
-      setExplainedReview(r.review);
-    },
-  });
-
-  useEffect(() => {
-    // Drop prose about the previous transaction the moment the input changes.
-    setExplanation(null);
-    setExplainedReview(null);
-  }, [key]);
 
   if (!input) return null;
 
@@ -82,12 +73,12 @@ export function TxPreflight({
     );
   }
 
-  const result = explainedReview ?? review.data;
+  const result = actions.review ?? review.data;
   if (!result) return null;
 
-  // Passing checks are omitted: this strip exists to surface what deserves a
-  // second look. The full set stays available in the Security console.
-  const notable = result.checks.filter((c) => c.status !== 'pass');
+  // Decoded parameters and their scope remain visible without an AI provider;
+  // a passing ABI check is an intent fact, not evidence that execution is safe.
+  const notable = result.checks.filter((c) => c.status !== 'pass' || contractEvidenceIds.has(c.id));
 
   return (
     <div
@@ -106,6 +97,8 @@ export function TxPreflight({
                 ? 'var(--neg)'
                 : result.reviewStatus === 'warning'
                   ? 'var(--warn)'
+                  : result.reviewStatus === 'simulation-unavailable'
+                    ? 'var(--ink-2)'
                   : 'var(--pos)',
           }}
         >
@@ -113,8 +106,10 @@ export function TxPreflight({
         </b>
       </div>
 
+      <SimulationEvidence simulation={result.simulation} />
+
       {notable.length > 0 && (
-        <ul style={{ marginTop: 8, paddingLeft: 18, fontSize: 11, lineHeight: 1.5 }}>
+        <ul style={{ marginTop: 8, paddingLeft: 18, fontSize: 11, lineHeight: 1.5, overflowWrap: 'anywhere' }}>
           {notable.map((c) => (
             <li key={c.id} style={{ marginTop: 3, color: c.status === 'fail' ? 'var(--neg)' : 'var(--ink)' }}>
               <b>{c.title}</b> — {c.summary}
@@ -153,11 +148,11 @@ export function TxPreflight({
         <button
           className="btn mt-6"
           style={{ width: '100%', fontSize: 11 }}
-          onClick={() => explain.mutate()}
-          disabled={explain.isPending}
+          onClick={() => void actions.explainTransaction()}
+          disabled={actions.pending === 'explain'}
           data-testid="tx-preflight-explain"
         >
-          {explain.isPending ? (
+          {actions.pending === 'explain' ? (
             <>
               <span className="spinner" /> {t('explaining')}
             </>

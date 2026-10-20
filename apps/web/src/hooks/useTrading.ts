@@ -16,7 +16,6 @@ import { usePerpPrice } from './web3/usePerpPrice';
 import { usePerpPositions } from './web3/usePerpPositions';
 import { useTokenBalance } from './web3/useTokenBalance';
 import { useTradingActivity } from './useTradingActivity';
-import { useTradingTransactions } from './useTradingTransactions';
 import type { PortfolioPositionRow, TradingMarketView } from './trading.types';
 import { useAuth } from '@/lib/web3/auth-provider';
 
@@ -192,15 +191,7 @@ export function useTrading() {
       }));
     return [...chainRows, ...indexedRows];
   }, [positions, indexedPositions, liveSelectedMarket?.indexToken, markets]);
-  const tradingTransactions = useTradingTransactions({
-    address,
-    addrs,
-    chainId,
-    currentPrice,
-    selectedMarket: liveSelectedMarket,
-    refetchAll,
-    refetchActivity,
-  });
+
 
   return {
     // Market data
@@ -244,32 +235,11 @@ export function useTrading() {
     // "not signed in" from a genuinely empty result.
     isActivityAuthorized,
 
-    // Identity + contract targets, surfaced so the page can build a pre-sign
-    // review of the collateral approval against the same addresses the write
-    // path uses (rather than re-deriving them and risking a drift).
     address,
     chainId,
     perpAddresses: addrs,
-    isCollateralApproved: tradingTransactions.isApproved,
-
-    // Actions
-    openPosition: tradingTransactions.openPosition,
-    closePosition: tradingTransactions.closePosition,
-
-    // Tx states — open
-    isApproving: tradingTransactions.isApproving,
-    isApproveSuccess: tradingTransactions.isApproveSuccess,
-    isOpenPending: tradingTransactions.isOpenPending,
-    isOpenConfirming: tradingTransactions.isOpenConfirming,
-    isOpenSuccess: tradingTransactions.isOpenSuccess,
-    openError: tradingTransactions.openError,
-    resetOpen: tradingTransactions.resetOpen,
-
-    // Tx states — close
-    isClosePending: tradingTransactions.isClosePending,
-    isCloseConfirming: tradingTransactions.isCloseConfirming,
-    isCloseSuccess: tradingTransactions.isCloseSuccess,
-    closeError: tradingTransactions.closeError,
-    resetClose: tradingTransactions.resetClose,
+    viewerKey: isActivityAuthorized ? authenticatedAddress?.toLowerCase() : null,
+    refetchAll,
+    refetchActivity,
   };
 }

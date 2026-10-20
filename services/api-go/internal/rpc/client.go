@@ -16,6 +16,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -104,6 +105,10 @@ func RedactURL(raw string) string {
 // callRaw posts a JSON-RPC request and returns the raw `result` field.
 // Shared by EthCall and the *Hex helpers below.
 func (c *Client) callRaw(ctx context.Context, method string, params []any) (json.RawMessage, error) {
+	return c.callRawValidated(ctx, method, params, false)
+}
+
+func (c *Client) callRawValidated(ctx context.Context, method string, params []any, strict bool) (json.RawMessage, error) {
 	if c == nil {
 		return nil, errors.New("rpc: client nil")
 	}
@@ -127,16 +132,22 @@ func (c *Client) callRaw(ctx context.Context, method string, params []any) (json
 		return nil, redactTransportErr(err)
 	}
 	defer resp.Body.Close()
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024+1))
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("rpc: http %d: %s", resp.StatusCode, string(raw))
+		return nil, fmt.Errorf("rpc: http %d", resp.StatusCode)
+	}
+	if len(raw) > 1024*1024 {
+		return nil, errors.New("rpc: response exceeds limit")
 	}
 	var out rpcResponse
 	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil, fmt.Errorf("rpc: response decode: %w (body=%s)", err, string(raw))
+		return nil, fmt.Errorf("rpc: response decode: %w", err)
+	}
+	if strict && (out.JSONRPC != "2.0" || out.ID != id || (out.Error == nil && (len(out.Result) == 0 || bytes.Equal(out.Result, []byte("null")))) || (out.Error != nil && len(out.Result) != 0)) {
+		return nil, errors.New("rpc: malformed response envelope")
 	}
 	if out.Error != nil {
 		return nil, out.Error
@@ -281,6 +292,9 @@ type Transaction struct {
 	Value     *big.Int
 	Nonce     *uint64
 	BlockHash *string
+	// Input is the transaction calldata as returned by the node, or nil when
+	// the node omitted it (never a guessed "0x").
+	Input *string
 }
 
 // GetTransactionByHash returns ok=false until the configured node knows the
@@ -291,12 +305,13 @@ func (c *Client) GetTransactionByHash(ctx context.Context, txHash string) (Trans
 		return Transaction{}, false, err
 	}
 	var body *struct {
-		Hash      string  `json:"hash"`
-		From      string  `json:"from"`
-		To        *string `json:"to"`
-		Value     string  `json:"value"`
-		Nonce     string  `json:"nonce"`
-		BlockHash *string `json:"blockHash"`
+		Hash      string          `json:"hash"`
+		From      string          `json:"from"`
+		To        *string         `json:"to"`
+		Value     string          `json:"value"`
+		Nonce     string          `json:"nonce"`
+		BlockHash *string         `json:"blockHash"`
+		Input     json.RawMessage `json:"input"`
 	}
 	if err := json.Unmarshal(raw, &body); err != nil {
 		return Transaction{}, false, fmt.Errorf("rpc: transaction decode: %w", err)
@@ -326,8 +341,30 @@ func (c *Client) GetTransactionByHash(ctx context.Context, txHash string) (Trans
 		Value:     value,
 		Nonce:     nonce,
 		BlockHash: emptyToNil(body.BlockHash),
+		Input:     decodeCalldata(body.Input),
 	}, true, nil
 }
+
+// Calldata is additive report evidence. A provider's malformed input field
+// must not reject a transaction whose pre-existing authoritative fields pass.
+func decodeCalldata(raw json.RawMessage) *string {
+	var value *string
+	if json.Unmarshal(raw, &value) != nil {
+		return nil
+	}
+	return calldataOrNil(value)
+}
+
+// calldataOrNil keeps only well-formed hex calldata; anything else is absent.
+func calldataOrNil(value *string) *string {
+	if value == nil || !calldataPattern.MatchString(*value) {
+		return nil
+	}
+	lowered := strings.ToLower(*value)
+	return &lowered
+}
+
+var calldataPattern = regexp.MustCompile(`^0x([0-9a-fA-F]{2})*$`)
 
 // emptyToNil normalises a JSON field that a node may send as null, as "" or as
 // a real value. A pending transaction's blockHash is null on some nodes and an

@@ -20,15 +20,19 @@ type RPCCaller interface {
 // Simulate runs the simulation pipeline. When `client` is nil — or all
 // estimateGas/call attempts fail — the result Mode degrades to
 // "fallback" so the rules engine can flag gas-unavailable. The
-// `nativeBalanceWei` parameter is a pre-provided override; "" → fetch
-// via getBalance.
-func Simulate(ctx context.Context, client RPCCaller, fromAddress string, tx TxShape, nativeBalanceWei string) SimulationResult {
+// balance argument is retained for source compatibility but never trusted.
+// Only the RPC observation may influence balance checks.
+func Simulate(ctx context.Context, client RPCCaller, fromAddress string, tx TxShape, _ string) SimulationResult {
+	return simulateReview(ctx, client, fromAddress, tx, nil)
+}
+
+func simulateLegacy(ctx context.Context, client RPCCaller, fromAddress string, tx TxShape, _ string) SimulationResult {
 	var (
 		gasEstimate   *big.Int
 		callOK        *bool
 		errMsg        string
 		gasPrice      *big.Int
-		nativeBalance = ParseOptionalBigInt(nativeBalanceWei)
+		nativeBalance *big.Int
 	)
 
 	if client == nil {
@@ -65,7 +69,26 @@ func Simulate(ctx context.Context, client RPCCaller, fromAddress string, tx TxSh
 		}
 	}
 
-	return finalizeSimulation(gasEstimate, gasPrice, "", callOK, nativeBalance, errMsg)
+	result := finalizeSimulation(gasEstimate, gasPrice, "", callOK, nativeBalance, errMsg)
+	result.SimulationScope = "legacy-read-call"
+	result.Observations = emptyObservations("legacy-read-call")
+	if callOK != nil && *callOK {
+		result.Observations.Call.ObservationStatus = "succeeded"
+		result.Observations.Call.Pinning = "latest-only"
+	}
+	if gasEstimate != nil {
+		result.Observations.Gas.ObservationStatus = "succeeded"
+		result.Observations.Gas.Pinning = "latest-only"
+	}
+	if nativeBalance != nil {
+		result.Observations.Balance.ObservationStatus = "succeeded"
+		result.Observations.Balance.Pinning = "latest-only"
+	}
+	if gasPrice != nil {
+		result.Observations.FeeQuote.ObservationStatus = "succeeded"
+		result.Observations.FeeQuote.Pinning = "latest-only"
+	}
+	return result
 }
 
 // finalizeSimulation builds the SimulationResult from the four IO
@@ -77,7 +100,7 @@ func finalizeSimulation(gasEstimate, gasPrice *big.Int, _ string, callOK *bool, 
 	if gasEstimate != nil || callOK != nil {
 		mode = SimulationModeEstimate
 	}
-	r := SimulationResult{Mode: mode, GasEstimate: gasEstimate, CallSucceeded: callOK, NativeBalanceWei: nativeBalance}
+	r := SimulationResult{SimulationScope: "unavailable", Observations: emptyObservations("rpc-unavailable"), Mode: mode, GasEstimate: gasEstimate, CallSucceeded: callOK, NativeBalanceWei: nativeBalance}
 	if gasEstimate != nil {
 		gs := gasEstimate.String()
 		r.GasEstimateString = &gs

@@ -5,12 +5,8 @@ import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } fro
 import { useAuth, supportedChains as web3SupportedChains } from '@/lib/web3';
 import { getSiwePromptKey, shouldAutoOpenSiweModal } from './siwe-modal-state';
 
-export type WalletState = 'disconnected' | 'connecting' | 'siwe' | 'connected' | 'wrong-network';
-export type WalletInfo = { address: string; chainId: number; balance: number } | null;
-export type ToastKind = 'ok' | 'warn' | 'err';
-export type ToastItem = { id: string; msg: string; kind: ToastKind };
-export type ModalKind = 'wallet' | 'chain' | 'tokenPicker' | 'siwe' | 'tx';
-export type ModalState = { kind: ModalKind; props?: any } | null;
+import type { WalletState, WalletInfo, ToastKind, ToastItem, ModalState } from '@/lib/ui/shell-contract';
+export type { WalletState, WalletInfo, ToastKind, ToastItem, ModalState, ModalKind } from '@/lib/ui/shell-contract';
 
 export type AppCtx = {
   // Wallet — bridged from real wagmi + SIWE
@@ -20,7 +16,7 @@ export type AppCtx = {
   openConnect: () => void;
   openChain: () => void;
   closeModal: () => void;
-  pickWallet: (opt: any) => void;
+  pickWallet: (opt: { id?: string }) => void;
   signSiwe: () => void;
   disconnect: () => void;
   switchChain: (c: { id: number; name: string }) => void;
@@ -72,13 +68,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const isWrongNetwork = isConnected && !supportedIds.has(realChainId);
 
   const walletState: WalletState = useMemo(() => {
+    if (auth.isRestoring) return 'connecting';
     if (isWrongNetwork) return 'wrong-network';
     if (accountStatus === 'connecting' || accountStatus === 'reconnecting' || isConnectPending) return 'connecting';
     if (!isConnected) return 'disconnected';
     if (auth.status === 'signing' || auth.isLoading) return 'siwe';
     if (auth.isAuthenticated) return 'connected';
     return 'siwe';
-  }, [accountStatus, isConnectPending, isConnected, isWrongNetwork, auth.status, auth.isLoading, auth.isAuthenticated]);
+  }, [auth.isRestoring, accountStatus, isConnectPending, isConnected, isWrongNetwork, auth.status, auth.isLoading, auth.isAuthenticated]);
 
   const wallet: WalletInfo = useMemo(() => {
     if (!isConnected || !address) return null;
@@ -92,6 +89,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [siwePromptKey]);
 
   const openConnect = useCallback(() => {
+    if (auth.isRestoring) return;
     if (isConnected && isWrongNetwork) {
       setModal({ kind: 'chain' });
       return;
@@ -102,7 +100,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setModal({ kind: 'wallet' });
-  }, [auth.isAuthenticated, isConnected, isWrongNetwork]);
+  }, [auth.isRestoring, auth.isAuthenticated, isConnected, isWrongNetwork]);
   const openChain = useCallback(() => setModal({ kind: 'chain' }), []);
   const closeModal = useCallback(() => {
     if (modal?.kind === 'siwe') dismissSiwePrompt();
@@ -110,7 +108,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [dismissSiwePrompt, modal?.kind]);
 
   const pickWallet = useCallback(
-    (opt: any) => {
+    (opt: { id?: string }) => {
       // Real connect via the wagmi connectors. We accept any connector or fall back to the first injected one.
       const connector =
         connectors.find((c) => (opt?.id ? c.id === opt.id : false)) ||
@@ -150,6 +148,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isConnected,
       isAuthenticated: auth.isAuthenticated,
       isLoading: auth.isLoading,
+      isRestoring: auth.isRestoring,
       walletState,
       modal,
       promptKey: siwePromptKey,
@@ -157,7 +156,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })) {
       setModal({ kind: 'siwe' });
     }
-  }, [isConnected, auth.isAuthenticated, auth.isLoading, walletState, modal, siwePromptKey, dismissedSiwePromptKey]);
+  }, [isConnected, auth.isAuthenticated, auth.isLoading, auth.isRestoring, walletState, modal, siwePromptKey, dismissedSiwePromptKey]);
+
+  useEffect(() => {
+    const authenticatedPromptKey = getSiwePromptKey(auth.authenticatedAddress ?? undefined, auth.authenticatedChainId ?? undefined);
+    if (walletState !== 'connected' || !auth.isAuthenticated || auth.isLoading || auth.isRestoring
+      || !siwePromptKey || authenticatedPromptKey !== siwePromptKey) return;
+    // Session restoration can finish without signSiwe. Only its current-identity
+    // prompt is obsolete; authentication must never dismiss another workflow.
+    setModal((current) => current?.kind === 'siwe' ? null : current);
+  }, [walletState, auth.isAuthenticated, auth.isLoading, auth.isRestoring, auth.authenticatedAddress, auth.authenticatedChainId, siwePromptKey, modal?.kind]);
 
   useEffect(() => {
     if (!isConnected) {
@@ -180,6 +188,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     wagmiDisconnect();
     toast(tToasts('walletDisconnected'), 'warn');
   }, [auth, wagmiDisconnect, toast, tToasts]);
+
+  // Report what the server said about the last sign-out. Local sign-out has
+  // already happened; an unconfirmed answer is never shown as a server logout.
+  const lastServerSignOut = useRef(auth.serverSignOut);
+  useEffect(() => {
+    const result = auth.serverSignOut;
+    if (result === lastServerSignOut.current) return;
+    lastServerSignOut.current = result;
+    if (result === 'revoked' || result === 'already-revoked') toast(tToasts('serverSignOutConfirmed'), 'ok');
+    else if (result === 'rejected') toast(tToasts('serverSignOutRejected'), 'ok');
+    else if (result === 'unconfirmed') toast(tToasts('serverSignOutUnconfirmed'), 'warn');
+  }, [auth.serverSignOut, toast, tToasts]);
 
   const switchChain = useCallback(
     (c: { id: number; name: string }) => {

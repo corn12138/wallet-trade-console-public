@@ -1,3 +1,5 @@
+import type { AtlasTxReviewInput, AtlasTxReviewResult } from './tx-review.types';
+export type { AtlasTxReviewInput, AtlasTxReviewResult, AtlasTxReviewCheck } from './tx-review.types';
 import { fetchApi } from './auth-fetch';
 
 async function parseAtlasResponse<T>(response: Response): Promise<T> {
@@ -26,63 +28,8 @@ function buildQuery(
   return query ? `${pathname}?${query}` : pathname;
 }
 
-export interface AtlasPortfolioSummary {
-  address: string | null;
-  portfolioValueUsd: number | null;
-  dayChangePct: number;
-  trackedWallets: number;
-  recentActivityCount: number;
-  pendingTxCount: number;
-  securityAlertCount: number;
-  dataCompleteness: string;
-  assetMix: {
-    earnPositions: number;
-    perpPositions: number;
-  };
-  assetFilters: AtlasPortfolioAssetFilters;
-  topMovers: Array<{
-    id: string;
-    symbol: string;
-    name: string;
-    address: string | null;
-    priceChange24h: number;
-  }>;
-  marketSnapshot: {
-    activeMarkets: number;
-    totalVolume: string;
-    totalOpenInterest: string;
-  };
-}
-
-export interface AtlasPortfolioAsset {
-  id: string;
-  assetType: string;
-  symbol: string;
-  name: string;
-  chainId: number;
-  rawBalance: string;
-  valueUsd: number;
-  status: string;
-  source: string;
-  address: string | null;
-  walletAddress: string | null;
-  updatedAt: string;
-}
-
-export interface AtlasPortfolioAssetFilters {
-  spamFilterLevel: string;
-  totalCount: number;
-  visibleCount: number;
-  filteredCount: number;
-  hiddenConfiguredCount: number;
-  hiddenMatchedCount: number;
-  spamFilteredCount: number;
-}
-
-export interface AtlasPortfolioAssetsResponse {
-  items: AtlasPortfolioAsset[];
-  filterSummary: AtlasPortfolioAssetFilters;
-}
+export { getPortfolioAssets, getPortfolioSummary } from './portfolio';
+export type { AtlasPortfolioAsset, AtlasPortfolioAssetFilters, AtlasPortfolioAssetsResponse, AtlasPortfolioSummary } from './portfolio';
 
 export interface AtlasWalletRecord {
   id: string;
@@ -279,81 +226,6 @@ export interface AtlasConnectedSite {
   updatedAt: string;
 }
 
-export interface AtlasTxReviewCheck {
-  id: string;
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
-  status: 'pass' | 'warn' | 'fail';
-  title: string;
-  summary: string;
-}
-
-export interface AtlasTxReviewInput {
-  operationType:
-    | 'approve'
-    | 'revoke-approval'
-    | 'swap'
-    | 'earn-deposit'
-    | 'earn-withdraw'
-    | 'bridge-deposit'
-    | 'custom';
-  fromAddress: string;
-  chainId?: number;
-  siteOrigin?: string;
-  nativeBalanceWei?: string;
-  tokenAddress?: string;
-  spender?: string;
-  amount?: string;
-  tokenDecimals?: number;
-  tokenIn?: string;
-  tokenOut?: string;
-  tokenInDecimals?: number;
-  tokenOutDecimals?: number;
-  amountOutMin?: string;
-  recipient?: string;
-  /** bridge-deposit only: the destination chain of the transfer. */
-  bridgeDstChainId?: number;
-  deadlineSeconds?: number;
-  slippageBps?: number;
-  quoteExpiresAt?: string;
-  productId?: string;
-  tx?: {
-    to: string;
-    value?: string;
-    data: string;
-  };
-}
-
-export interface AtlasTxReviewResult {
-  reviewStatus: 'approved' | 'warning' | 'blocked' | 'simulation-unavailable';
-  operationType: AtlasTxReviewInput['operationType'];
-  chainId: number;
-  riskScore: number;
-  simulation: {
-    mode: 'estimate-gas' | 'fallback';
-    gasEstimate: string | null;
-    gasLimitSuggestion: string | null;
-    estimatedFeeWei: string | null;
-    callSucceeded: boolean | null;
-    errorMessage: string | null;
-  };
-  generatedTx: {
-    chainId: number;
-    to: string;
-    value: string;
-    data: string;
-  } | null;
-  allowanceChange: {
-    tokenAddress: string;
-    spender: string;
-    currentAllowance: string | null;
-    requestedAllowance: string | null;
-    isUnlimited: boolean;
-  } | null;
-  connectedSite: Pick<AtlasConnectedSite, 'id' | 'origin' | 'siteName' | 'riskLevel'> | null;
-  recommendedActions: string[];
-  checks: AtlasTxReviewCheck[];
-}
-
 export interface AtlasSwapQuote {
   chainId: number;
   routeSource: string;
@@ -406,16 +278,6 @@ export interface AtlasMarketsSnapshot {
     address: string | null;
     change24h: number;
   }>;
-}
-
-export async function getPortfolioSummary(address?: string, chainId?: number) {
-  const response = await fetchApi(buildQuery('/portfolio/summary', { address, chainId }));
-  return parseAtlasResponse<AtlasPortfolioSummary>(response);
-}
-
-export async function getPortfolioAssets(address?: string, chainId?: number) {
-  const response = await fetchApi(buildQuery('/portfolio/assets', { address, chainId }));
-  return parseAtlasResponse<AtlasPortfolioAssetsResponse>(response);
 }
 
 export async function getWallets(address?: string, chainId?: number) {
@@ -573,8 +435,9 @@ export async function buildRevokeApprovalTx(input: {
   }>(response);
 }
 
-export async function reviewSecurityTransaction(input: AtlasTxReviewInput) {
+export async function reviewSecurityTransaction(input: AtlasTxReviewInput, signal?: AbortSignal) {
   const response = await fetchApi('/security/tx-review', {
+    signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -613,8 +476,10 @@ export interface AtlasTxReviewExplainResult {
  */
 export async function explainSecurityTransaction(
   input: AtlasTxReviewInput & { locale?: string },
+  signal?: AbortSignal,
 ) {
   const response = await fetchApi('/security/tx-review/explain', {
+    signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -1,14 +1,12 @@
 'use client';
+import { useAuth } from '@/lib/web3/auth-provider';
+import { SimulationEvidence } from '@/features/tx-review';
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
 import {
-  explainSecurityTransaction,
-  reviewSecurityTransaction,
-  type AtlasTxReviewExplanation,
   type AtlasTxReviewInput,
-  type AtlasTxReviewResult,
 } from '@/lib/api/atlas';
+import { useTxReviewActions } from '@/hooks/useTxReviewActions';
 import { useProductStatus } from '../ProductStatus';
 import { useApp } from '../AppContext';
 
@@ -16,6 +14,7 @@ type ReviewMode = 'custom' | 'bridge-deposit';
 
 export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; chainId: number }) {
   const app = useApp();
+  const auth = useAuth();
   const t = useTranslations('security.txReview');
   const locale = useLocale();
   const [mode, setMode] = useState<ReviewMode>('custom');
@@ -26,8 +25,6 @@ export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; c
   const [bridgeAmount, setBridgeAmount] = useState('');
   const [bridgeDstChain, setBridgeDstChain] = useState('');
   const [bridgeRecipient, setBridgeRecipient] = useState('');
-  const [result, setResult] = useState<AtlasTxReviewResult | null>(null);
-  const [explanation, setExplanation] = useState<AtlasTxReviewExplanation | null>(null);
 
   // The explanation layer ships dark. Asking the backend whether it is on —
   // rather than offering a button that would only ever answer "static" — keeps
@@ -35,7 +32,7 @@ export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; c
   const productStatus = useProductStatus();
   const explainAvailable = productStatus.data?.aiExplain?.status === 'healthy';
 
-  const buildInput = (): AtlasTxReviewInput =>
+  const input: AtlasTxReviewInput =
     mode === 'bridge-deposit'
       ? {
           operationType: 'bridge-deposit',
@@ -56,26 +53,11 @@ export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; c
           tx: { to, value, data },
         };
 
-  const reviewMutation = useMutation({
-    mutationFn: () => reviewSecurityTransaction(buildInput()),
-    onSuccess: (r) => {
-      setResult(r);
-      setExplanation(null);
-    },
-    onError: (e: any) => app.toast(e?.message || t('reviewFailed'), 'err'),
-  });
-
-  // Explaining re-sends the input, not the review: the server derives its own
-  // verdict, so the prose can never describe a review the server didn't make.
-  // The returned review replaces the displayed one for the same reason.
-  const explainMutation = useMutation({
-    mutationFn: () => explainSecurityTransaction({ ...buildInput(), locale }),
-    onSuccess: (r) => {
-      setResult(r.review);
-      setExplanation(r.explanation);
-    },
-    onError: (e: any) => app.toast(e?.message || t('reviewFailed'), 'err'),
-  });
+  const actions = useTxReviewActions(input, locale, (error) => {
+    app.toast(error instanceof Error ? error.message : t('reviewFailed'), 'err');
+  }, auth.sessionGeneration);
+  const result = actions.review;
+  const explanation = actions.explanation;
 
   const canSubmit =
     mode === 'bridge-deposit'
@@ -85,10 +67,6 @@ export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; c
   const switchMode = (next: ReviewMode) => {
     if (next === mode) return;
     setMode(next);
-    // A result belongs to the operation that produced it; carrying it across
-    // modes would show bridge checks next to a raw-calldata form.
-    setResult(null);
-    setExplanation(null);
   };
 
   return (
@@ -176,10 +154,10 @@ export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; c
         <button
           className="btn btn-y mt-14"
           style={{ width: '100%' }}
-          onClick={() => reviewMutation.mutate()}
-          disabled={reviewMutation.isPending || !canSubmit}
+          onClick={() => void actions.reviewTransaction()}
+          disabled={actions.pending === 'review' || !canSubmit}
         >
-          {reviewMutation.isPending ? (
+          {actions.pending === 'review' ? (
             <>
               <span className="spinner" /> {t('simulating')}
             </>
@@ -191,10 +169,10 @@ export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; c
           <button
             className="btn mt-6"
             style={{ width: '100%' }}
-            onClick={() => explainMutation.mutate()}
-            disabled={explainMutation.isPending || !canSubmit}
+            onClick={() => void actions.explainTransaction()}
+            disabled={actions.pending === 'explain' || !canSubmit}
           >
-            {explainMutation.isPending ? (
+            {actions.pending === 'explain' ? (
               <>
                 <span className="spinner" /> {t('explaining')}
               </>
@@ -255,6 +233,8 @@ export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; c
                       ? 'var(--neg)'
                       : result.reviewStatus === 'warning'
                         ? 'var(--warn)'
+                        : result.reviewStatus === 'simulation-unavailable'
+                          ? 'var(--ink-2)'
                         : 'var(--pos)',
                 }}
               >
@@ -272,13 +252,14 @@ export function TxReviewPanel({ fromAddress, chainId }: { fromAddress: string; c
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--ink-2)' }}>{t('simulatedCall')}</span>
               <b>
-                {result.simulation.callSucceeded === null
+                {result.simulation.callSucceeded == null
                   ? '—'
                   : result.simulation.callSucceeded
                     ? t('callOk')
                     : t('callRevert')}
               </b>
             </div>
+            <SimulationEvidence simulation={result.simulation} />
             {result.simulation.errorMessage && (
               <div style={{ marginTop: 8, color: 'var(--neg)', fontSize: 11, lineHeight: 1.4 }}>
                 {result.simulation.errorMessage}

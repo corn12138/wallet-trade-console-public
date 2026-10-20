@@ -30,7 +30,7 @@ func TestRouter_RawResponseContract(t *testing.T) {
 
 	r := NewRouter(Deps{
 		MarketsLoader:  emptyLoader{},
-		AuthVerifier:   auth.NewVerifier(testWeb3Secret),
+		AuthVerifier:   httpxAuth.Verifier,
 		UserVerifier:   auth.NewUserVerifier("test-access-secret", "test-refresh-secret", time.Hour, time.Hour),
 		CsrfSigner:     &auth.CsrfSigner{},
 		ContractConfig: &contractconfig.Service{},

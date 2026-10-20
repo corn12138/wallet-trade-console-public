@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -44,7 +45,7 @@ func TestAdminAuthorizationMatrix(t *testing.T) {
 	t.Setenv(AdminWalletsEnv, admin) // checksummed on purpose — must normalize
 
 	// Unauthenticated → 401.
-	r := Router(NewService(newFakeStore()), authAs(""))
+	r := Router(NewService(newFakeStore()), authAs(""), configuredAdmins())
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest("GET", "/admin/locales", nil))
 	if rec.Code != http.StatusUnauthorized {
@@ -52,7 +53,7 @@ func TestAdminAuthorizationMatrix(t *testing.T) {
 	}
 
 	// Authenticated non-admin → 403.
-	r = Router(NewService(newFakeStore()), authAs("0x1111111111111111111111111111111111111111"))
+	r = Router(NewService(newFakeStore()), authAs("0x1111111111111111111111111111111111111111"), configuredAdmins())
 	rec = httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest("GET", "/admin/locales", nil))
 	if rec.Code != http.StatusForbidden {
@@ -60,7 +61,7 @@ func TestAdminAuthorizationMatrix(t *testing.T) {
 	}
 
 	// Allowlisted admin (lowercased at both ends) → 200.
-	r = Router(NewService(newFakeStore()), authAs(strings.ToLower(admin)))
+	r = Router(NewService(newFakeStore()), authAs(strings.ToLower(admin)), configuredAdmins())
 	rec = httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest("GET", "/admin/locales", nil))
 	if rec.Code != http.StatusOK {
@@ -69,7 +70,7 @@ func TestAdminAuthorizationMatrix(t *testing.T) {
 
 	// Empty allowlist denies even an authenticated wallet.
 	t.Setenv(AdminWalletsEnv, "")
-	r = Router(NewService(newFakeStore()), authAs(strings.ToLower(admin)))
+	r = Router(NewService(newFakeStore()), authAs(strings.ToLower(admin)), configuredAdmins())
 	rec = httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest("GET", "/admin/locales", nil))
 	if rec.Code != http.StatusForbidden {
@@ -81,7 +82,7 @@ func TestActorComesFromContextNotBody(t *testing.T) {
 	admin := "0xe2cd26322a87d2b6d8312dbcb79c38b7a226ad81"
 	t.Setenv(AdminWalletsEnv, admin)
 	fs := newFakeStore()
-	r := Router(NewService(fs), authAs(admin))
+	r := Router(NewService(fs), authAs(admin), configuredAdmins())
 
 	body := strings.NewReader(`{"value":"你好 {name}","expectedVersion":1,"actor":"0x9999999999999999999999999999999999999999"}`)
 	req := httptest.NewRequest("PATCH", "/admin/messages/zh/app/hello", body)
@@ -102,7 +103,7 @@ func TestPublicCatalogHTTP(t *testing.T) {
 	if _, err := svc.Publish(context.Background(), "en", "0xe2cd26322a87d2b6d8312dbcb79c38b7a226ad81"); err != nil {
 		t.Fatal(err)
 	}
-	r := Router(svc, authAs(""))
+	r := Router(svc, authAs(""), configuredAdmins())
 
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest("GET", "/catalog/en", nil))
@@ -148,7 +149,7 @@ func TestPublicCatalogHTTP(t *testing.T) {
 func TestVersionConflictMapsTo409(t *testing.T) {
 	admin := "0xe2cd26322a87d2b6d8312dbcb79c38b7a226ad81"
 	t.Setenv(AdminWalletsEnv, admin)
-	r := Router(NewService(newFakeStore()), authAs(admin))
+	r := Router(NewService(newFakeStore()), authAs(admin), configuredAdmins())
 	body := strings.NewReader(`{"value":"好的 {name}","expectedVersion":7}`)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest("PATCH", "/admin/messages/zh/app/hello", body))
@@ -160,7 +161,7 @@ func TestVersionConflictMapsTo409(t *testing.T) {
 func TestValidationMapsTo422(t *testing.T) {
 	admin := "0xe2cd26322a87d2b6d8312dbcb79c38b7a226ad81"
 	t.Setenv(AdminWalletsEnv, admin)
-	r := Router(NewService(newFakeStore()), authAs(admin))
+	r := Router(NewService(newFakeStore()), authAs(admin), configuredAdmins())
 	body := strings.NewReader(`{"value":"{broken","expectedVersion":1}`)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest("PATCH", "/admin/messages/zh/app/hello", body))
@@ -170,4 +171,10 @@ func TestValidationMapsTo422(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "icu-syntax") {
 		t.Fatalf("422 body must carry issues: %s", rec.Body.String())
 	}
+}
+
+// configuredAdmins parses the allowlist the test configured through the
+// environment, as cmd/api does when the admin grant is current.
+func configuredAdmins() map[string]bool {
+	return ParseAdminWallets(os.Getenv(AdminWalletsEnv))
 }

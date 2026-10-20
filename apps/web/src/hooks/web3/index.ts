@@ -6,7 +6,6 @@
 export { useTokenBalance } from './useTokenBalance';
 export { useTokenApproval } from './useTokenApproval';
 export { useClientMounted } from './useClientMounted';
-export { useSiweAuth } from './useSiweAuth';
 export { useEvents, useEventStats, useMyEvents, useEventsByTxHash } from './useEvents';
 export { usePerpPrice } from './usePerpPrice';
 export { usePerpPosition } from './usePerpPosition';

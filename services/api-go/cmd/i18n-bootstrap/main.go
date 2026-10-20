@@ -44,8 +44,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/db"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/i18n"
 )
@@ -66,7 +66,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	pool, err := pgxpool.New(ctx, dsn)
+	pool, err := db.Open(ctx, dsn)
 	if err != nil {
 		log.Fatalf("i18n-bootstrap: connect: %v", err)
 	}

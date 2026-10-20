@@ -146,7 +146,7 @@ func TestRecoverAddress_RejectsBadSig(t *testing.T) {
 }
 
 func TestService_NonceLifecycle(t *testing.T) {
-	svc := NewService("secret", 0, 0, nil)
+	svc := testService(t, 0, 0, nil)
 	resp, err := svc.GenerateNonceFor(context.Background(), "")
 	if err != nil {
 		t.Fatalf("err = %v", err)
@@ -163,7 +163,7 @@ func TestService_NonceLifecycle(t *testing.T) {
 }
 
 func TestService_VerifySiwe_FullRoundtrip(t *testing.T) {
-	svc := NewService("test-secret", 0, 0, []int{11155111})
+	svc := testService(t, 0, 0, []int{11155111})
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 
@@ -194,7 +194,7 @@ func TestService_VerifySiwe_FullRoundtrip(t *testing.T) {
 }
 
 func TestService_VerifySiwe_NonceReused(t *testing.T) {
-	svc := NewService("secret", 0, 0, nil)
+	svc := testService(t, 0, 0, nil)
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	resp, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -209,7 +209,7 @@ func TestService_VerifySiwe_NonceReused(t *testing.T) {
 }
 
 func TestService_VerifySiwe_AddressMismatchRejected(t *testing.T) {
-	svc := NewService("secret", 0, 0, nil)
+	svc := testService(t, 0, 0, nil)
 	priv, _ := secp256k1.GeneratePrivateKey()
 	otherAddr := "0x" + strings.Repeat("1", 40)
 	resp, _ := svc.GenerateNonceFor(context.Background(), otherAddr)
@@ -222,7 +222,7 @@ func TestService_VerifySiwe_AddressMismatchRejected(t *testing.T) {
 }
 
 func TestService_VerifySiwe_DomainMismatchRejected(t *testing.T) {
-	svc := NewService("secret", 0, 0, nil)
+	svc := testService(t, 0, 0, nil)
 	priv, _ := secp256k1.GeneratePrivateKey()
 	addr := addrFromPriv(t, priv)
 	resp, _ := svc.GenerateNonceFor(context.Background(), addr)
@@ -242,8 +242,8 @@ func TestService_VerifySiwe_DomainMismatchRejected(t *testing.T) {
 }
 
 func TestHandler_NonceGet(t *testing.T) {
-	svc := NewService("s", 0, 0, nil)
-	mux := Router(svc, nil)
+	svc := testService(t, 0, 0, nil)
+	mux := Router(svc)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/nonce", nil))
 	if rec.Code != http.StatusOK {
@@ -252,8 +252,8 @@ func TestHandler_NonceGet(t *testing.T) {
 }
 
 func TestHandler_NoncePost_AcceptsAddress(t *testing.T) {
-	svc := NewService("s", 0, 0, nil)
-	mux := Router(svc, nil)
+	svc := testService(t, 0, 0, nil)
+	mux := Router(svc)
 	body := `{"address":"0x0000000000000000000000000000000000000001"}`
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/nonce", strings.NewReader(body)))
@@ -271,7 +271,7 @@ func TestHandler_NoncePost_AcceptsAddress(t *testing.T) {
 }
 
 func TestHandler_VerifyMissingBody_400(t *testing.T) {
-	mux := Router(NewService("s", 0, 0, nil), nil)
+	mux := Router(testService(t, 0, 0, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/verify", strings.NewReader("{")))
 	if rec.Code != http.StatusBadRequest {
@@ -280,7 +280,7 @@ func TestHandler_VerifyMissingBody_400(t *testing.T) {
 }
 
 func TestHandler_VerifyBadMessage_401(t *testing.T) {
-	mux := Router(NewService("s", 0, 0, nil), nil)
+	mux := Router(testService(t, 0, 0, nil))
 	body := `{"message":"not a siwe message","signature":"0x" + "00"*65 + "00"}`
 	_ = body
 	body2 := `{"message":"not a siwe","signature":"0x` + strings.Repeat("00", 65) + `"}`
@@ -292,7 +292,7 @@ func TestHandler_VerifyBadMessage_401(t *testing.T) {
 }
 
 func TestHandler_Me_RequiresBearer(t *testing.T) {
-	mux := Router(NewService("s", 0, 0, nil), nil)
+	mux := Router(testService(t, 0, 0, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/me", nil))
 	if rec.Code != http.StatusUnauthorized {

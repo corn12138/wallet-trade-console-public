@@ -39,8 +39,8 @@ type NonceStore interface {
 
 // MemoryNonceStore keeps challenges in this process only. It is correct for a
 // single process and wrong for two: a nonce consumed here is still unconsumed
-// in every other replica's map. Production selects it only when explicitly
-// told to, and ResolveNonceStore refuses that combination.
+// in every other replica's map. Only a loopback development/test process may
+// use it; ResolveNonceStore refuses it everywhere else.
 type MemoryNonceStore struct {
 	mu     sync.Mutex
 	nonces map[string]Challenge

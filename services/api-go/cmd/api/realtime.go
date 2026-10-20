@@ -25,7 +25,7 @@ import (
 //
 // Returns the server (to mount /socket.io/) and a stop func for graceful
 // shutdown.
-func buildRealtime(ctx context.Context, marketsSvc *markets.Service) (*realtime.Server, func()) {
+func buildRealtime(ctx context.Context, marketsSvc *markets.Service, campaignPush realtime.CampaignPush) (*realtime.Server, func()) {
 	cfg := marketstream.ConfigFromEnv()
 
 	driver, shared, err := cfg.BuildDriver()
@@ -55,6 +55,7 @@ func buildRealtime(ctx context.Context, marketsSvc *markets.Service) (*realtime.
 			}
 			return toRealtimeSnapshot(snap)
 		},
+		CampaignPush: campaignPush,
 	})
 
 	unsub, err := driver.Subscribe(func(s *marketstream.Snapshot) {

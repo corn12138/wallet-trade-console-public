@@ -1,0 +1,25 @@
+{
+  "description": "LG-03b cross-language identities. Go (internal/executionregistry, internal/web3events) and the Web (features/execution-config) must reproduce these exactly.",
+  "manifestDigest": "980ec8cf99e77279852af3cc9e413b7680bbbfa72e1fca576720a3415872f926",
+  "selectors": {
+    "erc20.approve.v1": "0x095ea7b3",
+    "perp.positionManager.close.v1": "0x9d75e58e",
+    "perp.positionManager.open.v1": "0x6c560004"
+  },
+  "ordinaryClaim": {
+    "claim": {
+      "mode": "bound",
+      "registryRevision": "1",
+      "operation": "trade.approveCollateral",
+      "market": "ETH-USD",
+      "bindingDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "consumer": {
+        "id": "web-trade",
+        "manifestDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "canonicalLength": 293,
+    "canonical": "{\"bindingDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"consumer\":{\"id\":\"web-trade\",\"manifestDigest\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"market\":\"ETH-USD\",\"mode\":\"bound\",\"operation\":\"trade.approveCollateral\",\"registryRevision\":\"1\"}",
+    "claimDigest": "6a85c3703c63bb9eb7e37a2a04f392789c9361c3ac760166d7b7df6741c0dfa4"
+  }
+}

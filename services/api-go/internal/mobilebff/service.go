@@ -42,8 +42,8 @@ type CampaignInfo struct {
 
 // CampaignSource is an optional adapter over the Go campaign service.
 type CampaignSource interface {
-	ActiveCampaigns(ctx context.Context) []CampaignInfo
-	FindCampaign(ctx context.Context, id string) (CampaignInfo, bool)
+	ActiveCampaigns(ctx context.Context) ([]CampaignInfo, error)
+	FindCampaign(ctx context.Context, id string) (CampaignInfo, bool, error)
 }
 
 // SettingsSource is an optional adapter over the Go settings service.
@@ -58,11 +58,22 @@ type Service struct {
 	session   SessionProvider
 	campaigns CampaignSource // optional
 	settings  SettingsSource // optional
+	// wallet returns the wallet proven by the request's SIWE credential, or "".
+	// It is the only source of a wallet for private reads; nil means no
+	// wallet can be proven, so wallet-keyed settings are never read.
+	wallet func(*http.Request) string
 }
 
 // NewService wires the repo + providers. campaigns/settings may be nil.
 func NewService(repo Store, session SessionProvider, campaigns CampaignSource, settings SettingsSource) *Service {
 	return &Service{repo: repo, session: session, campaigns: campaigns, settings: settings}
+}
+
+// WithWalletResolver installs the verified-wallet resolver used for
+// wallet-keyed private data (see Service.wallet).
+func (s *Service) WithWalletResolver(resolve func(*http.Request) string) *Service {
+	s.wallet = resolve
+	return s
 }
 
 // MobileSession exposes the session snapshot for a request.
@@ -73,18 +84,14 @@ func (s *Service) sessionFor(r *http.Request) Session {
 	return s.session.MobileSession(r)
 }
 
-func (s *Service) activeCampaigns(ctx context.Context) []CampaignInfo {
-	if s.campaigns == nil {
-		return nil
-	}
-	return s.campaigns.ActiveCampaigns(ctx)
-}
-
 // ---- feed/home -------------------------------------------------------------
 
-func (s *Service) GetFeedHome(ctx context.Context) FeedHomeResponse {
+func (s *Service) GetFeedHome(ctx context.Context) (FeedHomeResponse, error) {
 	articles, _ := s.repo.FeedArticles(ctx, 6)
-	campaigns := s.activeCampaigns(ctx)
+	campaigns, err := s.activeCampaigns(ctx)
+	if err != nil {
+		return FeedHomeResponse{}, err
+	}
 	tags, _ := s.repo.TopTags(ctx, 6)
 	sortedTags := sortTagsByCount(tags)
 
@@ -99,7 +106,9 @@ func (s *Service) GetFeedHome(ctx context.Context) FeedHomeResponse {
 	}
 
 	var focusTitle, focusSummary string
+	focusID := defaultTopicSlug
 	if len(campaigns) > 0 {
+		focusID = campaigns[0].ID
 		focusTitle = campaigns[0].Title
 		focusSummary = campaigns[0].Description
 	}
@@ -114,12 +123,12 @@ func (s *Service) GetFeedHome(ctx context.Context) FeedHomeResponse {
 		chips = append(chips, t.Name)
 	}
 	weeklyFocus := WeeklyFocus{
-		Slug:            defaultTopicSlug,
+		Slug:            focusID,
 		Title:           focusTitle,
 		Summary:         focusSummary,
 		Chips:           chips,
-		PrimaryAction:   Action{Label: "BEGIN PATH", AppURL: "app://topic/landing?slug=" + defaultTopicSlug, RuntimeHint: "web"},
-		SecondaryAction: &Action{Label: "VIEW SYLLABUS", AppURL: "app://topic/landing?slug=" + defaultTopicSlug, RuntimeHint: "web"},
+		PrimaryAction:   Action{Label: "BEGIN PATH", AppURL: "app://topic/landing?slug=" + urlQueryEscape(focusID), RuntimeHint: "web"},
+		SecondaryAction: &Action{Label: "VIEW SYLLABUS", AppURL: "app://topic/landing?slug=" + urlQueryEscape(focusID), RuntimeHint: "web"},
 	}
 
 	mixedGrid := sliceCards(articleCards, 4, 5)
@@ -150,7 +159,7 @@ func (s *Service) GetFeedHome(ctx context.Context) FeedHomeResponse {
 		WeeklyFocus:    weeklyFocus,
 		MixedGrid:      mixedGrid,
 		TrendingTopics: trendingTopics,
-	}
+	}, nil
 }
 
 // ---- article/:id -----------------------------------------------------------
@@ -484,7 +493,7 @@ func (s *Service) MarkMessagesRead(ctx context.Context, r *http.Request, req Mes
 
 // ---- profile/home ----------------------------------------------------------
 
-func (s *Service) GetProfileHome(ctx context.Context, r *http.Request) ProfileHomeResponse {
+func (s *Service) GetProfileHome(ctx context.Context, r *http.Request) (ProfileHomeResponse, error) {
 	sess := s.sessionFor(r)
 	var user *UserRow
 	var authored []ArticleRow
@@ -495,7 +504,10 @@ func (s *Service) GetProfileHome(ctx context.Context, r *http.Request) ProfileHo
 		}
 	}
 
-	feed := s.GetFeedHome(ctx)
+	feed, err := s.GetFeedHome(ctx)
+	if err != nil {
+		return ProfileHomeResponse{}, err
+	}
 	authoredCards := mapArticleCards(s, authored)
 	featuredArticle := feed.HeroArticle
 	if len(authoredCards) > 0 {
@@ -549,19 +561,34 @@ func (s *Service) GetProfileHome(ctx context.Context, r *http.Request) ProfileHo
 		FeaturedArticle: featuredArticle,
 		FeaturedVideo:   defaultVideoResults()[0],
 		Archive:         archive,
-	}
+	}, nil
 }
 
 // ---- settings/index --------------------------------------------------------
 
-func (s *Service) GetSettingsIndex(ctx context.Context, r *http.Request, ownerAddress string) SettingsIndexResponse {
+// GetSettingsIndex returns the settings page. The page itself is public (a
+// guest shell); wallet-keyed preferences are private and are read only for the
+// wallet proven by the request's SIWE credential. ownerAddress is a client
+// hint: when it names any other wallet the response stays the guest shell, so
+// no caller can read another wallet's preferences by naming it.
+func (s *Service) GetSettingsIndex(ctx context.Context, r *http.Request, ownerAddress string) (SettingsIndexResponse, error) {
 	sess := s.sessionFor(r)
-	profile := s.GetProfileHome(ctx, r)
+	profile, err := s.GetProfileHome(ctx, r)
+	if err != nil {
+		return SettingsIndexResponse{}, err
+	}
+	owner := ""
+	if s.wallet != nil {
+		owner = strings.ToLower(s.wallet(r))
+	}
+	if ownerAddress != "" && !strings.EqualFold(ownerAddress, owner) {
+		owner = ""
+	}
 	notificationsEnabled := false
 	marketAlerts := false
-	if s.settings != nil {
-		notificationsEnabled = s.settings.NotificationsEnabled(ctx, ownerAddress)
-		marketAlerts = s.settings.MarketAlerts(ctx, ownerAddress)
+	if s.settings != nil && owner != "" {
+		notificationsEnabled = s.settings.NotificationsEnabled(ctx, owner)
+		marketAlerts = s.settings.MarketAlerts(ctx, owner)
 	}
 
 	versionLabel := sess.AppVersion
@@ -576,8 +603,8 @@ func (s *Service) GetSettingsIndex(ctx context.Context, r *http.Request, ownerAd
 		securitySubtitle = "Authenticated session detected"
 	}
 	ownerSubtitle := "Not linked"
-	if ownerAddress != "" {
-		ownerSubtitle = ownerAddress
+	if owner != "" {
+		ownerSubtitle = owner
 	}
 	digest := "Manual"
 	if marketAlerts {
@@ -606,22 +633,21 @@ func (s *Service) GetSettingsIndex(ctx context.Context, r *http.Request, ownerAd
 			}},
 		},
 		Actions: []Action{{Label: "RETURN TO PROFILE", AppURL: "app://profile/home", RuntimeHint: "flutter"}},
-	}
+	}, nil
 }
 
 // ---- topic/:slug -----------------------------------------------------------
 
-func (s *Service) GetTopicLanding(ctx context.Context, slug string) TopicLandingResponse {
+func (s *Service) GetTopicLanding(ctx context.Context, slug string) (TopicLandingResponse, error) {
 	tag, tagArticles, tagFound := s.repo.TagWithArticles(ctx, slug, 3)
-	campaigns := s.activeCampaigns(ctx)
+	campaignInfo, campaignFound, err := s.findCampaign(ctx, slug)
+	if err != nil {
+		return TopicLandingResponse{}, err
+	}
 	fallbackArticles, _ := s.repo.FeedArticles(ctx, 3)
-
 	var campaign *CampaignInfo
-	for i := range campaigns {
-		if normalizeSlug(campaigns[i].Title) == slug {
-			campaign = &campaigns[i]
-			break
-		}
+	if campaignFound {
+		campaign = &campaignInfo
 	}
 
 	sourceArticles := fallbackArticles
@@ -676,9 +702,9 @@ func (s *Service) GetTopicLanding(ctx context.Context, slug string) TopicLanding
 		Syllabus:         defaultSyllabus,
 		FeaturedArticles: featured,
 		FeaturedVideo:    &video,
-		PrimaryAction:    Action{Label: "OPEN TOPIC", AppURL: "app://topic/landing?slug=" + slug, RuntimeHint: "web"},
+		PrimaryAction:    Action{Label: "OPEN TOPIC", AppURL: "app://topic/landing?slug=" + urlQueryEscape(slug), RuntimeHint: "web"},
 		SecondaryAction:  &Action{Label: "READ LEAD ESSAY", AppURL: secondaryAppURL, RuntimeHint: secondaryHint},
-	}
+	}, nil
 }
 
 // ---- video/feed + video/:id ------------------------------------------------
@@ -833,17 +859,19 @@ func (s *Service) PrepareShare(ctx context.Context, req SharePrepareRequest) (Sh
 		return SharePrepareResponse{ResourceType: "topic", ResourceID: resourceID, Title: title,
 			Text: text, URL: s.buildShareURL("app://topic/landing?slug=" + slug), Tracking: tracking}, nil
 	case "campaign":
-		campaign, ok := s.findCampaignForShare(ctx, req.ResourceID)
+		campaign, ok, err := s.findCampaign(ctx, req.ResourceID)
+		if err != nil {
+			return SharePrepareResponse{}, err
+		}
 		if !ok {
 			return SharePrepareResponse{}, ErrNotFound
 		}
-		slug := normalizeSlug(campaign.Title)
 		text := "Campaign update prepared for cross-runtime sharing."
 		if campaign.Description != "" {
 			text = campaign.Description
 		}
 		resp := SharePrepareResponse{ResourceType: "campaign", ResourceID: campaign.ID, Title: campaign.Title,
-			Text: text, URL: s.buildShareURL("app://campaign/detail?slug=" + slug), Tracking: tracking}
+			Text: text, URL: s.buildShareURL("app://campaign/detail?id=" + urlQueryEscape(campaign.ID)), Tracking: tracking}
 		if campaign.Banner != "" {
 			resp.ImageURL = campaign.Banner
 		}
@@ -856,18 +884,6 @@ func (s *Service) PrepareShare(ctx context.Context, req SharePrepareRequest) (Sh
 		return SharePrepareResponse{ResourceType: "link", ResourceID: req.ResourceID, Title: "Shared Link",
 			Text: text, URL: s.normalizeLinkTarget(req.ResourceID), Tracking: tracking}, nil
 	}
-}
-
-func (s *Service) findCampaignForShare(ctx context.Context, resourceID string) (CampaignInfo, bool) {
-	for _, c := range s.activeCampaigns(ctx) {
-		if c.ID == resourceID || normalizeSlug(c.Title) == resourceID {
-			return c, true
-		}
-	}
-	if s.campaigns != nil {
-		return s.campaigns.FindCampaign(ctx, resourceID)
-	}
-	return CampaignInfo{}, false
 }
 
 // ---- helpers ---------------------------------------------------------------

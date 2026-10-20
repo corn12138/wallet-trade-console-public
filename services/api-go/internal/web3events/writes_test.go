@@ -7,13 +7,14 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth/authtest"
 )
 
-const writeTestSecret = "test-web3-secret"
+// writeAuth is this package's credential fixture: a real-policy verifier
+// with in-memory sessions.
+var writeAuth = authtest.MustNew()
 
 type stubWriter struct {
 	submitted *SubmitTxInput
@@ -60,24 +61,17 @@ func (s *stubWriter) UpsertTransactionReceipt(_ context.Context, in ReceiptTxInp
 	return s.row, s.err
 }
 
+// signWeb3 signs sub in: a genuine token bound to a live session.
 func signWeb3(t *testing.T, sub string) string {
 	t.Helper()
-	claims := auth.Claims{
-		Sub: sub, ChainID: 11155111, Type: "web3",
-		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))},
-	}
-	tok, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(writeTestSecret))
-	if err != nil {
-		t.Fatalf("sign web3 token: %v", err)
-	}
+	tok, _ := writeAuth.Login(t, sub, 11155111)
 	return tok
 }
 
 // TestWriteHandlers covers SIWE owner pinning and RPC-authoritative transaction
 // and receipt fields reaching the Writer.
 func TestWriteHandlers(t *testing.T) {
-	t.Setenv("NODE_ENV", "production") // strict web3 guard, no header fallback
-	mw := auth.Middleware(auth.NewVerifier(writeTestSecret))
+	mw := auth.StrictMiddleware(writeAuth.Verifier)
 	validHash := "0x" + strings.Repeat("a", 64)
 	dead := "0x000000000000000000000000000000000000dead"
 	to := "0x000000000000000000000000000000000000cafe"
@@ -138,8 +132,7 @@ func TestWriteHandlers(t *testing.T) {
 }
 
 func TestWriteHandlers_VerificationAndOwnerConflicts(t *testing.T) {
-	t.Setenv("NODE_ENV", "production")
-	mw := auth.Middleware(auth.NewVerifier(writeTestSecret))
+	mw := auth.StrictMiddleware(writeAuth.Verifier)
 	validHash := "0x" + strings.Repeat("b", 64)
 	owner := "0x000000000000000000000000000000000000dead"
 	token := signWeb3(t, owner)
@@ -212,8 +205,7 @@ func TestPublicTransactionRowKeySetIsFrozen(t *testing.T) {
 // Today's frontend supplies none, and it resets its only dedup refs on any
 // non-2xx, so a reachable 409 would become a re-POST loop.
 func TestSubmitWithoutAClientActionIDCannotReachTheReuseConflict(t *testing.T) {
-	t.Setenv("NODE_ENV", "production")
-	mw := auth.Middleware(auth.NewVerifier(writeTestSecret))
+	mw := auth.StrictMiddleware(writeAuth.Verifier)
 	hash := "0x" + strings.Repeat("a", 64)
 	dead := "0x000000000000000000000000000000000000dead"
 	to := "0x000000000000000000000000000000000000cafe"
@@ -246,8 +238,7 @@ func TestSubmitWithoutAClientActionIDCannotReachTheReuseConflict(t *testing.T) {
 }
 
 func TestSubmitRejectsAnActionIDThatSquatsTheServerNamespaceOrIsOversized(t *testing.T) {
-	t.Setenv("NODE_ENV", "production")
-	mw := auth.Middleware(auth.NewVerifier(writeTestSecret))
+	mw := auth.StrictMiddleware(writeAuth.Verifier)
 	hash := "0x" + strings.Repeat("a", 64)
 	dead := "0x000000000000000000000000000000000000dead"
 	to := "0x000000000000000000000000000000000000cafe"
@@ -286,8 +277,7 @@ func TestSubmitRejectsAnActionIDThatSquatsTheServerNamespaceOrIsOversized(t *tes
 }
 
 func TestActionConflictsSurfaceAsStableCodes(t *testing.T) {
-	t.Setenv("NODE_ENV", "production")
-	mw := auth.Middleware(auth.NewVerifier(writeTestSecret))
+	mw := auth.StrictMiddleware(writeAuth.Verifier)
 	hash := "0x" + strings.Repeat("a", 64)
 	dead := "0x000000000000000000000000000000000000dead"
 	to := "0x000000000000000000000000000000000000cafe"
@@ -324,8 +314,7 @@ func TestActionConflictsSurfaceAsStableCodes(t *testing.T) {
 // The chain-observed facts must reach the writer, or the attempt columns ship
 // permanently empty.
 func TestChainObservedNonceAndBlockHashReachTheWriter(t *testing.T) {
-	t.Setenv("NODE_ENV", "production")
-	mw := auth.Middleware(auth.NewVerifier(writeTestSecret))
+	mw := auth.StrictMiddleware(writeAuth.Verifier)
 	hash := "0x" + strings.Repeat("a", 64)
 	dead := "0x000000000000000000000000000000000000dead"
 	to := "0x000000000000000000000000000000000000cafe"

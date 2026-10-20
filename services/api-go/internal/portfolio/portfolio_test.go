@@ -220,8 +220,8 @@ func TestGetSummary_NoOwnerWalletsCountedFromDB(t *testing.T) {
 	if got.Address != nil {
 		t.Errorf("address = %v, want nil", got.Address)
 	}
-	if got.DataCompleteness != "syncing" {
-		t.Errorf("dataCompleteness = %q, want syncing", got.DataCompleteness)
+	if got.DataCompleteness != "unavailable" {
+		t.Errorf("dataCompleteness = %q, want unavailable", got.DataCompleteness)
 	}
 }
 
@@ -230,7 +230,8 @@ func TestGetSummary_OwnerShortcutsWalletCountToOne(t *testing.T) {
 	// Even if a wallet counter is wired, it must not be called.
 	called := false
 	wc := &stubWalletCounter{n: 999, onCall: func() { called = true }}
-	svc := NewServiceFromDeps(Deps{Wallets: wc})
+	svc := fixtureService(&inventoryFixture{})
+	svc.wallets = wc
 	got, _ := svc.GetSummary(context.Background(), validPortfolioAddr, nil)
 	if got.TrackedWallets != 1 {
 		t.Errorf("trackedWallets = %d, want 1", got.TrackedWallets)
@@ -243,29 +244,26 @@ func TestGetSummary_OwnerShortcutsWalletCountToOne(t *testing.T) {
 func TestGetSummary_RecentActivityIsMaxOfEventsAndTx(t *testing.T) {
 	// recentActivityCount = max(events, txCount). NestJS uses Math.max
 	// so the higher of the two sources wins.
-	svc := NewServiceFromDeps(Deps{
-		Events:       &stubEventCounter{n: 5},
-		Transactions: &stubTxCounter{n: 12},
-	})
+	svc := fixtureService(&inventoryFixture{})
+	svc.events = &stubEventCounter{n: 5}
+	svc.transactions = &stubTxCounter{n: 12}
 	got, _ := svc.GetSummary(context.Background(), validPortfolioAddr, nil)
 	if got.RecentActivityCount != 12 {
 		t.Errorf("recentActivityCount = %d, want 12", got.RecentActivityCount)
 	}
 }
 
-func TestGetSummary_DataCompletenessTransitions(t *testing.T) {
-	// portfolioValue=null + events=0 + no filters → syncing
-	svc := NewServiceFromDeps(Deps{})
-	got, _ := svc.GetSummary(context.Background(), validPortfolioAddr, nil)
-	if got.DataCompleteness != "syncing" {
-		t.Errorf("got %q, want syncing", got.DataCompleteness)
-	}
-
-	// events>0 → partial-live
-	svc2 := NewServiceFromDeps(Deps{Events: &stubEventCounter{n: 3}})
-	got2, _ := svc2.GetSummary(context.Background(), validPortfolioAddr, nil)
-	if got2.DataCompleteness != "partial-live" {
-		t.Errorf("got %q, want partial-live", got2.DataCompleteness)
+func TestGetSummary_DataCompletenessDoesNotDependOnValuationOrEvents(t *testing.T) {
+	svc := fixtureService(&inventoryFixture{})
+	for _, count := range []int64{0, 3} {
+		svc.events = &stubEventCounter{n: count}
+		got, err := svc.GetSummary(context.Background(), validPortfolioAddr, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.DataCompleteness != "partial-live" || got.Valuation.State != "empty" {
+			t.Fatalf("summary = %+v", got)
+		}
 	}
 }
 
@@ -308,16 +306,12 @@ func TestGetAssets_InvalidAddressReturnsEmpty(t *testing.T) {
 	}
 }
 
-func TestGetAssets_NilDepsDegradeToEmpty(t *testing.T) {
-	// All inventory deps nil + a valid address: should return an empty
-	// envelope with totalCount=0 and the default spam level.
+func TestGetAssets_MissingVisibilityFailsClosed(t *testing.T) {
 	svc := NewServiceWithInventory(nil, nil, nil, nil, nil, nil, nil)
-	got, err := svc.GetAssets(context.Background(), validPortfolioAddr, nil)
-	if err != nil {
-		t.Fatalf("err = %v, want nil", err)
-	}
-	if got.FilterSummary.TotalCount != 0 || len(got.Items) != 0 {
-		t.Errorf("got %+v, want empty", got)
+	_, err := svc.GetAssets(context.Background(), validPortfolioAddr, nil)
+	var visibilityErr *visibilityReadError
+	if !errors.As(err, &visibilityErr) {
+		t.Fatalf("err = %v, want visibility failure", err)
 	}
 }
 

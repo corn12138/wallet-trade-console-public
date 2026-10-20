@@ -1,10 +1,12 @@
 package ai
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/txreview"
@@ -43,9 +45,11 @@ func RegisterGuarded(svc *Service) func(r chi.Router) {
 
 func makeExplainHandler(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ExplainRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeJSONError(w, http.StatusBadRequest, "invalid JSON body")
+		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+		defer cancel()
+		r = r.WithContext(ctx)
+		req, ok := decodeExplainRequest(w, r)
+		if !ok {
 			return
 		}
 		// Same owner-pinning as /tx-review: a caller cannot review — or have
@@ -61,7 +65,13 @@ func makeExplainHandler(svc *Service) http.HandlerFunc {
 			writeJSONError(w, http.StatusInternalServerError, "tx-review is not configured")
 			return
 		}
-		review, err := svc.reviewer.ReviewTransaction(r.Context(), req.ReviewInput)
+		reviewCtx, cancelReview := context.WithTimeout(ctx, 10*time.Second)
+		review, err := svc.reviewer.ReviewTransaction(reviewCtx, req.ReviewInput)
+		cancelReview()
+		if errors.Is(err, context.DeadlineExceeded) {
+			writeJSONError(w, http.StatusGatewayTimeout, "transaction review timed out")
+			return
+		}
 		if errors.Is(err, txreview.ErrInvalidInput) {
 			writeJSONError(w, http.StatusBadRequest, err.Error())
 			return

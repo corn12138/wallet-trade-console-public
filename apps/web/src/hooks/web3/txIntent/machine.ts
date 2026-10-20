@@ -51,6 +51,9 @@ const ON_CHAIN: ReadonlySet<TxLifecycleState> = new Set(['SUBMITTED', 'CONFIRMIN
  */
 export function transition(current: MachineState, event: TxEvent): MachineState {
   const s = current.state;
+  // A broadcast hash remains observable after an RPC failure; receipt and
+  // replacement observations must still belong to that hash (validated by the hook).
+  const mayReceiveChainObservation = s === 'SUBMITTED' || s === 'CONFIRMING' || (s === 'FAILED' && current.hash !== null);
   switch (event.type) {
     case 'RESET':
       return INITIAL_MACHINE_STATE;
@@ -71,20 +74,20 @@ export function transition(current: MachineState, event: TxEvent): MachineState 
       return s === 'AWAITING_WALLET' ? { ...current, state: 'SUBMITTED', hash: event.hash } : current;
 
     case 'RECEIPT_SUCCESS': {
-      if (s !== 'SUBMITTED' && s !== 'CONFIRMING') return current;
+      if (!mayReceiveChainObservation) return current;
       // Confirmed is not indexed. Where the product does not expect to index
       // this transaction at all, the receipt is the end of the story.
       if (!event.expectsIndexing) {
-        return { ...current, state: 'FINALIZED', confirmations: event.confirmations, indexing: 'not-expected' };
+        return { ...current, state: 'FINALIZED', confirmations: event.confirmations, indexing: 'not-expected', errorCode: null };
       }
-      return { ...current, state: 'CONFIRMING', confirmations: event.confirmations, indexing: 'pending' };
+      return { ...current, state: 'CONFIRMING', confirmations: event.confirmations, indexing: 'pending', errorCode: null };
     }
 
     case 'RECEIPT_REVERTED':
-      return s === 'SUBMITTED' || s === 'CONFIRMING' ? { ...current, state: 'REVERTED', errorCode: 'REVERTED' } : current;
+      return mayReceiveChainObservation ? { ...current, state: 'REVERTED', errorCode: 'REVERTED' } : current;
 
     case 'REPLACED':
-      return s === 'SUBMITTED' || s === 'CONFIRMING' ? { ...current, state: 'REPLACED', replacedByHash: event.hash } : current;
+      return mayReceiveChainObservation ? { ...current, state: 'REPLACED', replacedByHash: event.hash, errorCode: null } : current;
 
     case 'INDEXED':
       return s === 'CONFIRMING' && current.indexing === 'pending'

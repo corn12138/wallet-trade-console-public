@@ -21,7 +21,7 @@ environment.
 - Go API, chain indexer, price feed, bridge relayer, and Socket.IO-compatible realtime service.
 - Perpetuals, launchpad, swap, staking, bridge, NFT, and portfolio product surfaces.
 - Hardhat deployment tooling plus Foundry parity, fuzz, and invariant-oriented tests.
-- Prisma schema as the portable database contract.
+- Portable PostgreSQL initialization including SQL constraints, functions and triggers.
 
 ## Architecture
 
@@ -59,7 +59,8 @@ platform. See [Architecture](docs/architecture.md) for the component boundaries.
 - Node.js 22.12 or newer
 - pnpm 9.15.4
 - Go 1.25.13 or newer
-- PostgreSQL 16 for data-backed local flows
+- PostgreSQL 16 and its `psql` client for data-backed local flows
+- Python 3 for database initialization and validation tools
 - Foundry for Solidity tests
 
 The contracts are testnet-oriented reference implementations and have not been
@@ -74,16 +75,29 @@ cp apps/web/.env.example apps/web/.env.local
 cp services/api-go/.env.example services/api-go/.env
 export DATABASE_URL=postgresql://app_user:password@127.0.0.1:5432/wallet_trade_console
 pnpm --filter @wallet-trade/database db:generate
-pnpm --filter @wallet-trade/database db:push
+pnpm --filter @wallet-trade/database db:init
 ```
 
-Set a local `DATABASE_URL` in `services/api-go/.env`, then run the API and web
-app in separate terminals:
+Create the empty database named by `DATABASE_URL` before running `db:init`.
+The initializer refuses a nonempty schema and includes the SQL guards needed by
+Campaign, execution registry and outbox recovery. See [Database setup](docs/database.md).
+
+Set `DATABASE_URL`, `NODE_ENV` and all `WEB3_*` credentials in
+`services/api-go/.env`. Generate a fresh `WEB3_JWT_SECRET` as described in the
+example file, then run the API and web app in separate terminals:
 
 ```bash
+set -a
+. services/api-go/.env
+set +a
 pnpm dev:api
+```
+
+```bash
 pnpm dev:web
 ```
+
+The Go API reads process environment variables; it does not load `.env` itself.
 
 The default development URLs are:
 

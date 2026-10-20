@@ -16,7 +16,6 @@ import (
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/auth"
 	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // DefaultNonceTTL matches DEFAULT_NONCE_TTL_MS from NestJS (5 minutes).
@@ -79,7 +78,8 @@ const DefaultMaxClockSkew = 2 * time.Minute
 // the JWT signer config. The store is an interface because a per-process map
 // cannot make a nonce single-use across replicas — see ADR 0007.
 type Service struct {
-	jwtSecret        []byte
+	credentials      *auth.Verifier
+	sessions         SessionStore
 	sessionTTL       time.Duration
 	nonceTTL         time.Duration
 	maxClockSkew     time.Duration
@@ -101,34 +101,46 @@ type Config struct {
 	AllowedURIs     []string
 	AllowedChainIDs []int
 	Statement       string
-	// NonceStore defaults to an in-process map. Production must pass a shared
-	// store; ResolveNonceStore enforces that.
+	// NonceStore defaults to an in-process map. Deployed processes must pass a
+	// shared store; ResolveNonceStore enforces that.
 	NonceStore NonceStore
 	// ContractVerifier enables EIP-1271 logins. Nil means EOA-only: a contract
 	// wallet is rejected rather than assumed valid.
 	ContractVerifier ContractSignatureVerifier
+	// Credentials signs tokens under the same policy every guard verifies
+	// with; Sessions persists the session each token is bound to. Without
+	// both, /verify issues nothing (503) rather than an unrevocable token.
+	Credentials *auth.Verifier
+	Sessions    SessionStore
 }
 
-// NewService builds the service. jwtSecret empty → /verify always
-// 500-equivalent ("not configured"). allowedChainIDs empty → no
-// restriction (every chain accepted, matches NestJS dev default).
-func NewService(jwtSecret string, sessionTTL, nonceTTL time.Duration, allowedChainIDs []int) *Service {
-	return NewServiceWithConfig(jwtSecret, Config{
-		SessionTTL:      sessionTTL,
-		NonceTTL:        nonceTTL,
-		AllowedChainIDs: allowedChainIDs,
-	})
+// NewService builds a service with default domains and no credential issuer
+// or session store, so /verify answers 503 until both are attached (tests do so
+// with an authtest fixture). allowedChainIDs empty → the default chains.
+func NewService(sessionTTL, nonceTTL time.Duration, allowedChainIDs []int) *Service {
+	return NewServiceWithConfig(Config{SessionTTL: sessionTTL, NonceTTL: nonceTTL, AllowedChainIDs: allowedChainIDs})
 }
 
-// NewServiceFromEnv resolves the challenge store before building the service,
-// so a production process with no reachable shared store fails at startup
-// instead of serving replayable logins.
-func NewServiceFromEnv(ctx context.Context, jwtSecret string, verifier ContractSignatureVerifier) (*Service, error) {
-	store, err := ResolveNonceStore(ctx, NonceStoreConfigFromEnv())
+// Runtime is what cmd/api resolved at startup for the SIWE service.
+type Runtime struct {
+	// Credentials and Sessions are the same verifier and session store every
+	// guard uses, so issuer and verifiers can never disagree.
+	Credentials      *auth.Verifier
+	Sessions         SessionStore
+	ContractVerifier ContractSignatureVerifier
+	// LocalTest is true only for a development/test process listening on
+	// loopback, the one profile where a per-process nonce map is accepted.
+	LocalTest bool
+}
+
+// NewServiceFromEnv builds the deployed service from the environment plus the
+// runtime cmd/api resolved.
+func NewServiceFromEnv(ctx context.Context, rt Runtime) (*Service, error) {
+	store, err := ResolveNonceStore(ctx, NonceStoreConfigFromEnv(!rt.LocalTest))
 	if err != nil {
 		return nil, err
 	}
-	return NewServiceWithConfig(jwtSecret, Config{
+	return NewServiceWithConfig(Config{
 		SessionTTL:       secondsEnv("SIWE_SESSION_TTL_SECONDS", DefaultSessionTTL),
 		NonceTTL:         secondsEnv("SIWE_NONCE_TTL_SECONDS", DefaultNonceTTL),
 		MaxClockSkew:     secondsEnv("SIWE_MAX_CLOCK_SKEW_SECONDS", DefaultMaxClockSkew),
@@ -137,11 +149,13 @@ func NewServiceFromEnv(ctx context.Context, jwtSecret string, verifier ContractS
 		AllowedChainIDs:  intCSVEnv("SIWE_ALLOWED_CHAIN_IDS"),
 		Statement:        os.Getenv("SIWE_STATEMENT"),
 		NonceStore:       store,
-		ContractVerifier: verifier,
+		ContractVerifier: rt.ContractVerifier,
+		Credentials:      rt.Credentials,
+		Sessions:         rt.Sessions,
 	}), nil
 }
 
-func NewServiceWithConfig(jwtSecret string, cfg Config) *Service {
+func NewServiceWithConfig(cfg Config) *Service {
 	sessionTTL := cfg.SessionTTL
 	if sessionTTL <= 0 {
 		sessionTTL = DefaultSessionTTL
@@ -178,7 +192,8 @@ func NewServiceWithConfig(jwtSecret string, cfg Config) *Service {
 	}
 	origins := buildAllowedOrigins(allowedDomains, cfg.AllowedURIs, uri)
 	return &Service{
-		jwtSecret:        []byte(jwtSecret),
+		credentials:      cfg.Credentials,
+		sessions:         cfg.Sessions,
 		sessionTTL:       sessionTTL,
 		nonceTTL:         nonceTTL,
 		maxClockSkew:     skew,
@@ -289,30 +304,7 @@ func (s *Service) VerifySiwe(ctx context.Context, in VerifyInput) (VerifyRespons
 		return VerifyResponse{}, ErrNonceMismatch
 	}
 
-	if len(s.jwtSecret) == 0 {
-		return VerifyResponse{}, fmt.Errorf("auth secret not configured")
-	}
-	expires := now.Add(s.sessionTTL)
-	claims := auth.Claims{
-		Sub:     owner,
-		ChainID: msg.ChainID,
-		Type:    "web3",
-		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(expires),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(s.jwtSecret)
-	if err != nil {
-		return VerifyResponse{}, fmt.Errorf("sign jwt: %w", err)
-	}
-	return VerifyResponse{
-		Token:            signed,
-		Address:          owner,
-		ChainID:          msg.ChainID,
-		SessionExpiresAt: expires.UTC().Format(time.RFC3339),
-	}, nil
+	return s.issueSession(ctx, owner, msg.ChainID, now)
 }
 
 // authenticateOwner proves that `owner` authorised this message. An EOA proves
@@ -448,44 +440,48 @@ func decodeSignatureBytes(signature string) ([]byte, error) {
 	return out, nil
 }
 
-// Me decodes the bearer + returns a WalletInfo. The verifier is the
-// same auth.Verifier that's already wired for guarded routes.
-func (s *Service) Me(verifier *auth.Verifier, bearer string) (WalletInfo, error) {
-	if verifier == nil {
-		return WalletInfo{}, errors.New("auth verifier not configured")
+// Me returns the wallet behind a bearer. It uses the service's own verifier,
+// the one that issued the token and that every guarded route shares, so
+// /web3-auth/me and /auth/me answer "not signed in" for a logged-out or
+// revoked session and 503 when the session store cannot answer.
+func (s *Service) Me(ctx context.Context, bearer string) (WalletInfo, error) {
+	if s.credentials == nil {
+		return WalletInfo{}, auth.ErrSessionUnavailable
 	}
-	claims, err := verifier.Verify(bearer)
+	claims, err := s.credentials.Authenticate(ctx, bearer)
 	if err != nil {
 		return WalletInfo{}, err
 	}
 	return WalletInfo{Address: claims.Sub, ChainID: claims.ChainID}, nil
 }
 
-// Router mounts /api/web3-auth/{nonce,verify,me}.
-func Router(svc *Service, verifier *auth.Verifier) chi.Router {
+// Router mounts /api/web3-auth/{nonce,verify,me,logout}.
+func Router(svc *Service) chi.Router {
 	r := chi.NewRouter()
 	r.Get("/nonce", svc.handleGetNonce)
 	r.Post("/nonce", svc.handlePostNonce)
 	r.Post("/verify", svc.handleVerify)
-	r.Get("/me", svc.makeMeHandler(verifier))
+	r.Get("/me", svc.handleMe)
+	// Logout lives only here: /api/auth/logout belongs to user-auth.
+	r.Post("/logout", svc.handleLogout)
 	return r
 }
 
 // AuthAliasRouter mounts the NestJS SiweAuthController aliases under
 // /api/auth/{nonce,verify,me}. User/password auth owns the other /auth
 // routes, so httpx composes both routers under one prefix.
-func AuthAliasRouter(svc *Service, verifier *auth.Verifier) chi.Router {
+func AuthAliasRouter(svc *Service) chi.Router {
 	r := chi.NewRouter()
-	RegisterAuthAliases(r, svc, verifier)
+	RegisterAuthAliases(r, svc)
 	return r
 }
 
 // RegisterAuthAliases attaches the NestJS SiweAuthController aliases to an
 // existing /api/auth router.
-func RegisterAuthAliases(r chi.Router, svc *Service, verifier *auth.Verifier) {
+func RegisterAuthAliases(r chi.Router, svc *Service) {
 	r.Post("/nonce", svc.handlePostNonce)
 	r.Post("/verify", svc.handleVerify)
-	r.Get("/me", svc.makeMeHandler(verifier))
+	r.Get("/me", svc.handleMe)
 }
 
 func (s *Service) handleGetNonce(w http.ResponseWriter, r *http.Request) {
@@ -534,6 +530,9 @@ func (s *Service) handleVerify(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnauthorized, err.Error())
 		case errors.Is(err, ErrChainNotAllowed), errors.Is(err, ErrContractVerificationUnavailable):
 			writeError(w, http.StatusUnauthorized, err.Error())
+		case errors.Is(err, ErrSessionStoreUnavailable):
+			slog.ErrorContext(r.Context(), "web3auth session persistence failed", "err", err)
+			writeError(w, http.StatusServiceUnavailable, ErrSessionStoreUnavailable.Error())
 		case errors.Is(err, ErrContractVerificationUnreachable):
 			slog.ErrorContext(r.Context(), "web3auth contract verification unreachable", "err", err)
 			writeError(w, http.StatusServiceUnavailable, ErrContractVerificationUnreachable.Error())
@@ -549,20 +548,23 @@ func (s *Service) handleVerify(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
-func (s *Service) makeMeHandler(verifier *auth.Verifier) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		h := r.Header.Get("Authorization")
-		if !strings.HasPrefix(h, "Bearer ") {
-			writeError(w, http.StatusUnauthorized, "Missing or invalid authorization header")
-			return
-		}
-		out, err := s.Me(verifier, strings.TrimSpace(h[7:]))
-		if err != nil {
-			writeError(w, http.StatusUnauthorized, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, out)
+func (s *Service) handleMe(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "private, no-store")
+	token, ok := auth.Bearer(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "Missing or invalid authorization header")
+		return
 	}
+	out, err := s.Me(r.Context(), token)
+	if errors.Is(err, auth.ErrSessionUnavailable) {
+		writeError(w, http.StatusServiceUnavailable, "Web3 session verification unavailable")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Missing or invalid web3 authorization")
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

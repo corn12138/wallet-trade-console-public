@@ -6,24 +6,24 @@ import (
 	"strings"
 )
 
-// RawAsset is the pre-visibility-filter shape produced by
-// collectRawAssets. Metadata is a discriminated union by Origin; the
-// spam-filter rules inspect it but it's stripped before the JSON
-// payload is emitted.
+// Metadata belongs to visibility decisions and is not emitted to clients.
 type RawAsset struct {
-	ID            string        `json:"id"`
-	AssetType     string        `json:"assetType"`
-	Symbol        string        `json:"symbol"`
-	Name          string        `json:"name"`
-	ChainID       int           `json:"chainId"`
-	RawBalance    string        `json:"rawBalance"`
-	ValueUSD      float64       `json:"valueUsd"`
-	Status        string        `json:"status"`
-	Source        string        `json:"source"`
-	Address       *string       `json:"address"`
-	WalletAddress *string       `json:"walletAddress"`
-	UpdatedAt     string        `json:"updatedAt"`
-	Metadata      *RawAssetMeta `json:"-"`
+	ID              string        `json:"id"`
+	AssetType       string        `json:"assetType"`
+	Symbol          string        `json:"symbol"`
+	Name            string        `json:"name"`
+	ChainID         int           `json:"chainId"`
+	RawBalance      string        `json:"rawBalance"`
+	ValueUSD        *float64      `json:"valueUsd"`
+	BalanceUnit     string        `json:"balanceUnit"`
+	ValuationStatus string        `json:"valuationStatus"`
+	ValuationReason *string       `json:"valuationReason"`
+	Status          string        `json:"status"`
+	Source          string        `json:"source"`
+	Address         *string       `json:"address"`
+	WalletAddress   *string       `json:"walletAddress"`
+	UpdatedAt       string        `json:"updatedAt"`
+	Metadata        *RawAssetMeta `json:"-"`
 }
 
 // RawAssetMeta carries the inputs spam-filter rules look at. Origin
@@ -40,18 +40,21 @@ type RawAssetMeta struct {
 // VisibilityItem is the post-filter, JSON-emitted asset row (metadata
 // stripped — matches the NestJS stripPortfolioVisibilityMetadata).
 type VisibilityItem struct {
-	ID            string  `json:"id"`
-	AssetType     string  `json:"assetType"`
-	Symbol        string  `json:"symbol"`
-	Name          string  `json:"name"`
-	ChainID       int     `json:"chainId"`
-	RawBalance    string  `json:"rawBalance"`
-	ValueUSD      float64 `json:"valueUsd"`
-	Status        string  `json:"status"`
-	Source        string  `json:"source"`
-	Address       *string `json:"address"`
-	WalletAddress *string `json:"walletAddress"`
-	UpdatedAt     string  `json:"updatedAt"`
+	ID              string   `json:"id"`
+	AssetType       string   `json:"assetType"`
+	Symbol          string   `json:"symbol"`
+	Name            string   `json:"name"`
+	ChainID         int      `json:"chainId"`
+	RawBalance      string   `json:"rawBalance"`
+	ValueUSD        *float64 `json:"valueUsd"`
+	BalanceUnit     string   `json:"balanceUnit"`
+	ValuationStatus string   `json:"valuationStatus"`
+	ValuationReason *string  `json:"valuationReason"`
+	Status          string   `json:"status"`
+	Source          string   `json:"source"`
+	Address         *string  `json:"address"`
+	WalletAddress   *string  `json:"walletAddress"`
+	UpdatedAt       string   `json:"updatedAt"`
 }
 
 // FilterSummary mirrors AtlasPortfolioAssetFilters on the FE.
@@ -68,14 +71,21 @@ type FilterSummary struct {
 // AssetInventory is the {items, filterSummary} envelope GET
 // /portfolio/assets returns.
 type AssetInventory struct {
-	Items         []VisibilityItem `json:"items"`
-	FilterSummary FilterSummary    `json:"filterSummary"`
+	ValuationVersion int       `json:"valuationVersion"`
+	Valuation        Valuation `json:"valuation"`
+	Coverage         Coverage  `json:"coverage"`
+	truncated        bool
+	Items            []VisibilityItem `json:"items"`
+	FilterSummary    FilterSummary    `json:"filterSummary"`
 }
 
 // emptyInventory mirrors NestJS getEmptyAssetInventory().
 func emptyInventory() AssetInventory {
 	return AssetInventory{
-		Items: []VisibilityItem{},
+		ValuationVersion: ValuationVersion,
+		Valuation:        Valuation{State: "empty"},
+		Coverage:         newCoverage(),
+		Items:            []VisibilityItem{},
 		FilterSummary: FilterSummary{
 			SpamFilterLevel:       "standard",
 			TotalCount:            0,
@@ -88,12 +98,8 @@ func emptyInventory() AssetInventory {
 	}
 }
 
-// applyVisibility filters + sorts the raw asset list. Mirrors
-// portfolio-asset-visibility.ts byte-for-byte: hidden-key match
-// removes the asset (any candidate key match against the configured
-// hidden-assets set), spam rules remove only wallet-discovered items
-// matching the level-specific signal set, then sort by valueUsd DESC
-// with updatedAt DESC as tiebreaker.
+// Visibility is applied before valuation so hidden rows cannot affect the
+// displayed subtotal. Unknown valuation alone is not a spam signal.
 func applyVisibility(assets []RawAsset, hiddenKeys []string, spamFilterLevel string) AssetInventory {
 	hiddenSet := make(map[string]struct{}, len(hiddenKeys))
 	for _, k := range hiddenKeys {
@@ -106,6 +112,7 @@ func applyVisibility(assets []RawAsset, hiddenKeys []string, spamFilterLevel str
 	visible := make([]RawAsset, 0, len(assets))
 
 	for _, a := range assets {
+		a = normalizeAssetValuation(a)
 		candidates := buildHiddenAssetCandidateKeys(a.ChainID, a.Address, a.Symbol, a.WalletAddress)
 		matched := false
 		for _, c := range candidates {
@@ -125,33 +132,39 @@ func applyVisibility(assets []RawAsset, hiddenKeys []string, spamFilterLevel str
 		visible = append(visible, a)
 	}
 
-	sort.SliceStable(visible, func(i, j int) bool {
-		if visible[i].ValueUSD != visible[j].ValueUSD {
-			return visible[i].ValueUSD > visible[j].ValueUSD
-		}
-		return visible[i].UpdatedAt > visible[j].UpdatedAt
-	})
+	sortVisibleAssets(visible)
+	var unavailable bool
+	visible, unavailable = normalizeDisplayValuations(visible)
+	if unavailable {
+		sortVisibleAssets(visible)
+	}
 
 	items := make([]VisibilityItem, 0, len(visible))
 	for _, a := range visible {
 		items = append(items, VisibilityItem{
-			ID:            a.ID,
-			AssetType:     a.AssetType,
-			Symbol:        a.Symbol,
-			Name:          a.Name,
-			ChainID:       a.ChainID,
-			RawBalance:    a.RawBalance,
-			ValueUSD:      a.ValueUSD,
-			Status:        a.Status,
-			Source:        a.Source,
-			Address:       a.Address,
-			WalletAddress: a.WalletAddress,
-			UpdatedAt:     a.UpdatedAt,
+			ID:              a.ID,
+			AssetType:       a.AssetType,
+			Symbol:          a.Symbol,
+			Name:            a.Name,
+			ChainID:         a.ChainID,
+			RawBalance:      a.RawBalance,
+			ValueUSD:        a.ValueUSD,
+			BalanceUnit:     a.BalanceUnit,
+			ValuationStatus: a.ValuationStatus,
+			ValuationReason: a.ValuationReason,
+			Status:          a.Status,
+			Source:          a.Source,
+			Address:         a.Address,
+			WalletAddress:   a.WalletAddress,
+			UpdatedAt:       a.UpdatedAt,
 		})
 	}
 
 	return AssetInventory{
-		Items: items,
+		ValuationVersion: ValuationVersion,
+		Valuation:        summarizeValuation(items),
+		Coverage:         newCoverage(),
+		Items:            items,
 		FilterSummary: FilterSummary{
 			SpamFilterLevel:       level,
 			TotalCount:            len(assets),
@@ -162,6 +175,24 @@ func applyVisibility(assets []RawAsset, hiddenKeys []string, spamFilterLevel str
 			SpamFilteredCount:     spamFiltered,
 		},
 	}
+}
+
+func sortVisibleAssets(visible []RawAsset) {
+	sort.SliceStable(visible, func(i, j int) bool {
+		left, right := visible[i], visible[j]
+		leftKnown, rightKnown := knownValue(left.ValueUSD, left.ValuationStatus), knownValue(right.ValueUSD, right.ValuationStatus)
+		if leftKnown != rightKnown {
+			return leftKnown
+		}
+		if leftKnown && *left.ValueUSD != *right.ValueUSD {
+			return *left.ValueUSD > *right.ValueUSD
+		}
+		if order := compareIsoTimes(left.UpdatedAt, right.UpdatedAt); order != 0 {
+			return order > 0
+		}
+		return left.ID < right.ID
+	})
+
 }
 
 // buildHiddenAssetCandidateKeys mirrors common/utils/web3-hidden-asset.ts.
@@ -303,7 +334,7 @@ func detectSpamSignals(a RawAsset) []string {
 	if a.Metadata != nil && a.Metadata.MarketCap != nil {
 		marketCap = *a.Metadata.MarketCap
 	}
-	if !isOfficial && marketCap <= 10_000 && a.ValueUSD <= 0 {
+	if !isOfficial && marketCap <= 10_000 && knownValue(a.ValueUSD, a.ValuationStatus) && *a.ValueUSD == 0 {
 		add("thin-market")
 	}
 

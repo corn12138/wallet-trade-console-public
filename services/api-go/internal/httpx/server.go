@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/activity"
@@ -21,6 +20,7 @@ import (
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/deployments"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/discover"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/earn"
+	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/executionregistry"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/i18n"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/indexeradmin"
 	"github.com/corn12138/wallet-trade-console-public/services/api-go/internal/markets"
@@ -65,6 +65,8 @@ type Deps struct {
 	DiscoverStaking discover.StakingRepository
 	DiscoverEvents  discover.EventsRepository
 	CampaignRepo    *campaign.Repository
+	CampaignService *campaign.Service
+	CampaignV2      chi.Router
 	TokenListRepo   *token.Repository
 	ActivityRepo    *activity.Repository
 	EarnPools       earn.PoolLister
@@ -85,6 +87,7 @@ type Deps struct {
 	TradingMarkets      trading.MarketsProvider
 	Web3EventsRepo      *web3events.Repository
 	Web3TxVerifier      web3events.TransactionVerifier
+	ExecutionRegistry   *executionregistry.Service // nil unless migrated and audited (cmd/api); routes then answer 503
 	TagsRepo            *tags.Repository
 	PaperTradeRepo      *papertrade.Repository
 	PaperTradeEnabled   bool
@@ -107,6 +110,9 @@ type Deps struct {
 	// from Pool + MarketsLoader + PaperTradeEnabled above.
 	RealtimeEnabled bool
 	MediaMode       string
+	// I18nAdmins is the i18n admin allowlist; nil or empty denies every
+	// admin route. cmd/api grants it only for the current auth epoch.
+	I18nAdmins map[string]bool
 }
 
 // bffSessionAdapter wraps the mobile control plane as mobilebff.SessionProvider.
@@ -123,40 +129,6 @@ func (a bffSessionAdapter) MobileSession(r *http.Request) mobilebff.Session {
 	}
 	return mobilebff.Session{IsLoggedIn: sc.IsLoggedIn, UserID: uid, Locale: sc.Locale,
 		Theme: sc.Theme, Container: sc.Container, AppVersion: appVer}
-}
-
-// bffCampaignAdapter wraps the Go campaign service as mobilebff.CampaignSource.
-type bffCampaignAdapter struct{ svc *campaign.Service }
-
-func (a bffCampaignAdapter) ActiveCampaigns(ctx context.Context) []mobilebff.CampaignInfo {
-	rows, err := a.svc.Active(ctx, time.Now())
-	if err != nil {
-		return nil
-	}
-	out := make([]mobilebff.CampaignInfo, 0, len(rows))
-	for _, c := range rows {
-		out = append(out, toBffCampaign(c))
-	}
-	return out
-}
-
-func (a bffCampaignAdapter) FindCampaign(ctx context.Context, id string) (mobilebff.CampaignInfo, bool) {
-	c, err := a.svc.FindByID(ctx, id)
-	if err != nil {
-		return mobilebff.CampaignInfo{}, false
-	}
-	return toBffCampaign(c), true
-}
-
-func toBffCampaign(c campaign.Campaign) mobilebff.CampaignInfo {
-	info := mobilebff.CampaignInfo{ID: c.ID, Title: c.Title}
-	if c.Description != nil {
-		info.Description = *c.Description
-	}
-	if c.Banner != nil {
-		info.Banner = *c.Banner
-	}
-	return info
 }
 
 // bffSettingsAdapter wraps the Go settings service as mobilebff.SettingsSource.
@@ -277,44 +249,30 @@ func NewRouter(deps Deps) *chi.Mux {
 				deps.DiscoverEvents,
 			)))
 		}
-		// guardedAuth is shared by every module's guarded mutations.
-		// Built once; nil when JWT_SECRET wasn't configured (cmd/api
-		// warns then). Modules treat nil as "no guarded routes mount"
-		// — except token's create handler also has a defense-in-depth
-		// 401 fallback that fires if a nil middleware ever did mount.
-		var guardedAuth func(http.Handler) http.Handler
-		if deps.AuthVerifier != nil {
-			guardedAuth = auth.Middleware(deps.AuthVerifier)
+		// guardedAuth is the one web3 guard (FQ-01) shared by every module's
+		// private routes: a verified token plus a live persistent session,
+		// 401 otherwise and 503 when the session cannot be confirmed. It is
+		// never nil — without a verifier it fails closed (503) — so no module
+		// can mount a private route bare.
+		guardedAuth := auth.StrictMiddleware(deps.AuthVerifier)
+		// sessionWallet enriches public reads (legacy campaign, follow-state,
+		// the mobile settings aggregate) with the caller's own state using the
+		// same session-checking authentication as guardedAuth.
+		sessionWallet := sessionWalletResolver(deps.AuthVerifier)
+		// Both public surfaces share the published projection. A rollout flag
+		// must not expose drafts or restore the unversioned write path.
+		campaignService := deps.CampaignService
+		if campaignService == nil {
+			campaignService = campaign.NewService(deps.CampaignRepo)
 		}
-		// optionalWalletResolver verifies a bearer web3 token when present but
-		// never rejects — public reads (campaign list, follow-state) use it to
-		// enrich responses with the caller's state.
-		var optionalWalletResolver func(r *http.Request) string
-		if deps.AuthVerifier != nil {
-			verifier := deps.AuthVerifier
-			optionalWalletResolver = func(r *http.Request) string {
-				header := r.Header.Get("Authorization")
-				const prefix = "Bearer "
-				if len(header) <= len(prefix) || !strings.EqualFold(header[:len(prefix)], prefix) {
-					return ""
-				}
-				claims, err := verifier.Verify(strings.TrimSpace(header[len(prefix):]))
-				if err != nil {
-					return ""
-				}
-				// Web3 tokens carry the wallet address in `sub` (see
-				// auth.Middleware, which stores claims.Sub in the context).
-				return strings.ToLower(claims.Sub)
-			}
-		}
-		// Campaign mounts unconditionally — reads degrade to empty lists / 404
-		// when the pool is nil; join/reminder mutations are SIWE-guarded and
-		// backed by campaign_participants / campaign_reminders rows.
 		api.Mount("/campaign", campaign.Router(
-			campaign.NewService(deps.CampaignRepo),
-			campaign.WalletResolver(optionalWalletResolver),
-			guardedAuth,
+			campaignService,
+			sessionWallet,
+			auth.StrictMiddleware(deps.AuthVerifier),
 		))
+		if deps.CampaignV2 != nil {
+			api.Mount("/v2", deps.CampaignV2)
+		}
 		// Profile follow graph: public counts/state + SIWE-guarded
 		// follow/unfollow on durable profile_follows rows. A missing repo
 		// degrades to the nil-pool contract instead of a nil deref.
@@ -324,7 +282,7 @@ func NewRouter(deps Deps) *chi.Mux {
 		}
 		api.Mount("/profile", social.Router(
 			social.NewService(socialRepo),
-			social.WalletResolver(optionalWalletResolver),
+			sessionWallet,
 			guardedAuth,
 		))
 		// accessGuard is the user access-token middleware — parity with the
@@ -429,7 +387,7 @@ func NewRouter(deps Deps) *chi.Mux {
 		// the runtime source of truth; the embedded Go baseline serves
 		// fresh/degraded/pool-less runs (source "embedded-baseline"), so the
 		// mount is unconditional — the store is nil-pool-safe.
-		api.Mount("/i18n", i18n.Router(i18n.NewService(i18n.NewPgStore(deps.Pool)), guardedAuth))
+		api.Mount("/i18n", i18n.Router(i18n.NewService(i18n.NewPgStore(deps.Pool)), guardedAuth, deps.I18nAdmins))
 		// Product diagnostics: GET /api/status/product — read-only, no secrets.
 		// Explains empty/disabled states (DB, indexer, realtime, swap router,
 		// media, bridge, scenario-data counts). Public: non-user data.
@@ -512,9 +470,15 @@ func NewRouter(deps Deps) *chi.Mux {
 				deps.Web3EventsRepo,
 				guardedAuth,
 				deps.Web3TxVerifier,
-			)
+			).WithWorkbench(deps.Web3EventsRepo)
+			if deps.ExecutionRegistry != nil {
+				web3svc.WithContextClassifier(deps.ExecutionRegistry)
+			}
 		}
 		api.Mount("/web3-events", web3events.Router(web3svc))
+		// Execution registry (LG-03b): public, no-store deployment facts and
+		// the pre-wallet check. Always mounted for a constant route topology.
+		api.Mount("/execution-registry", executionregistry.Router(deps.ExecutionRegistry))
 		// Tags: 3 GETs. nil repo → [] for list, 503 for detail.
 		var tagsReader tags.Reader
 		if deps.TagsRepo != nil {
@@ -566,7 +530,7 @@ func NewRouter(deps Deps) *chi.Mux {
 			authMounted = true
 		}
 		if deps.Web3Auth != nil {
-			web3auth.RegisterAuthAliases(authRouter, deps.Web3Auth, deps.AuthVerifier)
+			web3auth.RegisterAuthAliases(authRouter, deps.Web3Auth)
 			authMounted = true
 		}
 		if authMounted {
@@ -603,10 +567,11 @@ func NewRouter(deps Deps) *chi.Mux {
 		if deps.ContractConfig != nil {
 			api.Mount("/contracts", contractconfig.Router(deps.ContractConfig))
 		}
-		// Web3-auth (SIWE): /api/web3-auth/{nonce,verify,me}. nonce/verify
-		// are public; /me decodes the existing web3 JWT (auth.Verifier).
+		// Web3-auth (SIWE): /api/web3-auth/{nonce,verify,me,logout}.
+		// nonce/verify are public; /me authenticates the token against its
+		// persistent session and logout revokes exactly that session.
 		if deps.Web3Auth != nil {
-			api.Mount("/web3-auth", web3auth.Router(deps.Web3Auth, deps.AuthVerifier))
+			api.Mount("/web3-auth", web3auth.Router(deps.Web3Auth))
 		}
 		// Mobile control plane (mobile-control.controller): runtime bootstrap,
 		// session context, route resolve, capability check, web bootstrap,
@@ -631,9 +596,9 @@ func NewRouter(deps Deps) *chi.Mux {
 			bffSvc = mobilebff.NewService(
 				mobilebff.NewRepository(deps.Pool),
 				bffSessionAdapter{mc: mobileControlSvc},
-				bffCampaignAdapter{svc: campaign.NewService(deps.CampaignRepo)},
+				bffCampaignAdapter{svc: campaignService},
 				bffSettingsAdapter{svc: settings.NewService(deps.SettingsRepo)},
-			)
+			).WithWalletResolver(sessionWallet)
 		}
 		api.Route("/mobile", func(m chi.Router) {
 			mobilecontrol.Register(m, mobileControlSvc)
