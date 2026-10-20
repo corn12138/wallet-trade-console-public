@@ -76,18 +76,24 @@ func resolveAction(
 		case errors.Is(err, pgx.ErrNoRows):
 			// gen_random_uuid() because Prisma's @default(cuid()) is a
 			// client-side default that emits no database default.
+			//
+			// ON CONFLICT DO NOTHING, not a caught unique violation: a failed
+			// statement aborts the whole PostgreSQL transaction (25P02). DO
+			// NOTHING waits for the concurrent insert, returns no row when
+			// that writer committed, and the next pass locks its row.
 			var created string
 			err := tx.QueryRow(ctx, `
 				INSERT INTO web3_transaction_actions
 					(id, chain_id, owner_address, client_action_id, action_type,
 					 request_fingerprint, status, attempt_count, created_at, updated_at)
 				VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, 'pending', 0, now(), now())
+				ON CONFLICT (chain_id, owner_address, client_action_id) DO NOTHING
 				RETURNING id
 			`, chainID, owner, clientActionID, actionType, fingerprint).Scan(&created)
 			if err == nil {
 				return created, nil
 			}
-			if isUniqueViolation(err) {
+			if errors.Is(err, pgx.ErrNoRows) || isUniqueViolation(err) {
 				// Another writer won the race; re-read it on the next pass.
 				continue
 			}
