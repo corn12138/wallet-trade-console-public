@@ -123,7 +123,8 @@ func integer(value *uint64) any {
 	if value == nil {
 		return nil
 	}
-	return int64(*value)
+	// pgx checks uint64 against PostgreSQL bigint; narrowing first would wrap.
+	return *value
 }
 func nullable(value string) any {
 	if value == "" {

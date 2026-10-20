@@ -73,7 +73,7 @@ func (r *Repository) Stage(ctx context.Context, s Snapshot, actor, reason string
 			  interfaces, code_hash, code_block_number, code_block_hash, entry_digest)
 			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		`, revision, e.ChainID, e.Name, e.Address, e.DeploymentFile, e.DeploymentTimestamp, e.ABIHash, e.Interfaces, e.CodeHash,
-			int64(e.CodeBlockNumber), e.CodeBlockHash, e.EntryDigest); err != nil {
+			e.CodeBlockNumber, e.CodeBlockHash, e.EntryDigest); err != nil {
 			return 0, fmt.Errorf("executionregistry: stage entry %s: %w", e.Name, err)
 		}
 	}

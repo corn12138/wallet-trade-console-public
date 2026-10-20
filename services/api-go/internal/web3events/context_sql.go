@@ -136,34 +136,41 @@ const contextSavepoint = "web3_tx_context"
 // A prefix alone could accidentally swallow unrelated constraints introduced
 // by a later migration; native 22001 has no reliable column attribution.
 func isContextStorageError(err error) bool {
+	_, _, ok := contextStorageIdentity(err)
+	return ok
+}
+
+func contextStorageIdentity(err error) (string, string, bool) {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
-		return false
+		return "", "", false
 	}
 	if pgErr.Code == "23503" {
-		return pgErr.ConstraintName == "web3_tx_ctx_revision_fkey"
+		if pgErr.ConstraintName == "web3_tx_ctx_revision_fkey" {
+			return "23503", "web3_tx_ctx_revision_fkey", true
+		}
+		return "", "", false
 	}
 	if pgErr.Code != "23514" {
-		return false
+		return "", "", false
 	}
-	switch pgErr.ConstraintName {
-	case "web3_tx_ctx_state_check", "web3_tx_ctx_mode_check", "web3_tx_ctx_claim_digest_check",
+	for _, constraint := range []string{"web3_tx_ctx_state_check", "web3_tx_ctx_mode_check", "web3_tx_ctx_claim_digest_check",
 		"web3_tx_ctx_claimed_revision_check", "web3_tx_ctx_operation_check", "web3_tx_ctx_market_check",
 		"web3_tx_ctx_binding_check", "web3_tx_ctx_consumer_check", "web3_tx_ctx_manifest_check",
-		"web3_tx_ctx_reason_check", "web3_tx_ctx_diagnostic_check", "web3_tx_ctx_shape_check":
-		return true
-	default:
-		return false
+		"web3_tx_ctx_reason_check", "web3_tx_ctx_diagnostic_check", "web3_tx_ctx_shape_check"} {
+		if pgErr.ConstraintName == constraint {
+			return "23514", constraint, true
+		}
 	}
+	return "", "", false
 }
 
 func logContextStorageRejected(ctx context.Context, chainID int, err error) {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
+	if state, constraint, ok := contextStorageIdentity(err); ok {
 		// PostgreSQL error details may contain the rejected row, including
 		// private metadata. Only fixed migration identifiers reach telemetry.
 		slog.ErrorContext(ctx, "contextStorageRejected", "chainId", chainID,
-			"sqlState", pgErr.Code, "constraint", pgErr.ConstraintName)
+			"sqlState", state, "constraint", constraint)
 	}
 }
 

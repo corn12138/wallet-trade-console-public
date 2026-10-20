@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -22,6 +23,17 @@ type attemptTx interface {
 
 // uniqueViolation is the SQLSTATE for a lost insert race.
 const uniqueViolation = "23505"
+
+func storedNonce(value *uint64) (*int64, error) {
+	if value == nil {
+		return nil, nil
+	}
+	if *value > math.MaxInt64 {
+		return nil, fmt.Errorf("%w: nonce exceeds PostgreSQL bigint", ErrRPCEvidenceMismatch)
+	}
+	converted := int64(*value)
+	return &converted, nil
+}
 
 func isUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
@@ -234,6 +246,10 @@ func markReplacedSiblings(
 		// intent, so it declines to guess rather than replacing the wrong row.
 		return nil, nil
 	}
+	nonce, err := storedNonce(senderNonce)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := tx.Query(ctx, `
 		UPDATE web3_transactions
 		SET status = $4, replaced_by_hash = $3, last_checked_at = now()
@@ -243,7 +259,7 @@ func markReplacedSiblings(
 		  AND tx_hash <> $3
 		  AND status = $6
 		RETURNING action_id
-	`, chainID, owner, winnerHash, StatusReplaced, int64(*senderNonce), StatusPending)
+	`, chainID, owner, winnerHash, StatusReplaced, *nonce, StatusPending)
 	if err != nil {
 		return nil, fmt.Errorf("web3events: mark replaced siblings: %w", err)
 	}
@@ -350,17 +366,15 @@ func (r *Repository) ApplyAttemptOutcome(ctx context.Context, outcome AttemptOut
 	if r.pool == nil {
 		return ErrPoolUnavailable
 	}
+	nonce, err := storedNonce(outcome.SenderNonce)
+	if err != nil {
+		return err
+	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("web3events: begin outcome write: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-
-	var nonce *int64
-	if outcome.SenderNonce != nil {
-		converted := int64(*outcome.SenderNonce)
-		nonce = &converted
-	}
 
 	var actionID *string
 	if err := tx.QueryRow(ctx, `

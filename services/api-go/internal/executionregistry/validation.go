@@ -2,6 +2,7 @@ package executionregistry
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 )
@@ -21,7 +22,7 @@ func ValidateSnapshot(s Snapshot, manifest Manifest) error {
 		if _, exists := entries[e.ChainID][e.Name]; exists {
 			return refuse("duplicate entry")
 		}
-		if e.ChainID <= 0 || !namePattern.MatchString(e.Name) || !addressPattern.MatchString(e.Address) || lower(e.Address) != e.Address || e.Address == zeroAddress ||
+		if e.ChainID <= 0 || e.CodeBlockNumber > math.MaxInt64 || !namePattern.MatchString(e.Name) || !addressPattern.MatchString(e.Address) || lower(e.Address) != e.Address || e.Address == zeroAddress ||
 			!digestPattern.MatchString(e.ABIHash) || !codeHashPattern.MatchString(e.CodeHash) || e.CodeHash == emptyCodeHash || !codeHashPattern.MatchString(e.CodeBlockHash) ||
 			e.DeploymentFile == "" || e.DeploymentTimestamp == "" || !sortedUnique(e.Interfaces) {
 			return refuse("invalid entry %s", e.Name)

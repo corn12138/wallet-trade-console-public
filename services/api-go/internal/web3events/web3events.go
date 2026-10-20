@@ -714,10 +714,9 @@ func bindAction(ctx context.Context, tx attemptTx, in attemptWrite, existing exi
 // GET /web3-events/transactions is unguarded, so internal fields must never
 // reach TransactionRow.
 func writeAttemptRow(ctx context.Context, tx attemptTx, in attemptWrite, actionID string, attemptNumber int) (TransactionRow, error) {
-	var nonce *int64
-	if in.senderNonce != nil {
-		converted := int64(*in.senderNonce)
-		nonce = &converted
+	nonce, err := storedNonce(in.senderNonce)
+	if err != nil {
+		return TransactionRow{}, err
 	}
 
 	if in.contextColumns {

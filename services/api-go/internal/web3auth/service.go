@@ -507,7 +507,7 @@ func (s *Service) respondWithNonce(w http.ResponseWriter, r *http.Request, addre
 			return
 		}
 		slog.ErrorContext(r.Context(), "web3auth nonce issue failed",
-			"err", err, "store", s.NonceStoreKind())
+			"store", s.NonceStoreKind())
 		writeError(w, http.StatusServiceUnavailable, "sign-in challenge store unavailable")
 		return
 	}
@@ -531,16 +531,16 @@ func (s *Service) handleVerify(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrChainNotAllowed), errors.Is(err, ErrContractVerificationUnavailable):
 			writeError(w, http.StatusUnauthorized, err.Error())
 		case errors.Is(err, ErrSessionStoreUnavailable):
-			slog.ErrorContext(r.Context(), "web3auth session persistence failed", "err", err)
+			slog.ErrorContext(r.Context(), "web3auth session persistence failed")
 			writeError(w, http.StatusServiceUnavailable, ErrSessionStoreUnavailable.Error())
 		case errors.Is(err, ErrContractVerificationUnreachable):
-			slog.ErrorContext(r.Context(), "web3auth contract verification unreachable", "err", err)
+			slog.ErrorContext(r.Context(), "web3auth contract verification unreachable")
 			writeError(w, http.StatusServiceUnavailable, ErrContractVerificationUnreachable.Error())
 		default:
-			// The message is deliberately fixed: a store or signing failure
-			// must not put its target, driver text or SQL in a public body.
+			// Provider errors can contain signed messages, URLs or SQL;
+			// neither the response nor telemetry may retain that payload.
 			slog.ErrorContext(r.Context(), "web3auth verify failed",
-				"err", err, "store", s.NonceStoreKind())
+				"store", s.NonceStoreKind())
 			writeError(w, http.StatusServiceUnavailable, "sign-in temporarily unavailable")
 		}
 		return

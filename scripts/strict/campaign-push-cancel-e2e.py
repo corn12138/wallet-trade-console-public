@@ -89,7 +89,7 @@ def main():
     api_query['pool_max_conns'] = '16'
     api_url = urlunsplit((parts.scheme, parts.netloc, '/' + database, urlencode(api_query), ''))
     secret, key, issuer, audience = secrets.token_hex(32), 'push-e2e', 'local-push-e2e', 'local-push-e2e-api'
-    config_path, pid_file = work / 'config.json', work / 'pids'
+    pid_file = work / 'pids'
     pid_file.write_text('')
     record = {'startedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'template': template, 'apiPoolMaxConns': 16, 'goOverlay': overlay, 'build': build, 'sourceHashes': source_hashes,
               'scope': 'Actual cmd/api, Socket.IO (repository socket.io-client), migrated PostgreSQL clone, server-issued test sessions; NOTIFY sent in the publisher wire format; not wallet, SIWE or browser evidence.'}
@@ -113,8 +113,7 @@ def main():
                   'apiEnv': {'NODE_ENV': 'test', 'DATABASE_URL': api_url, 'WEB3_JWT_ISSUER': issuer, 'WEB3_JWT_AUDIENCE': audience, 'WEB3_JWT_KEY_ID': key,
                              'WEB3_JWT_SECRET': secret, 'WEB3_AUTH_EPOCH': '1', 'REALTIME_ENABLED': 'true', 'CAMPAIGN_V2_ENABLED': 'true',
                              'MARKET_STREAM_ENABLED': 'false', 'LOG_LEVEL': 'info'}}
-        config_path.write_text(json.dumps(config))
-        env = {'PATH': os.environ['PATH'], 'HOME': os.environ.get('HOME', str(work)), 'PUSH_E2E_CONFIG': str(config_path), 'WEB_NM': str(web_nm)}
+        env = {'PATH': os.environ['PATH'], 'HOME': os.environ.get('HOME', str(work)), 'PUSH_E2E_CONFIG_JSON': json.dumps(config), 'WEB_NM': str(web_nm)}
         with (out / 'driver.log').open('w') as log:
             driver_code = subprocess.run([node, str(DRIVER)], env=env, stdout=log, stderr=subprocess.STDOUT, timeout=600).returncode
         result = json.loads((out / 'result.json').read_text())

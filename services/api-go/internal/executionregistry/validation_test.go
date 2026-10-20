@@ -3,6 +3,7 @@ package executionregistry
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -175,5 +176,17 @@ func TestDatabaseManifestContractMatchesBuiltin(t *testing.T) {
 	schema := string(readFile(t, schemaPath))
 	if !strings.Contains(schema, "manifest_digest = '"+BuiltinManifest().Digest+"'") {
 		t.Fatal("SQL publication manifest is not synchronized with the consumer manifest")
+	}
+}
+
+func TestSnapshotCodeBlockFitsPostgresBigint(t *testing.T) {
+	for _, value := range []uint64{math.MaxInt64, math.MaxInt64 + 1, math.MaxUint64} {
+		snapshot := mustBuild(t, readFile(t, realDecl), realDeployments)
+		snapshot.Entries[0].CodeBlockNumber = value
+		rehashSnapshot(&snapshot)
+		err := ValidateSnapshot(snapshot, BuiltinManifest())
+		if (err == nil) != (value <= math.MaxInt64) {
+			t.Fatalf("code block %d: %v", value, err)
+		}
 	}
 }

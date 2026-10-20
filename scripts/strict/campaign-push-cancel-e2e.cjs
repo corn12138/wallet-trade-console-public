@@ -6,7 +6,7 @@
  * completes, repeated unsubscribe, and disconnect during an observation.
  * Sessions are server-issued test sessions, not wallet or browser evidence.
  * Checks named "fixture: ..." are setup; every other failing check is a
- * product invariant. Credentials come from a config file and are redacted.
+ * product invariant. Credentials come from the child environment and are redacted.
  */
 'use strict';
 
@@ -15,7 +15,10 @@ const path = require('path');
 const crypto = require('crypto');
 const { spawn, execFileSync } = require('child_process');
 
-const config = JSON.parse(fs.readFileSync(process.env.PUSH_E2E_CONFIG, 'utf8'));
+const config = JSON.parse(process.env.PUSH_E2E_CONFIG_JSON);
+if (!Number.isSafeInteger(config.port) || config.port < 1 || config.port > 65535) {
+  throw new Error('The fixture port must be an integer between 1 and 65535');
+}
 const { io } = require(path.join(process.env.WEB_NM, 'socket.io-client'));
 const BASE = `http://127.0.0.1:${config.port}`;
 const secrets = [config.tokens.a, config.tokens.b, config.tokens.expired, config.tokens.oldEpoch, config.tokens.revoked, config.apiEnv.WEB3_JWT_SECRET, ...(config.redact || [])].filter(Boolean);

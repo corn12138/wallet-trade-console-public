@@ -125,7 +125,7 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: wallet
-          POSTGRES_PASSWORD: wallet
+          POSTGRES_PASSWORD: campaign_ci_only
           POSTGRES_DB: campaign_test_public_ci
         ports:
           - 5432:5432
@@ -133,13 +133,13 @@ jobs:
           --health-cmd "pg_isready -U wallet"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://wallet:wallet@127.0.0.1:5432/campaign_test_public_ci
-      CAMPAIGN_TEST_DATABASE_URL: postgresql://wallet:wallet@127.0.0.1:5432/campaign_test_public_ci
-      CAMPAIGN_LEGACY_TEST_DATABASE_URL: postgresql://wallet:wallet@127.0.0.1:5432/campaign_test_legacy_public_ci
-      EXECUTION_REGISTRY_TEST_ADMIN_URL: postgresql://wallet:wallet@127.0.0.1:5432/postgres
+      DATABASE_URL: postgresql://wallet:campaign_ci_only@127.0.0.1:5432/campaign_test_public_ci
+      CAMPAIGN_TEST_DATABASE_URL: postgresql://wallet:campaign_ci_only@127.0.0.1:5432/campaign_test_public_ci
+      CAMPAIGN_LEGACY_TEST_DATABASE_URL: postgresql://wallet:campaign_ci_only@127.0.0.1:5432/campaign_test_legacy_public_ci
+      EXECUTION_REGISTRY_TEST_ADMIN_URL: postgresql://wallet:campaign_ci_only@127.0.0.1:5432/postgres
       EXECUTION_REGISTRY_TEST_TEMPLATE: wallet_registry_ci
-      WEB3TX_TEST_DATABASE_URL: postgresql://wallet:wallet@127.0.0.1:5432/wallet_reports_ci
-      OUTBOX_TEST_ADMIN_URL: postgresql://wallet:wallet@127.0.0.1:5432/postgres
+      WEB3TX_TEST_DATABASE_URL: postgresql://wallet:campaign_ci_only@127.0.0.1:5432/wallet_reports_ci
+      OUTBOX_TEST_ADMIN_URL: postgresql://wallet:campaign_ci_only@127.0.0.1:5432/postgres
       OUTBOX_TEST_TEMPLATE: wallet_registry_ci
       OUTBOX_REPAIR_TEST_TEMPLATE: wallet_registry_ci
     steps:
@@ -161,10 +161,10 @@ jobs:
       - name: Initialize complete public databases
         run: |
           for database in campaign_test_legacy_public_ci wallet_registry_ci wallet_reports_ci; do
-            PGPASSWORD=wallet createdb -h 127.0.0.1 -U wallet "$database"
+            PGPASSWORD=campaign_ci_only createdb -h 127.0.0.1 -U wallet "$database"
           done
           for database in campaign_test_public_ci campaign_test_legacy_public_ci wallet_registry_ci wallet_reports_ci; do
-            DATABASE_URL="postgresql://wallet:wallet@127.0.0.1:5432/$database" pnpm --filter @wallet-trade/database db:init
+            DATABASE_URL="postgresql://wallet:campaign_ci_only@127.0.0.1:5432/$database" pnpm --filter @wallet-trade/database db:init
           done
           pnpm --filter @wallet-trade/database exec prisma migrate diff \
             --from-url "$DATABASE_URL" --to-schema-datamodel ./prisma/schema.prisma --exit-code
@@ -176,14 +176,14 @@ jobs:
           grep -q 'public schema is not empty' "$RUNNER_TEMP/bootstrap-repeat.log"
       - name: Reject incompatible database encoding without creating tables
         run: |
-          PGPASSWORD=wallet createdb -h 127.0.0.1 -U wallet --template=template0 \
+          PGPASSWORD=campaign_ci_only createdb -h 127.0.0.1 -U wallet --template=template0 \
             --encoding=SQL_ASCII --lc-collate=C --lc-ctype=C wallet_ascii_ci
-          if DATABASE_URL=postgresql://wallet:wallet@127.0.0.1:5432/wallet_ascii_ci \
+          if DATABASE_URL=postgresql://wallet:campaign_ci_only@127.0.0.1:5432/wallet_ascii_ci \
             pnpm --filter @wallet-trade/database db:init > "$RUNNER_TEMP/bootstrap-encoding.log" 2>&1; then
             echo "Bootstrap unexpectedly accepted SQL_ASCII"; exit 1
           fi
           grep -q 'requires a UTF8 database' "$RUNNER_TEMP/bootstrap-encoding.log"
-          test "$(PGPASSWORD=wallet psql -X -h 127.0.0.1 -U wallet -d wallet_ascii_ci -Atc \
+          test "$(PGPASSWORD=campaign_ci_only psql -X -h 127.0.0.1 -U wallet -d wallet_ascii_ci -Atc \
             "SELECT count(*) FROM pg_tables WHERE schemaname='public'")" = 0
       - name: Campaign, registry, outbox and persistent session invariants
         working-directory: services/api-go
@@ -204,7 +204,7 @@ jobs:
           exit "$status"
       - name: Cancellation through the actual API and Socket.IO
         env:
-          CAMPAIGN_PUSH_E2E_ADMIN_URL: postgresql://wallet:wallet@127.0.0.1:5432/postgres
+          CAMPAIGN_PUSH_E2E_ADMIN_URL: postgresql://wallet:campaign_ci_only@127.0.0.1:5432/postgres
           CAMPAIGN_PUSH_E2E_TEMPLATE: wallet_registry_ci
           CAMPAIGN_PUSH_E2E_OUT: ${{ runner.temp }}/campaign-push-e2e
         run: python3 scripts/strict/campaign-push-cancel-e2e.py

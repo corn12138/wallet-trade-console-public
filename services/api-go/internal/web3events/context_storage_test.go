@@ -48,6 +48,9 @@ func TestContextStorageLogNeverIncludesDatabasePayload(t *testing.T) {
 		Code: "23514", ConstraintName: "web3_tx_ctx_market_check",
 		Message: "secret-message", Detail: "secret-row", Where: "secret-statement", Hint: "secret-hint",
 	})
+	logContextStorageRejected(context.Background(), 1, &pgconn.PgError{
+		Code: "23514\nsecret-code", ConstraintName: "web3_tx_ctx_market_check\nsecret-constraint",
+	})
 	if strings.Contains(out.String(), "secret") || !strings.Contains(out.String(), "web3_tx_ctx_market_check") {
 		t.Fatalf("unsafe or unattributed log: %s", out.String())
 	}
