@@ -45,7 +45,7 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.3.1",
-    "happy-dom": "^20.8.4",
+    "happy-dom": "^21.0.4",
     "porto": "^0.2.37",
     "typescript": "^5.9.3",
     "vite": "^8.0.16",
